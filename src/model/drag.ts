@@ -102,3 +102,43 @@ export function nudgePiece(
   const mm = clampToValid(current, current + direction * step, (v) => setPieceProperty(plan, [id], property, v).ok)
   return mm === current ? null : { property, mm }
 }
+
+/** Plus grande distance (mm) explorée un mm à la fois quand la profondeur de départ n'est elle-même pas valide. */
+const SCAN_LIMIT = 3000
+
+/**
+ * Plan avec la profondeur de toutes les pièces `ids` portée à la valeur amenée par la souris (`rawDepth`, en mm,
+ * non arrondi). Toutes prennent la même profondeur, comme dans le panneau de propriétés. La valeur s'arrête à ce
+ * que le plan autorise (par exemple, un arrondi d'arête limite la profondeur minimale). `startDepth` est la
+ * profondeur de la pièce saisie au début du geste. Renvoie null si aucune valeur valide n'est proche.
+ */
+export function dragDepth(
+  plan: Plan,
+  ids: string[],
+  startDepth: number,
+  rawDepth: number,
+  step: number | null,
+): { plan: Plan; mm: number } | null {
+  const valid = (v: number) => v >= 1 && setPieceProperty(plan, ids, 'depth', v).ok
+  const target = Math.max(1, snapToStep(rawDepth, step))
+
+  let mm: number | null = null
+  if (valid(startDepth)) {
+    mm = clampToValid(startDepth, target, valid)
+  } else if (valid(target)) {
+    mm = target
+  } else {
+    // Départ invalide (la sélection a des profondeurs très différentes) : on cherche la valeur valide la plus proche.
+    const direction = startDepth > target ? 1 : -1
+    for (let v = target, i = 0; i < Math.min(SCAN_LIMIT, Math.abs(startDepth - target)); v += direction, i++) {
+      if (valid(v)) {
+        mm = v
+        break
+      }
+    }
+  }
+
+  if (mm === null) return null
+  const result = setPieceProperty(plan, ids, 'depth', mm)
+  return result.ok ? { plan: result.plan, mm } : null
+}

@@ -10,7 +10,7 @@ Concevez vos étagères en bois massif dans le navigateur : dessinez-les, ajuste
 
 - **Assistant de création** : largeur, hauteur, profondeur, nombre d'étages, épaisseurs du bois. Aperçu en direct pendant la saisie.
 - **Deux modèles de construction** : **avec cadre** (deux montants pleine hauteur, tablettes entre eux) ou **sans cadre** (planches apparentes : tablettes continues avec un débord réglable à gauche et à droite, montants coupés à la hauteur de chaque étage et supprimables un par un).
-- **Vue de face** cotée et **vue de profil** (lecture seule), avec zoom et déplacement.
+- **Vue de face** et **vue de profil** cotées, avec zoom et déplacement. Le profil est éditable : on y change la profondeur de chaque pièce (étages de profondeurs différentes) et on y déplace les tablettes.
 - **Édition à la souris** : déplacer les tablettes et les cales, redimensionner le cadre par ses bords, avec aimantation à un pas réglable (1 mm, 5 mm, 1 cm, 5 cm ; `Alt` pour s'en passer).
 - **Édition au clavier** : saisie de toute cote dans un panneau, flèches pour déplacer une pièce, sélection multiple pour appliquer une même épaisseur à plusieurs pièces.
 - **Propagation « intelligente »** : changer la largeur ou la hauteur garde les cales et les tablettes à leur position proportionnelle (désactivable).

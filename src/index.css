@@ -959,3 +959,33 @@ kbd {
   color: var(--ink-soft);
   text-align: left;
 }
+
+.handle-depth {
+  cursor: ew-resize;
+}
+
+.view-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  max-width: 24rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.handle-depth {
+  cursor: ew-resize;
+}
+
+.view-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  max-width: 24rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  pointer-events: none;
+}

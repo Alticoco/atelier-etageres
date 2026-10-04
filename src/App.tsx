@@ -409,7 +409,15 @@ export default function App() {
                   onClearSelection={() => dispatch({ type: 'clearSelection' })}
                 />
               ) : (
-                <ProfileView plan={plan} unit={unit} selection={selection} />
+                <ProfileView
+                  plan={plan}
+                  unit={unit}
+                  selection={selection}
+                  snapStep={snapStep}
+                  onChange={run}
+                  onSelectPiece={(id, additive) => dispatch({ type: 'selectPiece', id, additive })}
+                  onClearSelection={() => dispatch({ type: 'clearSelection' })}
+                />
               )}
             </div>
             <PropertiesPanel plan={plan} selection={selection} unit={unit} dispatch={run} />
