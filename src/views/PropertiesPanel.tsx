@@ -90,7 +90,7 @@ function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
   const stageId = valid(chosen) ? chosen : valid(defaultStageId) ? defaultStageId : stages[0]?.shelfBelowId
 
   return (
-    <fieldset className="tools">
+    <fieldset className="panel-section tools">
       <legend>Outils</legend>
       <div className="field">
         <label>
@@ -160,92 +160,109 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
             />
           </label>
         </div>
-        <LengthField
-          key={`w-${plan.width}-${unit}`}
-          label="Largeur hors-tout"
-          valueMm={plan.width}
-          unit={unit}
-          onCommit={(mm) => commitPlan({ property: 'width', mm })}
-        />
-        <LengthField
-          key={`h-${plan.height}-${unit}`}
-          label="Hauteur hors-tout"
-          valueMm={plan.height}
-          unit={unit}
-          onCommit={(mm) => commitPlan({ property: 'height', mm })}
-        />
-        <LengthField
-          key={`c-${plan.options.wedgeClearance}-${unit}`}
-          label="Jeu des cales"
-          valueMm={plan.options.wedgeClearance}
-          unit={unit}
-          onCommit={(mm) => commitPlan({ property: 'wedgeClearance', mm })}
-        />
-        <LengthField
-          key={`t-${plan.options.defaultWedgeThickness}-${unit}`}
-          label="Épaisseur des nouvelles cales"
-          valueMm={plan.options.defaultWedgeThickness}
-          unit={unit}
-          onCommit={(mm) => commitPlan({ property: 'defaultWedgeThickness', mm })}
-        />
-        <div className="field">
-          <label>
-            Tablettes du haut et du bas
-            <select
-              value={plan.options.framePlacement}
-              onChange={(e) =>
-                commitPlan({ property: 'framePlacement', value: e.target.value as Plan['options']['framePlacement'] })
-              }
-            >
-              <option value="between">Entre les montants</option>
-              <option value="onTop">Posées sur / sous les montants</option>
-            </select>
-          </label>
-        </div>
-        <div className="field field-check">
-          <label>
-            <input
-              type="checkbox"
-              checked={plan.options.propagation}
-              onChange={(e) => commitPlan({ property: 'propagation', value: e.target.checked })}
-            />
-            Propagation intelligente
-          </label>
-          <small className="field-hint">
-            Quand on change la largeur ou la hauteur, les cales et les tablettes gardent leur position proportionnelle.
-          </small>
-        </div>
-        <div className="field field-check">
-          <label>
-            <input
-              type="checkbox"
-              checked={plan.options.sawKerfEnabled}
-              onChange={(e) => commitPlan({ property: 'sawKerfEnabled', value: e.target.checked })}
-            />
-            Trait de scie
-          </label>
-          <small className="field-hint">Ajoute une estimation de la perte de bois à la liste de découpe.</small>
-        </div>
-        {plan.options.sawKerfEnabled && (
+
+        <fieldset className="panel-section">
+          <legend>Dimensions hors-tout</legend>
           <LengthField
-            key={`k-${plan.options.sawKerf}-${unit}`}
-            label="Épaisseur du trait de scie"
-            valueMm={plan.options.sawKerf}
+            key={`w-${plan.width}-${unit}`}
+            label="Largeur"
+            valueMm={plan.width}
             unit={unit}
-            onCommit={(mm) => commitPlan({ property: 'sawKerf', mm })}
+            onCommit={(mm) => commitPlan({ property: 'width', mm })}
           />
-        )}
-        <div className="field field-check">
-          <label>
-            <input
-              type="checkbox"
-              checked={plan.options.wallMount}
-              onChange={(e) => commitPlan({ property: 'wallMount', value: e.target.checked })}
+          <LengthField
+            key={`h-${plan.height}-${unit}`}
+            label="Hauteur"
+            valueMm={plan.height}
+            unit={unit}
+            onCommit={(mm) => commitPlan({ property: 'height', mm })}
+          />
+        </fieldset>
+
+        <fieldset className="panel-section">
+          <legend>Montage</legend>
+          <div className="field">
+            <label>
+              Tablettes du haut et du bas
+              <select
+                value={plan.options.framePlacement}
+                onChange={(e) =>
+                  commitPlan({ property: 'framePlacement', value: e.target.value as Plan['options']['framePlacement'] })
+                }
+              >
+                <option value="between">Entre les montants</option>
+                <option value="onTop">Posées sur / sous les montants</option>
+              </select>
+            </label>
+          </div>
+          <div className="field field-check">
+            <label>
+              <input
+                type="checkbox"
+                checked={plan.options.propagation}
+                onChange={(e) => commitPlan({ property: 'propagation', value: e.target.checked })}
+              />
+              Propagation intelligente
+            </label>
+            <small className="field-hint">
+              Quand on change la largeur ou la hauteur, les cales et les tablettes gardent leur position proportionnelle.
+            </small>
+          </div>
+          <div className="field field-check">
+            <label>
+              <input
+                type="checkbox"
+                checked={plan.options.wallMount}
+                onChange={(e) => commitPlan({ property: 'wallMount', value: e.target.checked })}
+              />
+              Fixation murale
+            </label>
+            <small className="field-hint">Ajoute une note et un repère « F » sur le plan PDF.</small>
+          </div>
+        </fieldset>
+
+        <fieldset className="panel-section">
+          <legend>Cales</legend>
+          <LengthField
+            key={`c-${plan.options.wedgeClearance}-${unit}`}
+            label="Jeu sous la tablette"
+            valueMm={plan.options.wedgeClearance}
+            unit={unit}
+            onCommit={(mm) => commitPlan({ property: 'wedgeClearance', mm })}
+          />
+          <LengthField
+            key={`t-${plan.options.defaultWedgeThickness}-${unit}`}
+            label="Épaisseur des nouvelles cales"
+            valueMm={plan.options.defaultWedgeThickness}
+            unit={unit}
+            onCommit={(mm) => commitPlan({ property: 'defaultWedgeThickness', mm })}
+          />
+        </fieldset>
+
+        <fieldset className="panel-section">
+          <legend>Découpe</legend>
+          <div className="field field-check">
+            <label>
+              <input
+                type="checkbox"
+                checked={plan.options.sawKerfEnabled}
+                onChange={(e) => commitPlan({ property: 'sawKerfEnabled', value: e.target.checked })}
+              />
+              Trait de scie
+            </label>
+            <small className="field-hint">Ajoute une estimation de la perte de bois à la liste de découpe.</small>
+          </div>
+          {plan.options.sawKerfEnabled && (
+            <LengthField
+              key={`k-${plan.options.sawKerf}-${unit}`}
+              label="Épaisseur du trait de scie"
+              valueMm={plan.options.sawKerf}
+              unit={unit}
+              onCommit={(mm) => commitPlan({ property: 'sawKerf', mm })}
             />
-            Fixation murale
-          </label>
-          <small className="field-hint">Ajoute une note et un repère « F » sur le plan PDF.</small>
-        </div>
+          )}
+        </fieldset>
+
         <StageTools plan={plan} unit={unit} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>

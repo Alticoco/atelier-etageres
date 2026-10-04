@@ -66,3 +66,39 @@ export function resizeFrame(plan: Plan, raw: { width?: number; height?: number }
   const result = setPlanSize(plan, size)
   return result.ok ? result.plan : plan
 }
+
+/**
+ * Déplacement d'une pièce au clavier : une tablette intermédiaire monte / descend (`dy`), une cale va à gauche /
+ * à droite (`dx`), d'un pas `step` (mm). Comme à la souris, elle s'arrête contre ses voisines.
+ * Renvoie la cote à appliquer, ou null si la pièce ne se déplace pas dans ce sens ou ne peut plus bouger.
+ */
+export function nudgePiece(
+  plan: Plan,
+  id: string,
+  dx: -1 | 0 | 1,
+  dy: -1 | 0 | 1,
+  step: number,
+): { property: 'x' | 'y'; mm: number } | null {
+  const shelves = sortedShelves(plan)
+  const index = shelves.findIndex((s) => s.id === id)
+  const isMiddleShelf = index > 0 && index < shelves.length - 1
+  const wedge = plan.wedges.find((w) => w.id === id)
+
+  let property: 'x' | 'y'
+  let current: number
+  let direction: number
+  if (isMiddleShelf && dy !== 0) {
+    property = 'y'
+    current = shelves[index].y
+    direction = dy
+  } else if (wedge && dx !== 0) {
+    property = 'x'
+    current = wedge.x
+    direction = dx
+  } else {
+    return null
+  }
+
+  const mm = clampToValid(current, current + direction * step, (v) => setPieceProperty(plan, [id], property, v).ok)
+  return mm === current ? null : { property, mm }
+}

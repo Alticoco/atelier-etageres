@@ -113,4 +113,16 @@ describe('applyAction', () => {
     expect(outcome.state).toBe(initialEditorState)
     expect(outcome.error).toBe('Aucune étagère ouverte.')
   })
+
+  it('selectAll sélectionne toutes les pièces, cales comprises', () => {
+    const withWedge = editorReducer(withPlan, { type: 'addWedge', shelfBelowId: 'shelf-1' })
+    const state = editorReducer(withWedge, { type: 'selectAll' })
+    expect(state.selection.sort()).toEqual(
+      ['upright-left', 'upright-right', 'shelf-1', 'shelf-2', 'shelf-3', 'shelf-4', 'wedge-1'].sort(),
+    )
+  })
+
+  it('selectAll sans plan ne fait rien', () => {
+    expect(editorReducer(initialEditorState, { type: 'selectAll' })).toBe(initialEditorState)
+  })
 })

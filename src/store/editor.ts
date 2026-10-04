@@ -31,6 +31,7 @@ export interface EditorState {
 export type EditorAction =
   | { type: 'newPlan'; plan: Plan }
   | { type: 'selectPiece'; id: string; additive: boolean }
+  | { type: 'selectAll' }
   | { type: 'clearSelection' }
   | { type: 'setUnit'; unit: LengthUnit }
   | { type: 'setSnapStep'; mm: number }
@@ -65,9 +66,14 @@ function samePlan(a: Plan, b: Plan): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
+/** Identifiants de toutes les pièces du plan. */
+function allPieceIds(plan: Plan): string[] {
+  return ['upright-left', 'upright-right', ...plan.shelves.map((s) => s.id), ...plan.wedges.map((w) => w.id)]
+}
+
 /** Ne garde dans la sélection que les pièces qui existent dans ce plan. */
 function existingOnly(selection: string[], plan: Plan): string[] {
-  const ids = new Set(['upright-left', 'upright-right', ...plan.shelves.map((s) => s.id), ...plan.wedges.map((w) => w.id)])
+  const ids = new Set(allPieceIds(plan))
   return selection.filter((id) => ids.has(id))
 }
 
@@ -81,6 +87,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return accepted({ ...state, plan: action.plan, selection: [], past: [], future: [] })
     case 'selectPiece':
       return accepted({ ...state, selection: selectPiece(state.selection, action.id, action.additive) })
+    case 'selectAll':
+      return accepted(state.plan ? { ...state, selection: allPieceIds(state.plan) } : state)
     case 'clearSelection':
       return accepted(state.selection.length === 0 ? state : { ...state, selection: [] })
     case 'setUnit':

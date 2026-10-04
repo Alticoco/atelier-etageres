@@ -412,7 +412,7 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   let cx = MARGIN
   for (const cell of cells) {
     if (cx > MARGIN) line(cx, ZONE_BOTTOM, cx, PAGE.height - MARGIN, 0.25)
-    text(cx + 2, ZONE_BOTTOM + 4, truncate(cell.label, Math.floor(cell.w / 1.35)), 5.5, { gray: 0.4 })
+    text(cx + 2, ZONE_BOTTOM + 4, truncate(cell.label, Math.floor(cell.w / 1.35)), 6, { gray: 0.4 })
     text(cx + 2, ZONE_BOTTOM + 17, cell.value, cell.size, { bold: cell.size >= 12 })
     cx += cell.w
   }

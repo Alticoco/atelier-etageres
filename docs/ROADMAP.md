@@ -19,9 +19,19 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - [x] **Étape 11 — Export PDF** : plan d'architecte A4 paysage, note fixation murale, JSON embarqué, ré-import du PDF.
 - [x] **Étape 12 — Finitions** : design, raccourcis clavier, README du dépôt, vérification des critères de « terminé ».
 
+### Critères de « terminé » du MVP (voir `docs/SPEC.md` §7)
+
+- [ ] **1. Recréer une de mes mangathèques en moins de 10 minutes** — à valider par Alexis avec sa vraie étagère : le parcours est prêt (assistant, puis une cale par étage), mais seul un essai réel peut chronométrer.
+- [x] **2. La liste de découpe correspond à ce que j'aurais calculé à la main** — quatre cas calculés à la main (chaque calcul est écrit en commentaire) dans `src/acceptance.test.ts` : cadre entre les montants, tablettes posées dessus, montants plus épais, trait de scie.
+- [x] **3. Le PDF s'imprime lisiblement en A4 paysage** — vérifié par tests (page 297 × 210 mm, marge de 5 mm, aucun texte sous 6 pt, cotes et tableau à 7 pt ou plus, traits >= 0,1 mm, 3 tailles d'étagère) et par le rendu de la page avec un lecteur indépendant. **Reste à imprimer une fois sur papier** pendant la période de test.
+- [x] **4. Un PDF exporté puis ré-importé redonne le même plan** — testé (et vérifié dans le navigateur avec la vraie base de données).
+- [ ] **5. Le site est en ligne sur GitHub Pages** — à cocher après vérification du déploiement de l'étape 12.
+
 ## Période de test
 
 - [ ] Utiliser l'app pour concevoir l'étagère à épices.
+- [ ] Imprimer le plan PDF sur une vraie imprimante A4 : vérifier marges et lisibilité des cotes (critère 3).
+- [ ] Chronométrer la recréation d'une mangathèque existante (critère 1).
 - [ ] Noter ici les bugs et envies apparus pendant le test.
 
 ## V2

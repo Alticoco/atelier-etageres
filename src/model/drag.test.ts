@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampToValid, dragShelf, dragWedge, resizeFrame, snapToStep } from './drag'
+import { clampToValid, dragShelf, dragWedge, nudgePiece, resizeFrame, snapToStep } from './drag'
 import { setPlanSize } from './edit'
 import { getStages } from './pieces'
 import { createPlan } from './plan'
@@ -162,5 +162,54 @@ describe('resizeFrame', () => {
 
   it('agrandit sans limite particulière', () => {
     expect(resizeFrame(createPlan(base), { width: 3000 }, null).width).toBe(3000)
+  })
+})
+
+describe('nudgePiece (flèches du clavier)', () => {
+  it('monte et descend une tablette intermédiaire d’un pas', () => {
+    const plan = createPlan(base) // shelf-2 à y = 328
+    expect(nudgePiece(plan, 'shelf-2', 0, 1, 10)).toEqual({ property: 'y', mm: 338 })
+    expect(nudgePiece(plan, 'shelf-2', 0, -1, 10)).toEqual({ property: 'y', mm: 318 })
+    expect(nudgePiece(plan, 'shelf-2', 0, 1, 1)).toEqual({ property: 'y', mm: 329 })
+  })
+
+  it('déplace une cale à droite et à gauche', () => {
+    const plan = planWithWedge() // x = 300
+    expect(nudgePiece(plan, 'wedge-1', 1, 0, 10)).toEqual({ property: 'x', mm: 310 })
+    expect(nudgePiece(plan, 'wedge-1', -1, 0, 5)).toEqual({ property: 'x', mm: 295 })
+  })
+
+  it('ne déplace pas dans le mauvais sens : une tablette ne va pas de côté, une cale ne monte pas', () => {
+    expect(nudgePiece(createPlan(base), 'shelf-2', 1, 0, 10)).toBeNull()
+    expect(nudgePiece(planWithWedge(), 'wedge-1', 0, 1, 10)).toBeNull()
+  })
+
+  it('ne déplace pas les montants ni les tablettes du haut et du bas', () => {
+    const plan = createPlan(base)
+    expect(nudgePiece(plan, 'upright-left', 1, 0, 10)).toBeNull()
+    expect(nudgePiece(plan, 'shelf-1', 0, 1, 10)).toBeNull()
+    expect(nudgePiece(plan, 'shelf-4', 0, -1, 10)).toBeNull()
+  })
+
+  it('s’arrête contre la voisine au lieu de la traverser (dernier pas partiel)', () => {
+    const plan = createPlan(base) // shelf-3 à 655, shelf-2 ne peut pas dépasser 636
+    plan.shelves[1].y = 630
+    expect(nudgePiece(plan, 'shelf-2', 0, 1, 50)).toEqual({ property: 'y', mm: 636 })
+  })
+
+  it('renvoie null quand la pièce est déjà contre sa voisine', () => {
+    const plan = createPlan(base)
+    plan.shelves[1].y = 636
+    expect(nudgePiece(plan, 'shelf-2', 0, 1, 10)).toBeNull()
+  })
+
+  it('s’arrête contre le montant pour une cale', () => {
+    const plan = planWithWedge()
+    plan.wedges[0].x = 20
+    expect(nudgePiece(plan, 'wedge-1', -1, 0, 10)).toEqual({ property: 'x', mm: 18 })
+  })
+
+  it('ignore une pièce inconnue', () => {
+    expect(nudgePiece(createPlan(base), 'nope', 0, 1, 10)).toBeNull()
   })
 })

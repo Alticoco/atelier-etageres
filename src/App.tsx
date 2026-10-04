@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react'
-import { SNAP_STEPS } from './model/drag'
+import { commandForKey, type Command, type ViewMode } from './keyboard'
+import { nudgePiece, SNAP_STEPS } from './model/drag'
 import { exportFileName, parsePlanFile, pdfFileName, serializePlan, type ParseResult } from './model/serialize'
 import type { Plan } from './model/types'
 import type { LengthUnit } from './model/units'
@@ -13,12 +14,13 @@ import { CutListView } from './views/CutListView'
 import { ExportMenu } from './views/ExportMenu'
 import { FrontView } from './views/FrontView'
 import { LibraryView } from './views/LibraryView'
+import { Logo } from './views/Logo'
 import { ProfileView } from './views/ProfileView'
 import { PropertiesPanel } from './views/PropertiesPanel'
+import { ShortcutsDialog } from './views/ShortcutsDialog'
 
 const UNITS: LengthUnit[] = ['mm', 'cm']
 
-type ViewMode = 'front' | 'side' | 'cut'
 const VIEWS: { mode: ViewMode; label: string }[] = [
   { mode: 'front', label: 'Face' },
   { mode: 'side', label: 'Profil' },
@@ -55,6 +57,7 @@ export default function App() {
   const [view, setView] = useState<ViewMode>('front')
   const [showMarks, setShowMarks] = useState(true)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const { plan, selection, unit, snapStep, past, future } = state
 
   const { status, library, listing, refresh } = useLibrary()
@@ -75,31 +78,51 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  // Ctrl+Z annule, Ctrl+Y (ou Ctrl+Maj+Z) rétablit, Échap désélectionne, Suppr supprime la sélection.
-  // Les touches d'édition sont laissées aux champs de saisie quand on est en train d'y taper.
+  /** Exécute un raccourci clavier (voir `src/keyboard.ts`). */
+  const execute = (command: Command) => {
+    switch (command.type) {
+      case 'undo':
+      case 'redo':
+      case 'selectAll':
+      case 'clearSelection':
+        dispatch({ type: command.type })
+        break
+      case 'deleteSelection':
+        run({ type: 'removePieces', ids: selection })
+        break
+      case 'nudge': {
+        // Le déplacement au clavier concerne une seule pièce à la fois.
+        if (!plan || selection.length !== 1) break
+        const move = nudgePiece(plan, selection[0], command.dx, command.dy, command.fine ? 1 : snapStep)
+        if (move) run({ type: 'setPieceProperty', ids: selection, property: move.property, mm: move.mm })
+        break
+      }
+      case 'view':
+        setView(command.mode)
+        break
+      case 'help':
+        setHelpOpen(true)
+        break
+      case 'save':
+        if (!currentId) notify('Cette étagère n’est pas enregistrée dans ce navigateur : utilisez « Exporter » pour la garder.')
+        else void flush().then(() => notify('Étagère enregistrée.', 'info'))
+        break
+    }
+  }
+
+  // Raccourcis clavier. Les touches d'édition restent aux champs de saisie quand on y tape.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (screen !== 'editor' || helpOpen) return
       const target = e.target as HTMLElement
-      if (screen !== 'editor') return
-
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !isTextEntry(target)) {
-        const key = e.key.toLowerCase()
-        if (key === 'z' && !e.shiftKey) {
-          e.preventDefault()
-          dispatch({ type: 'undo' })
-        } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
-          e.preventDefault()
-          dispatch({ type: 'redo' })
-        }
-        return
-      }
-
-      if (isTextEntry(target) || target.tagName === 'SELECT') return
-      if (e.key === 'Escape') dispatch({ type: 'clearSelection' })
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length > 0) {
-        e.preventDefault()
-        run({ type: 'removePieces', ids: selection })
-      }
+      const command = commandForKey(e, {
+        textEntry: isTextEntry(target),
+        select: target.tagName === 'SELECT',
+        hasSelection: selection.length > 0,
+      })
+      if (!command) return
+      e.preventDefault()
+      execute(command)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -239,7 +262,10 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Atelier Étagères</h1>
+        <h1>
+          <Logo />
+          Atelier Étagères
+        </h1>
         {screen === 'editor' && plan && (
           <>
             <span className="app-plan-name">{plan.name}</span>
@@ -301,6 +327,15 @@ export default function App() {
               <ExportMenu onPdf={() => void exportPdf(plan)} onJson={() => exportPlan(plan)} busy={exportingPdf} />
               <button type="button" className="header-button" onClick={() => void goToWizard('editor')}>
                 Nouvelle étagère
+              </button>
+              <button
+                type="button"
+                className="header-button icon-button"
+                onClick={() => setHelpOpen(true)}
+                title="Raccourcis clavier (?)"
+                aria-label="Raccourcis clavier"
+              >
+                ?
               </button>
             </div>
           </>
@@ -381,6 +416,8 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {helpOpen && <ShortcutsDialog onClose={() => setHelpOpen(false)} />}
 
       {notice && (
         <div className={`notice ${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
