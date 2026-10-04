@@ -1,14 +1,16 @@
 import { useEffect, useReducer, useState } from 'react'
 import { SNAP_STEPS } from './model/drag'
-import { exportFileName, parsePlanFile, serializePlan } from './model/serialize'
+import { exportFileName, parsePlanFile, pdfFileName, serializePlan, type ParseResult } from './model/serialize'
 import type { Plan } from './model/types'
 import type { LengthUnit } from './model/units'
-import { downloadTextFile } from './storage/download'
+import { isPdf } from './pdf/detect'
+import { downloadBytes, downloadTextFile } from './storage/download'
 import { useAutosave } from './storage/useAutosave'
 import { useLibrary } from './storage/useLibrary'
 import { applyAction, editorReducer, initialEditorState, type EditorAction } from './store/editor'
 import { CreationWizard } from './views/CreationWizard'
 import { CutListView } from './views/CutListView'
+import { ExportMenu } from './views/ExportMenu'
 import { FrontView } from './views/FrontView'
 import { LibraryView } from './views/LibraryView'
 import { ProfileView } from './views/ProfileView'
@@ -30,8 +32,9 @@ interface Notice {
   kind: 'error' | 'info'
 }
 
-/** Un plan d'étagère fait quelques ko : au-delà, ce n'est pas un de nos fichiers. */
+/** Un plan d'étagère fait quelques ko : au-delà, ce n'est pas un de nos fichiers (un PDF exporté pèse quelques dizaines de ko). */
 const MAX_IMPORT_BYTES = 5_000_000
+const MAX_IMPORT_PDF_BYTES = 20_000_000
 
 /** Champ où l'on tape du texte : Ctrl+Z doit alors annuler la frappe, pas le plan. */
 function isTextEntry(el: HTMLElement): boolean {
@@ -51,6 +54,7 @@ export default function App() {
   const [notice, setNotice] = useState<Notice | null>(null)
   const [view, setView] = useState<ViewMode>('front')
   const [showMarks, setShowMarks] = useState(true)
+  const [exportingPdf, setExportingPdf] = useState(false)
   const { plan, selection, unit, snapStep, past, future } = state
 
   const { status, library, listing, refresh } = useLibrary()
@@ -173,6 +177,21 @@ export default function App() {
 
   const exportPlan = (exported: Plan) => downloadTextFile(exportFileName(exported.name), serializePlan(exported))
 
+  /** Plan PDF A4 paysage avec le plan éditable joint. La bibliothèque PDF n'est chargée qu'à ce moment-là. */
+  const exportPdf = async (exported: Plan) => {
+    setExportingPdf(true)
+    try {
+      const { buildPlanPdf } = await import('./pdf/pdf')
+      const bytes = await buildPlanPdf(exported, { unit })
+      downloadBytes(pdfFileName(exported.name), bytes, 'application/pdf')
+      notify('Le plan PDF a été créé. Vous pouvez le ré-importer plus tard pour le modifier.', 'info')
+    } catch (error) {
+      notify(`Création du PDF impossible : ${messageOf(error)}`)
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   const exportEntry = async (id: string) => {
     try {
       const entry = await library?.open(id)
@@ -184,14 +203,27 @@ export default function App() {
   }
 
   const importFile = async (file: File) => {
-    if (file.size > MAX_IMPORT_BYTES) return notify('Ce fichier est trop volumineux pour être un plan d’étagère.')
-    let content: string
+    if (file.size > MAX_IMPORT_PDF_BYTES) return notify('Ce fichier est trop volumineux pour être un plan d’étagère.')
+    let bytes: Uint8Array
     try {
-      content = await file.text()
+      bytes = new Uint8Array(await file.arrayBuffer())
     } catch {
       return notify('Impossible de lire ce fichier.')
     }
-    const result = parsePlanFile(content)
+
+    let result: ParseResult
+    if (isPdf(bytes)) {
+      try {
+        const { readPlanFromPdf } = await import('./pdf/pdf')
+        result = await readPlanFromPdf(bytes)
+      } catch (error) {
+        return notify(`Import impossible : ${messageOf(error)}`)
+      }
+    } else if (bytes.length > MAX_IMPORT_BYTES) {
+      return notify('Ce fichier est trop volumineux pour être un plan d’étagère.')
+    } else {
+      result = parsePlanFile(new TextDecoder().decode(bytes))
+    }
     if (!result.ok) return notify(`Import impossible : ${result.error}`)
     await addPlan(result.plan, `« ${result.plan.name} » a été importée.`)
   }
@@ -201,8 +233,8 @@ export default function App() {
     : saveState === 'saving'
       ? 'Enregistrement…'
       : saveState === 'error'
-        ? 'Échec de l’enregistrement'
-        : 'Enregistrée dans ce navigateur'
+        ? 'Échec d’enregistrement'
+        : 'Enregistrée'
 
   return (
     <div className="app">
@@ -211,7 +243,11 @@ export default function App() {
         {screen === 'editor' && plan && (
           <>
             <span className="app-plan-name">{plan.name}</span>
-            <span className={`save-state${!currentId || saveState === 'error' ? ' warn' : ''}`} role="status">
+            <span
+              className={`save-state${!currentId || saveState === 'error' ? ' warn' : ''}`}
+              role="status"
+              title={currentId && saveState === 'saved' ? 'Enregistrée automatiquement dans ce navigateur' : undefined}
+            >
               {saveLabel}
             </span>
             <div className="header-tools">
@@ -262,9 +298,7 @@ export default function App() {
                   </label>
                 ))}
               </div>
-              <button type="button" className="header-button" onClick={() => exportPlan(plan)} title="Télécharger le plan (.etagere.json)">
-                Exporter
-              </button>
+              <ExportMenu onPdf={() => void exportPdf(plan)} onJson={() => exportPlan(plan)} busy={exportingPdf} />
               <button type="button" className="header-button" onClick={() => void goToWizard('editor')}>
                 Nouvelle étagère
               </button>

@@ -46,3 +46,5 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - Version téléphone
 - Sélection par rectangle (la spec la prévoit en complément de Ctrl/Maj + clic) : en conflit avec le glisser pour déplacer la vue ; à trancher (ex. Maj + glisser) avant l étape 5.
 - Synthèse des longueurs totales à acheter par section de planche (largeur × épaisseur), à côté de la liste de découpe.
+- Repères A, B, C aussi sur la vue de profil (écran et PDF) ; export PDF directement depuis la liste « Mes étagères ».
+- Impression : vérifier le rendu sur une vraie imprimante A4 (marges, lisibilité des cotes à 7 pt) pendant la période de test.

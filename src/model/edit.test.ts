@@ -247,6 +247,12 @@ describe('propagation', () => {
     expect(result.ok).toBe(true)
   })
 
+  it('l’option fixation murale se règle', () => {
+    const on = setPlanProperty(createPlan(base), { property: 'wallMount', value: true })
+    expect(on.ok && on.plan.options.wallMount).toBe(true)
+    expect(createPlan(base).options.wallMount).toBe(false)
+  })
+
   it('peut être activée ou désactivée', () => {
     const off = setPlanProperty(createPlan(base), { property: 'propagation', value: false })
     expect(off.ok && off.plan.options.propagation).toBe(false)

@@ -58,7 +58,7 @@ export function LibraryView({
           <input
             ref={fileInput}
             type="file"
-            accept=".json,application/json"
+            accept=".json,.pdf,application/json,application/pdf"
             hidden
             data-testid="import-input"
             onChange={(e) => {
@@ -69,6 +69,10 @@ export function LibraryView({
           />
         </div>
       </div>
+
+      <p className="panel-hint">
+        « Importer » accepte un fichier de sauvegarde <code>.etagere.json</code> ou un PDF exporté par Atelier Étagères.
+      </p>
 
       {status === 'unavailable' && (
         <p className="library-warning" role="alert">

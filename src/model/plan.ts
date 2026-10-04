@@ -14,6 +14,8 @@ export interface PlanParams {
   framePlacement?: FramePlacement
   /** Propagation intelligente (activée par défaut). */
   propagation?: boolean
+  /** Fixation murale (désactivée par défaut). */
+  wallMount?: boolean
   wedgeClearance?: number
   sawKerfEnabled?: boolean
   sawKerf?: number
@@ -51,6 +53,7 @@ export function createPlan(params: PlanParams): Plan {
     wedgeThickness = shelfThickness,
     framePlacement = 'between',
     propagation = true,
+    wallMount = false,
     wedgeClearance = DEFAULT_WEDGE_CLEARANCE,
     sawKerfEnabled = false,
     sawKerf = DEFAULT_SAW_KERF,
@@ -92,6 +95,6 @@ export function createPlan(params: PlanParams): Plan {
     rightUpright: { thickness: uprightThickness, depth },
     shelves,
     wedges: [],
-    options: { propagation, framePlacement, defaultWedgeThickness: wedgeThickness, wedgeClearance, sawKerfEnabled, sawKerf },
+    options: { propagation, wallMount, framePlacement, defaultWedgeThickness: wedgeThickness, wedgeClearance, sawKerfEnabled, sawKerf },
   }
 }

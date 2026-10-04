@@ -49,6 +49,7 @@ describe('createPlan', () => {
     const plan = createPlan(base)
     expect(plan.options).toEqual({
       propagation: true,
+      wallMount: false,
       framePlacement: 'between',
       defaultWedgeThickness: 18,
       wedgeClearance: 1,

@@ -42,6 +42,11 @@ function bool(obj: Record<string, unknown>, key: string, where: string): boolean
   return value
 }
 
+/** Booléen facultatif : absent = `fallback` (pour les fichiers écrits avant l'ajout de l'option). */
+function optionalBool(obj: Record<string, unknown>, key: string, where: string, fallback: boolean): boolean {
+  return obj[key] === undefined ? fallback : bool(obj, key, where)
+}
+
 function text(obj: Record<string, unknown>, key: string, where: string, max: number): string {
   const value = obj[key]
   if (typeof value !== 'string') fail(`${where} : « ${key} » doit être un texte.`)
@@ -111,6 +116,7 @@ function readPlan(value: unknown): Plan {
     wedges,
     options: {
       propagation: bool(options, 'propagation', 'Options'),
+      wallMount: optionalBool(options, 'wallMount', 'Options', false),
       framePlacement,
       defaultWedgeThickness: int(options, 'defaultWedgeThickness', 'Options', 1),
       wedgeClearance: int(options, 'wedgeClearance', 'Options', 0),
@@ -158,6 +164,11 @@ export function parsePlanFile(content: string): ParseResult {
     return { ok: false, error: 'Ce fichier vient d’une version plus récente de l’application : mettez la page à jour.' }
   }
   return parsePlan(plan)
+}
+
+/** Nom de fichier du PDF exporté : même règle que pour le fichier de sauvegarde, avec `.pdf`. */
+export function pdfFileName(name: string): string {
+  return exportFileName(name).replace(/\.etagere\.json$/, '.pdf')
 }
 
 /** Nom de fichier sûr pour exporter un plan : sans accents ni caractères interdits, avec `.etagere.json`. */

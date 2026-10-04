@@ -39,6 +39,8 @@ export interface PlanOptions {
    * proportionnelle et changer la hauteur répartit les tablettes proportionnellement.
    */
   propagation: boolean
+  /** Fixation murale : ajoute une note et un repère « F » sur le plan PDF. */
+  wallMount: boolean
   framePlacement: FramePlacement
   /** Épaisseur proposée pour les nouvelles cales. */
   defaultWedgeThickness: number

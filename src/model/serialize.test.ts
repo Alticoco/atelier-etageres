@@ -53,6 +53,29 @@ describe('aller-retour', () => {
   })
 })
 
+describe('compatibilité avec les anciens fichiers', () => {
+  it('relit un fichier écrit avant l’option « fixation murale » : elle vaut alors « non »', () => {
+    const old = raw()
+    delete old.options.wallMount
+    const result = parsePlan(old)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.plan.options.wallMount).toBe(false)
+  })
+
+  it('refuse une valeur invalide pour cette option', () => {
+    const plan = raw()
+    plan.options.wallMount = 'oui'
+    expect(error(plan)).toContain('wallMount')
+  })
+
+  it('garde l’option activée dans l’aller-retour', () => {
+    const plan = { ...samplePlan() }
+    plan.options = { ...plan.options, wallMount: true }
+    const result = parsePlanFile(serializePlan(plan))
+    expect(result.ok && result.plan.options.wallMount).toBe(true)
+  })
+})
+
 describe('fichier invalide', () => {
   it('refuse un texte qui n’est pas du JSON', () => {
     expect(parsePlanFile('pas du json')).toMatchObject({ ok: false, error: expect.stringContaining('JSON invalide') })

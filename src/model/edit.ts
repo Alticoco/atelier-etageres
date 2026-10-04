@@ -13,6 +13,7 @@ export type PlanChange =
   | { property: 'framePlacement'; value: FramePlacement }
   | { property: 'propagation'; value: boolean }
   | { property: 'sawKerfEnabled'; value: boolean }
+  | { property: 'wallMount'; value: boolean }
 
 type PieceRef =
   | { kind: 'upright'; ref: Upright }
@@ -185,6 +186,10 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
   }
   if (change.property === 'propagation') {
     next.options.propagation = change.value
+    return { ok: true, plan: next }
+  }
+  if (change.property === 'wallMount') {
+    next.options.wallMount = change.value
     return { ok: true, plan: next }
   }
   if (change.property === 'sawKerfEnabled') {

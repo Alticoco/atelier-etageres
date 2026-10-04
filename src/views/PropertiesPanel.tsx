@@ -235,6 +235,17 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
             onCommit={(mm) => commitPlan({ property: 'sawKerf', mm })}
           />
         )}
+        <div className="field field-check">
+          <label>
+            <input
+              type="checkbox"
+              checked={plan.options.wallMount}
+              onChange={(e) => commitPlan({ property: 'wallMount', value: e.target.checked })}
+            />
+            Fixation murale
+          </label>
+          <small className="field-hint">Ajoute une note et un repère « F » sur le plan PDF.</small>
+        </div>
         <StageTools plan={plan} unit={unit} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>
