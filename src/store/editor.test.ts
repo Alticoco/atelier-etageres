@@ -53,4 +53,20 @@ describe('editorReducer', () => {
     const state = editorReducer(initialEditorState, { type: 'setPlanProperty', change: { property: 'width', mm: 900 } })
     expect(state).toBe(initialEditorState)
   })
+
+  it('setSnapStep règle le pas d’aimantation (10 mm par défaut)', () => {
+    expect(initialEditorState.snapStep).toBe(10)
+    expect(editorReducer(withPlan, { type: 'setSnapStep', mm: 50 }).snapStep).toBe(50)
+  })
+
+  it('setPlanSize redimensionne le cadre en une seule action', () => {
+    const state = editorReducer(withPlan, { type: 'setPlanSize', width: 900, height: 1100 })
+    expect(state.plan?.width).toBe(900)
+    expect(state.plan?.height).toBe(1100)
+  })
+
+  it('setPlanSize incohérent laisse l’état inchangé', () => {
+    const state = editorReducer(withPlan, { type: 'setPlanSize', height: 100 })
+    expect(state).toBe(withPlan)
+  })
 })

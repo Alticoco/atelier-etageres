@@ -63,8 +63,8 @@ export function checkPlan(plan: Plan): string[] {
   const shelves = sortedShelves(plan)
   if (shelves.length < 2) problems.push('Il faut au moins deux tablettes (haut et bas).')
   for (let i = 0; i < shelves.length - 1; i++) {
-    if (shelves[i].y + shelves[i].thickness > shelves[i + 1].y) {
-      problems.push('Deux tablettes se chevauchent.')
+    if (shelves[i].y + shelves[i].thickness >= shelves[i + 1].y) {
+      problems.push('Il doit rester de la place entre deux tablettes (elles se chevauchent ou se touchent).')
       break
     }
   }
@@ -110,6 +110,7 @@ function keepTopShelfFlush(plan: Plan): void {
  * Modifie une cote d'une ou plusieurs pièces. Ne modifie pas le plan reçu.
  * Règle : changer l'épaisseur de la tablette du haut la garde collée au haut ;
  * pour les autres, la face inférieure ne bouge pas.
+ * Une tablette ne peut pas dépasser ses voisines (l'ordre des tablettes ne change pas).
  */
 export function setPieceProperty(plan: Plan, ids: string[], property: PieceProperty, mm: number): EditResult {
   if (!Number.isInteger(mm) || mm < 0) return fail('La valeur doit être un nombre entier de mm positif ou nul.')
@@ -137,6 +138,11 @@ export function setPieceProperty(plan: Plan, ids: string[], property: PiecePrope
   }
 
   if (touchesTop) keepTopShelfFlush(next)
+
+  if (property === 'y') {
+    const order = (p: Plan) => sortedShelves(p).map((s) => s.id).join('|')
+    if (order(next) !== order(plan)) return fail('Une tablette ne peut pas passer par-dessus une autre.')
+  }
   return finish(next)
 }
 
@@ -174,6 +180,26 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
     case 'defaultWedgeThickness':
       next.options.defaultWedgeThickness = mm
       break
+  }
+  return finish(next)
+}
+
+/**
+ * Change la largeur et/ou la hauteur du cadre en une seule fois (un seul contrôle de cohérence).
+ * Comme pour `setPlanProperty`, la tablette du haut reste collée au haut quand la hauteur change.
+ */
+export function setPlanSize(plan: Plan, size: { width?: number; height?: number }): EditResult {
+  const { width, height } = size
+  for (const value of [width, height]) {
+    if (value !== undefined && (!Number.isInteger(value) || value <= 0)) {
+      return fail('La valeur doit être un nombre entier de mm supérieur à 0.')
+    }
+  }
+  const next = structuredClone(plan)
+  if (width !== undefined) next.width = width
+  if (height !== undefined) {
+    next.height = height
+    keepTopShelfFlush(next)
   }
   return finish(next)
 }

@@ -312,3 +312,49 @@ body {
   stroke: var(--dim);
   stroke-width: 3;
 }
+
+.snap-select {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: #7a6a58;
+}
+
+.snap-select select {
+  font: inherit;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #cdbfa8;
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.piece.movable-y {
+  cursor: ns-resize;
+}
+
+.piece.movable-x {
+  cursor: ew-resize;
+}
+
+.handle {
+  fill: transparent;
+}
+
+.handle:hover {
+  fill: var(--dim);
+  fill-opacity: 0.3;
+}
+
+.handle-right {
+  cursor: ew-resize;
+}
+
+.handle-top {
+  cursor: ns-resize;
+}
+
+.handle-corner {
+  cursor: nesw-resize;
+}

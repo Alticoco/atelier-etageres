@@ -59,3 +59,15 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Sélection** : clic = une pièce, Ctrl/Maj/Cmd + clic = ajouter/retirer, clic dans le vide ou Échap = tout désélectionner. Un appui qui bouge de plus de 4 px est un glisser (déplacement de la vue), pas un clic.
 - **Panneau de propriétés** : sans sélection, cotes de l étagère ; avec sélection multiple, seulement les cotes communes (épaisseur, profondeur), champ vide « Valeurs différentes » si elles diffèrent ; position (hauteur ou x) seulement pour une pièce seule. Validation par Entrée ou sortie du champ, Échap annule.
 - **Unité mm/cm** : bascule globale dans l en-tête, appliquée aux cotes du dessin et au panneau. Le formulaire de création reste en cm (valeurs par défaut en cm).
+
+## 2026-10-04 (étape 5)
+
+- **Un glisser = une seule modification.** Pendant le geste, la vue montre un plan provisoire (`draft`, local à `FrontView`) ; au relâchement, une seule action est envoyée au store. L étape 7 aura donc une entrée d historique par glisser, pas une par pixel.
+- **La position se calcule depuis le point de départ du geste**, pas par petits déplacements cumulés : pas de dérive, et la valeur aimantée dépend seulement de la souris.
+- **Aimantation sur la cote affichée** : pour une tablette, on aimante la hauteur libre de l étage du dessous (la cote du dessin), pas la hauteur absolue ; pour une cale, la position depuis le bord gauche ; pour le cadre, la largeur et la hauteur hors-tout. Pas réglable 1 mm / 5 mm / 1 cm / 5 cm (1 cm par défaut) ; **Alt maintenu = pas d aimantation** (mm entier).
+- **Une pièce butte au lieu d être refusée** : `clampToValid` cherche par dichotomie la position valide la plus proche de la souris (`src/model/drag.ts`). Les règles viennent toutes de `checkPlan`, il n y a pas de seconde logique.
+- **Une tablette ne passe jamais par-dessus une autre** (l ordre ne change pas), y compris par saisie au clavier : sinon les cales rattachées à une tablette changeraient d étage sans prévenir. Défaut trouvé par un test.
+- **Au moins 1 mm libre entre deux tablettes** (un étage de 0 n a pas de sens). La règle des cales est plus stricte (hauteur de cale >= 1 mm après le jeu).
+- **Déplaçables à la souris** : tablettes intermédiaires (vertical) et cales (horizontal). Les tablettes du haut et du bas ferment le cadre : elles se règlent au clavier ou en redimensionnant le cadre. Les montants ne bougent pas. Appuyer sur une pièce non déplaçable ou sur le fond déplace la vue.
+- **Redimensionnement du cadre par trois poignées** invisibles à l extérieur du cadre : bord droit (largeur), bord haut (hauteur), coin haut-droit (les deux). L origine reste en bas à gauche ; pas de poignées gauche/bas. La vue est figée pendant le geste pour ne pas « sauter ».
+- **Sélection par rectangle toujours reportée** (voir Boîte à idées).

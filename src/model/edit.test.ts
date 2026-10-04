@@ -35,7 +35,7 @@ describe('checkPlan', () => {
   it('détecte des tablettes qui se chevauchent', () => {
     const plan = createPlan(base)
     plan.shelves[1].y = plan.shelves[2].y
-    expect(checkPlan(plan)).toContain('Deux tablettes se chevauchent.')
+    expect(checkPlan(plan)).toContain('Il doit rester de la place entre deux tablettes (elles se chevauchent ou se touchent).')
   })
 
   it('détecte une cale hors du cadre', () => {
@@ -82,7 +82,13 @@ describe('setPieceProperty', () => {
   it('refuse de déplacer une tablette sur une autre', () => {
     const plan = createPlan(base)
     const result = setPieceProperty(plan, ['shelf-2'], 'y', plan.shelves[2].y)
-    expect(result).toEqual({ ok: false, error: 'Deux tablettes se chevauchent.' })
+    expect(result).toEqual({ ok: false, error: 'Il doit rester de la place entre deux tablettes (elles se chevauchent ou se touchent).' })
+  })
+
+  it('refuse qu’une tablette passe par-dessus une autre, même sans chevauchement', () => {
+    const plan = createPlan(base) // shelf-3 à 655, shelf-4 à 982
+    const result = setPieceProperty(plan, ['shelf-2'], 'y', 800)
+    expect(result).toEqual({ ok: false, error: 'Une tablette ne peut pas passer par-dessus une autre.' })
   })
 
   it('déplace une cale horizontalement', () => {

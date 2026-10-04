@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useState } from 'react'
+import { SNAP_STEPS } from './model/drag'
 import type { LengthUnit } from './model/units'
 import { editorReducer, initialEditorState } from './store/editor'
 import { CreationWizard } from './views/CreationWizard'
@@ -10,7 +11,7 @@ const UNITS: LengthUnit[] = ['mm', 'cm']
 export default function App() {
   const [state, dispatch] = useReducer(editorReducer, initialEditorState)
   const [creating, setCreating] = useState(true)
-  const { plan, selection, unit } = state
+  const { plan, selection, unit, snapStep } = state
 
   // Échap désélectionne (sauf quand on est en train de saisir dans un champ).
   useEffect(() => {
@@ -37,6 +38,16 @@ export default function App() {
         {plan && <span className="app-plan-name">{plan.name}</span>}
         {plan && !creating && (
           <div className="header-tools">
+            <label className="snap-select" title="Maintenez Alt pour déplacer sans aimantation">
+              Aimantation
+              <select value={snapStep} onChange={(e) => dispatch({ type: 'setSnapStep', mm: Number(e.target.value) })}>
+                {SNAP_STEPS.map((step) => (
+                  <option key={step} value={step}>
+                    {step < 10 ? `${step} mm` : `${step / 10} cm`}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="unit-toggle" role="radiogroup" aria-label="Unité d’affichage">
               {UNITS.map((u) => (
                 <label key={u} className={u === unit ? 'active' : undefined}>
@@ -72,6 +83,8 @@ export default function App() {
               plan={plan}
               unit={unit}
               selection={selection}
+              snapStep={snapStep}
+              onChange={dispatch}
               onSelectPiece={(id, additive) => dispatch({ type: 'selectPiece', id, additive })}
               onClearSelection={() => dispatch({ type: 'clearSelection' })}
             />
