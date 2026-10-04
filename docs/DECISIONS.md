@@ -33,3 +33,11 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **`createPlan` lève une erreur** (RangeError) pour des paramètres invalides ; les contrôles de cohérence d un plan modifié sont à l étape 6.
 - **Plan créé sans cale** ; l ajout de cales vient avec les outils (étape 6). Cales et tablettes : profondeur et épaisseur propres à chaque pièce.
 - **Pièces calculées, jamais stockées** : `computePieces(plan)` recalcule les dimensions à la demande, pour éviter toute incohérence.
+
+## 2026-10-04 (étape 2)
+
+- **Géométrie séparée du dessin** : `src/model/layout.ts` calcule la position de chaque pièce vue de face (fonction pure testée) ; `FrontView.tsx` ne fait que dessiner.
+- **Caméra = centre + échelle (mm par pixel)**, dans `src/views/camera.ts`. Zoom autour du curseur, déplacement par glisser. Le cadrage automatique est recalculé tant que l utilisateur n a pas bougé la vue ; « Tout voir » le rétablit.
+- **Cotes et textes à taille constante à l écran** quel que soit le zoom (dimensions converties en mm via l échelle de la caméra, traits en `non-scaling-stroke`).
+- **Affichage en cm par défaut** (`formatLength`) ; le choix mm/cm viendra à l étape 4.
+- **Plan d exemple temporaire** dans `App.tsx` jusqu à l assistant de création (étape 3).

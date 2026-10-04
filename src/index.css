@@ -1,12 +1,125 @@
+:root {
+  --ink: #2b2118;
+  --paper: #faf6f0;
+  --wood: #d9b98a;
+  --wood-dark: #a9824f;
+  --wedge: #e8d3ae;
+  --dim: #3b6ea5;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  color: #2b2118;
-  background: #faf6f0;
+  color: var(--ink);
+  background: var(--paper);
 }
 
-main {
-  max-width: 40rem;
-  margin: 4rem auto;
-  padding: 0 1rem;
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e3d9c9;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.app-plan-name {
+  color: #7a6a58;
+  font-size: 0.9rem;
+}
+
+.app-main {
+  flex: 1;
+  min-height: 0;
+}
+
+.front-view {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #fff;
+}
+
+.front-view-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.front-view-svg:active {
+  cursor: grabbing;
+}
+
+.piece {
+  stroke: var(--wood-dark);
+  stroke-width: 1.5;
+}
+
+.piece-upright,
+.piece-shelf {
+  fill: var(--wood);
+}
+
+.piece-wedge {
+  fill: var(--wedge);
+  stroke-dasharray: 5 3;
+}
+
+.dim line {
+  stroke: var(--dim);
+  stroke-width: 1;
+}
+
+.dim-extension line {
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.dim text {
+  fill: var(--dim);
+  font-family: system-ui, sans-serif;
+}
+
+.view-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.view-controls button {
+  min-width: 2.2rem;
+  height: 2.2rem;
+  padding: 0 0.6rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid #cdbfa8;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.view-controls button:hover {
+  background: #f1e8d9;
 }

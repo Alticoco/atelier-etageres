@@ -15,6 +15,7 @@ export function getStages(plan: Plan): Stage[] {
     stages.push({
       shelfBelowId: below.id,
       shelfAboveId: above.id,
+      y: below.y + below.thickness,
       clearHeight: above.y - (below.y + below.thickness),
     })
   }
@@ -22,13 +23,13 @@ export function getStages(plan: Plan): Stage[] {
 }
 
 /** Longueur d'une tablette : entre les montants, ou pleine largeur si elle est posée dessus/dessous. */
-function shelfLength(plan: Plan, isOuter: boolean): number {
+export function shelfLength(plan: Plan, isOuter: boolean): number {
   if (isOuter && plan.options.framePlacement === 'onTop') return plan.width
   return plan.width - plan.leftUpright.thickness - plan.rightUpright.thickness
 }
 
 /** Hauteur d'un montant : raccourcie des tablettes extrêmes si elles sont posées dessus/dessous. */
-function uprightLength(plan: Plan): number {
+export function uprightLength(plan: Plan): number {
   if (plan.options.framePlacement === 'between') return plan.height
   const shelves = sortedShelves(plan)
   const bottom = shelves[0]

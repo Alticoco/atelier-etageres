@@ -70,6 +70,8 @@ export interface Piece {
 export interface Stage {
   shelfBelowId: string
   shelfAboveId: string
+  /** Hauteur du bas de l'espace libre (dessus de la tablette du dessous). */
+  y: number
   /** Hauteur libre entre la tablette du dessous et celle du dessus. */
   clearHeight: number
 }
