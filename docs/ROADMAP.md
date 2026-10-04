@@ -9,7 +9,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - [x] **Étape 1 — Modèle de données** : types (Plan, Montant, Tablette, Cale), création d'un plan depuis des paramètres, calcul des dimensions de chaque pièce. Tests unitaires sur les règles d'assemblage.
 - [x] **Étape 2 — Vue de face** : rendu SVG du cadre, tablettes, cales, avec cotes. Zoom / déplacement de la vue.
 - [x] **Étape 3 — Assistant de création** : formulaire (dimensions, nombre d'étages, épaisseurs).
-- [ ] **Étape 4 — Sélection et panneau de propriétés** : sélection simple et multiple, édition des cotes au clavier, unités mm/cm.
+- [x] **Étape 4 — Sélection et panneau de propriétés** : sélection simple et multiple, édition des cotes au clavier, unités mm/cm.
 - [ ] **Étape 5 — Glisser-déposer** : déplacer tablettes et cales, redimensionner le cadre, aimantation à pas réglable.
 - [ ] **Étape 6 — Propagation et outils** : option intelligente, « espacer également », ajout/suppression de pièces, contrôles de cohérence.
 - [ ] **Étape 7 — Annuler / rétablir**.
@@ -44,3 +44,4 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - Alerte de flexion
 - Estimation du prix
 - Version téléphone
+- Sélection par rectangle (la spec la prévoit en complément de Ctrl/Maj + clic) : en conflit avec le glisser pour déplacer la vue ; à trancher (ex. Maj + glisser) avant l étape 5.

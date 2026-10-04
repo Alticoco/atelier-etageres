@@ -49,3 +49,13 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Épaisseur des cales = option du plan** (`options.defaultWedgeThickness`, par défaut celle des tablettes) : elle servira aux cales créées à l étape 6. Un plan créé n a pas encore de cale.
 - **Plan vierge minimal** = préremplit le formulaire (60 × 40 × 25 cm, 1 étage) ; l utilisateur valide ensuite comme d habitude.
 - **Pas encore de sauvegarde** : « Nouvelle étagère » demande confirmation car le plan actuel est perdu (sauvegarde à l étape 10).
+
+## 2026-10-04 (étape 4)
+
+- **Store = reducer pur avec actions nommées** (`src/store/editor.ts`, via `useReducer`), sans bibliothèque externe. L historique annuler/rétablir (étape 7) s y branchera. L état contient le plan, la sélection et l unité d affichage.
+- **Modifier une cote = fonction pure** (`src/model/edit.ts`) qui renvoie le nouveau plan ou une erreur. Le panneau l appelle pour afficher l erreur avant d agir ; le reducer l appelle aussi et ignore une modification refusée.
+- **Contrôles de cohérence de base déjà en place** (`checkPlan`) : dimensions entières > 0, largeur suffisante, tablettes sans chevauchement ni dépassement, cales dans leur étage et dans le cadre. L étape 6 complétera (espacement, outils).
+- **Règles de modification** : la tablette du haut reste collée au haut du cadre (si on change sa hauteur d épaisseur ou la hauteur totale) ; une tablette intermédiaire garde sa face inférieure quand son épaisseur change ; la largeur du cadre est libre (les longueurs de tablettes sont calculées).
+- **Sélection** : clic = une pièce, Ctrl/Maj/Cmd + clic = ajouter/retirer, clic dans le vide ou Échap = tout désélectionner. Un appui qui bouge de plus de 4 px est un glisser (déplacement de la vue), pas un clic.
+- **Panneau de propriétés** : sans sélection, cotes de l étagère ; avec sélection multiple, seulement les cotes communes (épaisseur, profondeur), champ vide « Valeurs différentes » si elles diffèrent ; position (hauteur ou x) seulement pour une pièce seule. Validation par Entrée ou sortie du champ, Échap annule.
+- **Unité mm/cm** : bascule globale dans l en-tête, appliquée aux cotes du dessin et au panneau. Le formulaire de création reste en cm (valeurs par défaut en cm).

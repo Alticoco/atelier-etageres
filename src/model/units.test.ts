@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatLength, mmToCm, parseLength } from './units'
+import { formatLength, formatNumber, mmToCm, parseLength } from './units'
 
 describe('mmToCm', () => {
   it('convertit des millimètres en centimètres', () => {
@@ -42,5 +42,19 @@ describe('parseLength', () => {
   it('lit des mm entiers', () => {
     expect(parseLength('309', 'mm')).toBe(309)
     expect(parseLength('30,9', 'mm')).toBeNull()
+  })
+})
+
+describe('formatNumber', () => {
+  it('donne le nombre seul pour un champ de saisie', () => {
+    expect(formatNumber(309)).toBe('30,9')
+    expect(formatNumber(800)).toBe('80')
+    expect(formatNumber(309, 'mm')).toBe('309')
+  })
+
+  it('est relu à l’identique par parseLength', () => {
+    for (const unit of ['cm', 'mm'] as const) {
+      expect(parseLength(formatNumber(309, unit), unit)).toBe(309)
+    }
   })
 })

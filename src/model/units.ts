@@ -5,10 +5,15 @@ export function mmToCm(mm: number): number {
   return mm / 10
 }
 
+/** Nombre seul, à mettre dans un champ de saisie : « 30,9 » (cm) ou « 309 » (mm). */
+export function formatNumber(mm: number, unit: LengthUnit = 'cm'): string {
+  if (unit === 'mm') return String(mm)
+  return mmToCm(mm).toString().replace('.', ',')
+}
+
 /** Texte d'une longueur pour l'écran : « 80 cm », « 30,9 cm » ou « 309 mm ». */
 export function formatLength(mm: number, unit: LengthUnit = 'cm'): string {
-  if (unit === 'mm') return `${mm} mm`
-  return `${mmToCm(mm).toString().replace('.', ',')} cm`
+  return `${formatNumber(mm, unit)} ${unit}`
 }
 
 /**

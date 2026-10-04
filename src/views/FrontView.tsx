@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { computeFrontRects } from '../model/layout'
 import { getStages } from '../model/pieces'
 import type { Plan } from '../model/types'
-import { formatLength } from '../model/units'
+import { formatLength, type LengthUnit } from '../model/units'
 import { cameraViewBox, fitCamera, panCamera, zoomCamera, type Camera, type Size } from './camera'
 
 const FIT_PADDING_PX = 90
@@ -10,6 +10,8 @@ const DIM_OFFSET_PX = 40
 const FONT_PX = 13
 const WHEEL_SENSITIVITY = 0.0015
 const BUTTON_ZOOM = 1.25
+/** En dessous de ce déplacement (px), un appui est un clic et non un glisser. */
+const CLICK_TOLERANCE_PX = 4
 
 interface DimensionProps {
   x1: number
@@ -62,12 +64,18 @@ function Dimension({ x1, y1, x2, y2, label, s, side }: DimensionProps) {
 
 interface FrontViewProps {
   plan: Plan
+  unit?: LengthUnit
+  selection?: string[]
+  /** Clic sur une pièce ; `additive` = Ctrl, Maj ou Cmd enfoncé. */
+  onSelectPiece?: (id: string, additive: boolean) => void
+  /** Clic dans le vide. */
+  onClearSelection?: () => void
 }
 
 /** Vue de face de l'étagère : pièces, cotes, zoom (molette) et déplacement (glisser). */
-export function FrontView({ plan }: FrontViewProps) {
+export function FrontView({ plan, unit = 'cm', selection = [], onSelectPiece, onClearSelection }: FrontViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const dragRef = useRef<{ x: number; y: number } | null>(null)
+  const dragRef = useRef<{ x: number; y: number; startX: number; startY: number; pieceId: string | null } | null>(null)
   const [size, setSize] = useState<Size | null>(null)
   // Tant que l'utilisateur n'a pas zoomé ni déplacé, la vue reste cadrée sur toute l'étagère.
   const [custom, setCustom] = useState<Camera | null>(null)
@@ -122,7 +130,8 @@ export function FrontView({ plan }: FrontViewProps) {
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
-    dragRef.current = { x: e.clientX, y: e.clientY }
+    const pieceId = (e.target as Element).closest('[data-piece-id]')?.getAttribute('data-piece-id') ?? null
+    dragRef.current = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, pieceId }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
   const onPointerMove = (e: React.PointerEvent) => {
@@ -130,11 +139,18 @@ export function FrontView({ plan }: FrontViewProps) {
     if (!last) return
     const dx = e.clientX - last.x
     const dy = e.clientY - last.y
-    dragRef.current = { x: e.clientX, y: e.clientY }
+    dragRef.current = { ...last, x: e.clientX, y: e.clientY }
     updateCamera((c) => panCamera(c, dx, dy))
   }
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
+    const drag = dragRef.current
     dragRef.current = null
+    if (!drag) return
+    const moved = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY)
+    if (moved > CLICK_TOLERANCE_PX) return
+    const additive = e.ctrlKey || e.shiftKey || e.metaKey
+    if (drag.pieceId) onSelectPiece?.(drag.pieceId, additive)
+    else if (!additive) onClearSelection?.()
   }
 
   const H = plan.height
@@ -154,14 +170,15 @@ export function FrontView({ plan }: FrontViewProps) {
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerCancel={() => (dragRef.current = null)}
           role="img"
-          aria-label={`Vue de face de l'étagère : ${formatLength(W)} de large, ${formatLength(H)} de haut`}
+          aria-label={`Vue de face de l'étagère : ${formatLength(W, unit)} de large, ${formatLength(H, unit)} de haut`}
         >
           {rects.map((r) => (
             <rect
               key={r.id}
-              className={`piece piece-${r.kind}`}
+              data-piece-id={r.id}
+              className={`piece piece-${r.kind}${selection.includes(r.id) ? ' selected' : ''}`}
               x={r.x}
               y={H - r.y - r.height}
               width={r.width}
@@ -170,8 +187,8 @@ export function FrontView({ plan }: FrontViewProps) {
             />
           ))}
 
-          <Dimension x1={0} y1={H + dimOffset} x2={W} y2={H + dimOffset} label={formatLength(W)} s={s} side={1} />
-          <Dimension x1={W + dimOffset} y1={0} x2={W + dimOffset} y2={H} label={formatLength(H)} s={s} side={1} />
+          <Dimension x1={0} y1={H + dimOffset} x2={W} y2={H + dimOffset} label={formatLength(W, unit)} s={s} side={1} />
+          <Dimension x1={W + dimOffset} y1={0} x2={W + dimOffset} y2={H} label={formatLength(H, unit)} s={s} side={1} />
           {stages.map((stage) => {
             const top = H - (stage.y + stage.clearHeight)
             const bottom = H - stage.y
@@ -186,7 +203,7 @@ export function FrontView({ plan }: FrontViewProps) {
                   y1={top}
                   x2={-dimOffset}
                   y2={bottom}
-                  label={formatLength(stage.clearHeight)}
+                  label={formatLength(stage.clearHeight, unit)}
                   s={s}
                   side={-1}
                 />
