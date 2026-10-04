@@ -112,3 +112,16 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Repères reportés sur la vue de face**, avec une case « Repères » pour les masquer (activée par défaut). Textes non cliquables, avec contour blanc pour rester lisibles sur le bois. Le profil n en porte pas pour l instant ; le PDF (étape 11) les reprendra.
 - **Onglet « Découpe »** à côté de Face et Profil : un tableau en lecture seule (repère, quantité, longueur, largeur, épaisseur, pièces concernées, total, perte). Unités mm/cm suivent le réglage global.
 - **Idée notée** : synthèse des longueurs par section de planche (boîte à idées), non faite car la spec ne la demande pas.
+
+## 2026-10-04 (étape 10)
+
+- **Format de fichier `.etagere.json`** = `{ format: "atelier-etageres", version: 1, plan }`, défini dans `src/model/serialize.ts`. Même format pour la bibliothèque et, à l étape 11, pour le plan embarqué dans le PDF. Le champ `version` permet de migrer plus tard ; un fichier d une version plus récente est refusé avec un message clair.
+- **Tout ce qui vient de l extérieur est validé strictement** (`parsePlan`) : un fichier importé mais aussi un enregistrement relu depuis la base. Types, entiers, bornes (jusqu à 100 000 mm, 200 tablettes, 1000 cales), identifiants uniques, puis les contrôles de cohérence (`checkPlan`). Le plan est reconstruit champ par champ : rien d inattendu du fichier n est conservé (testé, y compris `__proto__`). Taille de fichier limitée à 5 Mo.
+- **IndexedDB derrière une interface `PlanStore`** (`src/storage/planStore.ts`), avec une version en mémoire pour les tests. La bibliothèque (`library.ts`) est testée sur les deux, et l IndexedDB réel est simulé avec `fake-indexeddb` (dépendance de test uniquement). Pas de bibliothèque tierce pour IndexedDB : le besoin est de quatre opérations.
+- **Enregistrement automatique** 0,5 s après la dernière modification (regroupe les rafales), plus enregistrement immédiat en quittant l éditeur, en cachant l onglet ou en fermant la page. Indicateur « Enregistrée dans ce navigateur / Enregistrement… / Échec / Non enregistrée » dans l en-tête.
+- **L historique annuler / rétablir n est pas sauvegardé** : à la réouverture d un plan, on repart d un historique vide.
+- **Écran d accueil « Mes étagères »** (ouvrir, renommer, dupliquer, exporter, supprimer, importer). Suppression avec confirmation ; plus de confirmation « le plan sera perdu » dans l éditeur puisque tout est enregistré (elle reste seulement si le stockage est indisponible).
+- **Stockage indisponible** (navigation privée, stockage bloqué) : l application fonctionne quand même, avec un avertissement et l export comme sauvegarde de secours.
+- **Enregistrements illisibles ignorés** et signalés (« N étagères illisibles ignorées ») au lieu de bloquer toute la liste.
+- **Nom de fichier d export** sans accents ni caractères interdits (« Etagere-a-epices.etagere.json »). Un nom vide est refusé au renommage ; un nom vide dans un fichier importé devient « Étagère ».
+- **Un import crée toujours une nouvelle entrée** (jamais d écrasement d une étagère existante), même si le nom est déjà pris.

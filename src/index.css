@@ -414,7 +414,8 @@ body {
 }
 
 .notice {
-  position: absolute;
+  position: fixed;
+  z-index: 10;
   left: 50%;
   bottom: 1rem;
   transform: translateX(-50%);
@@ -607,4 +608,135 @@ body {
 
 .cutlist thead th:last-child {
   text-align: left;
+}
+
+.notice.info {
+  background: #2f6b3a;
+}
+
+.save-state {
+  font-size: 0.85rem;
+  color: #6b7a58;
+}
+
+.save-state.warn {
+  color: #b3261e;
+}
+
+.library {
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1.5rem 2rem;
+}
+
+.library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.library-head h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.library-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.library button,
+.rename-form button {
+  font: inherit;
+  padding: 0.35rem 0.8rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid #cdbfa8;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.library button:hover {
+  background: #f1e8d9;
+}
+
+.library button.primary {
+  color: #fff;
+  background: var(--wood-dark);
+  border-color: var(--wood-dark);
+}
+
+.library button.danger-outline {
+  color: #b3261e;
+  border-color: #b3261e;
+}
+
+.library-warning {
+  padding: 0.6rem 0.9rem;
+  color: #7a2e0e;
+  background: #fdf0e0;
+  border: 1px solid #e9c9a0;
+  border-radius: 6px;
+}
+
+.library-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e3d9c9;
+}
+
+.library-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.library .library-name {
+  padding: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left;
+  background: none;
+  border: none;
+}
+
+.library .library-name:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.library-meta {
+  font-size: 0.85rem;
+  color: #7a6a58;
+}
+
+.library-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rename-form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.rename-form input {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #cdbfa8;
+  border-radius: 6px;
 }
