@@ -1,0 +1,18 @@
+# Journal des décisions
+
+Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une décision change, on en ajoute une nouvelle qui la remplace).
+
+## 2026-10-04
+
+- **Site web statique plutôt que logiciel installé.** Usage occasionnel ; plus simple à maintenir et à porter sur téléphone plus tard.
+- **Public sur GitHub Pages, code open source.** Aucune donnée sensible ; enrichit le portfolio GitHub.
+- **Stack : Vite + React + TypeScript.** Écosystème standard, bien outillé ; TypeScript sécurise les calculs de dimensions.
+- **Rendu 2D en SVG.** Précision des cotes, export PDF vectoriel simple, interaction souris native.
+- **3D plus tard avec Three.js (react-three-fiber)**, en lisant le même modèle de données que la 2D.
+- **Unité interne : millimètres entiers.** Évite les erreurs d'arrondi ; l'affichage cm n'est qu'une conversion.
+- **Modèle « cadre » d'abord, tablettes entre les montants par défaut.** Correspond aux mangathèques déjà réalisées. Modèle sans cadre en V2.
+- **Cales = hauteur d'étage − jeu (défaut 1 mm).** Elles doivent pouvoir glisser, puis se bloquer sous la charge.
+- **Liste de découpe simple, pas d'optimisation.** L'utilisateur choisit lui-même les planches en magasin ; l'optimisation n'est peut-être jamais nécessaire.
+- **Sauvegarde locale (IndexedDB) + export fichier.** Pas de serveur ; l'export protège contre la perte si le navigateur est vidé.
+- **Le PDF embarque le JSON du plan.** Un PDF exporté peut être ré-importé et redevient éditable.
+- **Suivi d'avancement : `docs/ROADMAP.md` dans le dépôt + page Notion « Atelier Étagères ».**
