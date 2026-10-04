@@ -152,3 +152,7 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Textes du cartouche PDF à 6 pt au minimum** (5,5 pt avant) : seuil de lisibilité retenu pour toute la page.
 - **Licence non choisie** : le README dit « à définir » ; sans fichier de licence, le code est publié mais pas juridiquement « open source ». À décider par l auteur.
 - **Correction d une erreur de suivi** : la feuille de route montrait les étapes 10, 11 et 12 comme terminées depuis l étape 1 (un `sed` sur « Étape 1 » cochait aussi 10, 11 et 12 par préfixe). Les étapes 10 et 11 ont bien été réalisées à leur tour ; l étape 12 ne l est qu à ce commit. Les cases se cochent désormais avec le numéro exact.
+
+## 2026-10-04 (licence)
+
+- **Licence MIT** (fichier `LICENSE`, champ `license` de `package.json`, section du README), au nom d Alexis Meyrignac, année 2026. Remplace la décision « licence à définir » de l étape 12. Choix : la plus courante pour un projet de portfolio, très permissive, une seule obligation (garder la mention de copyright). Les dépendances ont leurs propres licences, toutes permissives (pdf-lib : MIT).

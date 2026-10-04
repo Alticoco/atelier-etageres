@@ -89,4 +89,4 @@ docs/         spécification, feuille de route, journal des décisions
 
 ## Licence
 
-À définir par l'auteur du projet.
+[MIT](LICENSE) © 2026 Alexis Meyrignac : vous pouvez utiliser, copier, modifier et redistribuer ce code, y compris dans un projet commercial, à condition de conserver la mention de copyright.
