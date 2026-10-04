@@ -446,3 +446,66 @@ body {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+.canvas {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+
+.view-switch {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  display: flex;
+  border: 1px solid #cdbfa8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-switch label {
+  padding: 0.25rem 0.8rem;
+  cursor: pointer;
+  background: var(--paper);
+}
+
+.view-switch label.active {
+  color: #fff;
+  background: var(--wood-dark);
+}
+
+.view-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.view-switch label:has(input:focus-visible) {
+  outline: 2px solid var(--dim);
+  outline-offset: -2px;
+}
+
+.profile-svg .piece {
+  cursor: grab;
+}
+
+.piece.piece-hidden {
+  fill: none;
+  stroke-dasharray: 6 4;
+}
+
+.piece.piece-hidden.selected {
+  stroke-dasharray: 6 4;
+}
+
+.wall {
+  fill: #e6dfd3;
+  stroke: #8d8171;
+  stroke-width: 1;
+}
+
+.wall-label {
+  fill: #6f6354;
+  font-family: system-ui, sans-serif;
+}

@@ -13,7 +13,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - [x] **Étape 5 — Glisser-déposer** : déplacer tablettes et cales, redimensionner le cadre, aimantation à pas réglable.
 - [x] **Étape 6 — Propagation et outils** : option intelligente, « espacer également », ajout/suppression de pièces, contrôles de cohérence.
 - [x] **Étape 7 — Annuler / rétablir**.
-- [ ] **Étape 8 — Vue de profil** (lecture seule).
+- [x] **Étape 8 — Vue de profil** (lecture seule).
 - [ ] **Étape 9 — Liste de découpe** : regroupement, repères, option trait de scie.
 - [x] **Étape 10 — Sauvegarde** : bibliothèque IndexedDB, export/import `.etagere.json`.
 - [x] **Étape 11 — Export PDF** : plan d'architecte A4 paysage, note fixation murale, JSON embarqué, ré-import du PDF.

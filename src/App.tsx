@@ -4,9 +4,16 @@ import type { LengthUnit } from './model/units'
 import { applyAction, editorReducer, initialEditorState, type EditorAction } from './store/editor'
 import { CreationWizard } from './views/CreationWizard'
 import { FrontView } from './views/FrontView'
+import { ProfileView } from './views/ProfileView'
 import { PropertiesPanel } from './views/PropertiesPanel'
 
 const UNITS: LengthUnit[] = ['mm', 'cm']
+
+type ViewMode = 'front' | 'side'
+const VIEWS: { mode: ViewMode; label: string }[] = [
+  { mode: 'front', label: 'Face' },
+  { mode: 'side', label: 'Profil' },
+]
 
 /** Champ où l'on tape du texte : Ctrl+Z doit alors annuler la frappe, pas le plan. */
 function isTextEntry(el: HTMLElement): boolean {
@@ -18,6 +25,7 @@ export default function App() {
   const [state, dispatch] = useReducer(editorReducer, initialEditorState)
   const [creating, setCreating] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
+  const [view, setView] = useState<ViewMode>('front')
   const { plan, selection, unit, snapStep, past, future } = state
 
   // Toute modification passe par ici : si les contrôles de cohérence la refusent, on explique pourquoi.
@@ -52,7 +60,7 @@ export default function App() {
         return
       }
 
-      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return
+      if (isTextEntry(target) || target.tagName === 'SELECT') return
       if (e.key === 'Escape') dispatch({ type: 'clearSelection' })
       if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length > 0) {
         e.preventDefault()
@@ -137,15 +145,29 @@ export default function App() {
           />
         ) : (
           <div className="editor">
-            <FrontView
-              plan={plan}
-              unit={unit}
-              selection={selection}
-              snapStep={snapStep}
-              onChange={run}
-              onSelectPiece={(id, additive) => dispatch({ type: 'selectPiece', id, additive })}
-              onClearSelection={() => dispatch({ type: 'clearSelection' })}
-            />
+            <div className="canvas">
+              <div className="view-switch" role="radiogroup" aria-label="Vue">
+                {VIEWS.map(({ mode, label }) => (
+                  <label key={mode} className={mode === view ? 'active' : undefined}>
+                    <input type="radio" name="view" value={mode} checked={mode === view} onChange={() => setView(mode)} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {view === 'front' ? (
+                <FrontView
+                  plan={plan}
+                  unit={unit}
+                  selection={selection}
+                  snapStep={snapStep}
+                  onChange={run}
+                  onSelectPiece={(id, additive) => dispatch({ type: 'selectPiece', id, additive })}
+                  onClearSelection={() => dispatch({ type: 'clearSelection' })}
+                />
+              ) : (
+                <ProfileView plan={plan} unit={unit} selection={selection} />
+              )}
+            </div>
             <PropertiesPanel plan={plan} selection={selection} unit={unit} dispatch={run} />
             {notice && (
               <div className="notice" role="alert">

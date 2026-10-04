@@ -92,3 +92,13 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Une nouvelle modification efface la partie « rétablir »** ; **un nouveau plan** (assistant) repart d un historique vide.
 - **Après annuler / rétablir, la sélection ne garde que les pièces qui existent encore.**
 - **Raccourcis** : Ctrl+Z annuler, Ctrl+Y ou Ctrl+Maj+Z rétablir (Cmd sur Mac). Ils sont laissés au navigateur quand le curseur est dans un champ texte, où Ctrl+Z annule la frappe. Boutons Annuler / Rétablir dans l en-tête, grisés quand il n y a rien à faire.
+
+## 2026-10-04 (étape 8)
+
+- **Vue de profil depuis le côté gauche** : le mur est à gauche, l avant à droite, le montant gauche au premier plan. Toutes les pièces sont alignées contre le mur (x = 0) ; la spec ne prévoit pas de décalage en profondeur. Un petit bandeau « Mur » rappelle l orientation (utile aussi pour la future note de fixation murale).
+- **Traits cachés en pointillés** : le montant droit, les cales et les tablettes situées entre les montants sont cachés par le montant du premier plan, donc en pointillés sans remplissage. Avec « tablettes du haut et du bas posées sur / sous les montants », ces deux tablettes dépassent et sont dessinées en plein. Logique pure dans `src/model/profile.ts` (testée).
+- **Lecture seule** : on peut zoomer, déplacer la vue, et la sélection faite en vue de face est surlignée ; on ne modifie rien depuis le profil (vue éditable = V2).
+- **Sélecteur Face / Profil** au-dessus du dessin (une vue à la fois, plus grande, plutôt que deux petites côte à côte).
+- **Cotes du profil** : profondeur hors-tout en bas, hauteur et hauteurs libres des étages à droite (pas à gauche, pour ne pas croiser le mur). La profondeur affichée est celle de la pièce la plus profonde.
+- **Code partagé extrait** : `useViewport` (zoom, déplacement, cadrage), `Dimension` (lignes de cotes) et `ViewControls` (boutons) servent aux deux vues. Un correctif dans l une profite à l autre.
+- **Échap et Suppr** fonctionnent maintenant même quand le focus est sur un bouton radio / case à cocher (ils restent réservés aux champs de saisie et aux listes déroulantes).

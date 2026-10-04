@@ -1,69 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { dragShelf, dragWedge, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
-import { cameraViewBox, fitCamera, panCamera, zoomCamera, type Camera, type Size } from './camera'
+import { panCamera } from './camera'
+import { DIM_OFFSET_PX, Dimension } from './Dimension'
+import { useViewport } from './useViewport'
+import { ViewControls } from './ViewControls'
 
-const FIT_PADDING_PX = 90
-const DIM_OFFSET_PX = 40
-const FONT_PX = 13
 const HANDLE_PX = 12
-const WHEEL_SENSITIVITY = 0.0015
-const BUTTON_ZOOM = 1.25
 /** En dessous de ce déplacement (px), un appui est un clic et non un glisser. */
 const CLICK_TOLERANCE_PX = 4
-
-interface DimensionProps {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-  label: string
-  /** Mm du dessin par pixel écran : garde les textes et repères à taille constante à l'écran. */
-  s: number
-  /** Côté du texte par rapport à la ligne : 1 = dessous / droite, -1 = dessus / gauche. */
-  side: 1 | -1
-}
-
-/** Ligne de cote avec repères aux extrémités et texte (horizontale ou verticale). */
-function Dimension({ x1, y1, x2, y2, label, s, side }: DimensionProps) {
-  const vertical = x1 === x2
-  const mx = (x1 + x2) / 2
-  const my = (y1 + y2) / 2
-  const tick = 5 * s
-  const gap = 12 * s * side
-  const tx = vertical ? mx + gap : mx
-  const ty = vertical ? my : my + gap
-  return (
-    <g className="dim">
-      <line x1={x1} y1={y1} x2={x2} y2={y2} vectorEffect="non-scaling-stroke" />
-      {vertical ? (
-        <>
-          <line x1={x1 - tick} y1={y1} x2={x1 + tick} y2={y1} vectorEffect="non-scaling-stroke" />
-          <line x1={x2 - tick} y1={y2} x2={x2 + tick} y2={y2} vectorEffect="non-scaling-stroke" />
-        </>
-      ) : (
-        <>
-          <line x1={x1} y1={y1 - tick} x2={x1} y2={y1 + tick} vectorEffect="non-scaling-stroke" />
-          <line x1={x2} y1={y2 - tick} x2={x2} y2={y2 + tick} vectorEffect="non-scaling-stroke" />
-        </>
-      )}
-      <text
-        x={tx}
-        y={ty}
-        fontSize={FONT_PX * s}
-        textAnchor="middle"
-        dominantBaseline="central"
-        transform={vertical ? `rotate(-90 ${tx} ${ty})` : undefined}
-      >
-        {label}
-      </text>
-    </g>
-  )
-}
 
 type Handle = 'right' | 'top' | 'corner'
 
@@ -118,67 +67,14 @@ export function FrontView({
   onClearSelection,
   onChange,
 }: FrontViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const { containerRef, scale, viewBox, updateCamera, resetView, zoomIn, zoomOut } = useViewport(plan.width, plan.height)
   const gestureRef = useRef<Gesture | null>(null)
   const pendingRef = useRef<EditorAction | null>(null)
-  const [size, setSize] = useState<Size | null>(null)
-  // Tant que l'utilisateur n'a pas zoomé ni déplacé, la vue reste cadrée sur toute l'étagère.
-  const [custom, setCustom] = useState<Camera | null>(null)
   // Plan « en cours de glisser » : affiché à la place du vrai plan jusqu'au relâchement.
   const [draft, setDraft] = useState<Plan | null>(null)
 
-  useLayoutEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const update = () => setSize({ width: el.clientWidth, height: el.clientHeight })
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  const fit =
-    size && size.width > 0 && size.height > 0
-      ? fitCamera({ x: 0, y: 0, width: plan.width, height: plan.height }, size, FIT_PADDING_PX)
-      : null
-  const camera = custom ?? fit
-
-  const cameraRef = useRef(camera)
-  useEffect(() => {
-    cameraRef.current = camera
-  })
-
-  const updateCamera = useCallback((change: (c: Camera) => Camera) => {
-    const current = cameraRef.current
-    if (!current) return
-    const next = change(current)
-    cameraRef.current = next
-    setCustom(next)
-  }, [])
-
-  const resetView = () => setCustom(null)
-
-  // La molette doit empêcher le défilement de la page : écouteur non passif.
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el || !size) return
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const box = el.getBoundingClientRect()
-      const focus = { x: e.clientX - box.left, y: e.clientY - box.top }
-      updateCamera((c) => zoomCamera(c, Math.exp(-e.deltaY * WHEEL_SENSITIVITY), focus, size))
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [size, updateCamera])
-
-  const zoomFromCenter = (factor: number) => {
-    if (size) updateCamera((c) => zoomCamera(c, factor, { x: size.width / 2, y: size.height / 2 }, size))
-  }
-
   const onPointerDown = (e: React.PointerEvent) => {
     const target = e.target as Element
-    const scale = cameraRef.current?.s ?? 1
     const handle = target.closest('[data-handle]')?.getAttribute('data-handle') as Handle | null
     const pieceId = target.closest('[data-piece-id]')?.getAttribute('data-piece-id') ?? null
     const base = { startX: e.clientX, startY: e.clientY }
@@ -272,10 +168,9 @@ export function FrontView({
   const rects = computeFrontRects(shown)
   const stages = getStages(shown)
   const shelfOrder = sortedShelves(shown).map((s) => s.id)
-  const s = camera?.s ?? 1
+  const s = scale
   const dimOffset = DIM_OFFSET_PX * s
   const hs = HANDLE_PX * s
-  const viewBox = camera && size ? cameraViewBox(camera, size) : null
 
   const movableClass = (kind: string, id: string) => {
     if (kind === 'wedge') return ' movable-x'
@@ -347,17 +242,7 @@ export function FrontView({
         </svg>
       )}
 
-      <div className="view-controls">
-        <button type="button" onClick={() => zoomFromCenter(BUTTON_ZOOM)} aria-label="Zoom avant" title="Zoom avant">
-          +
-        </button>
-        <button type="button" onClick={() => zoomFromCenter(1 / BUTTON_ZOOM)} aria-label="Zoom arrière" title="Zoom arrière">
-          −
-        </button>
-        <button type="button" onClick={resetView} title="Recadrer toute l'étagère">
-          Tout voir
-        </button>
-      </div>
+      <ViewControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} />
     </div>
   )
 }
