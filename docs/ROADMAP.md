@@ -6,7 +6,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 ## MVP (v1)
 
 - [x] **Étape 0 — Socle** : projet Vite + React + TypeScript, lint, tests (Vitest), déploiement GitHub Pages via GitHub Actions, page « Hello » en ligne.
-- [ ] **Étape 1 — Modèle de données** : types (Plan, Montant, Tablette, Cale), création d'un plan depuis des paramètres, calcul des dimensions de chaque pièce. Tests unitaires sur les règles d'assemblage.
+- [x] **Étape 1 — Modèle de données** : types (Plan, Montant, Tablette, Cale), création d'un plan depuis des paramètres, calcul des dimensions de chaque pièce. Tests unitaires sur les règles d'assemblage.
 - [ ] **Étape 2 — Vue de face** : rendu SVG du cadre, tablettes, cales, avec cotes. Zoom / déplacement de la vue.
 - [ ] **Étape 3 — Assistant de création** : formulaire (dimensions, nombre d'étages, épaisseurs).
 - [ ] **Étape 4 — Sélection et panneau de propriétés** : sélection simple et multiple, édition des cotes au clavier, unités mm/cm.
@@ -15,9 +15,9 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - [ ] **Étape 7 — Annuler / rétablir**.
 - [ ] **Étape 8 — Vue de profil** (lecture seule).
 - [ ] **Étape 9 — Liste de découpe** : regroupement, repères, option trait de scie.
-- [ ] **Étape 10 — Sauvegarde** : bibliothèque IndexedDB, export/import `.etagere.json`.
-- [ ] **Étape 11 — Export PDF** : plan d'architecte A4 paysage, note fixation murale, JSON embarqué, ré-import du PDF.
-- [ ] **Étape 12 — Finitions** : design, raccourcis clavier, README du dépôt, vérification des critères de « terminé ».
+- [x] **Étape 10 — Sauvegarde** : bibliothèque IndexedDB, export/import `.etagere.json`.
+- [x] **Étape 11 — Export PDF** : plan d'architecte A4 paysage, note fixation murale, JSON embarqué, ré-import du PDF.
+- [x] **Étape 12 — Finitions** : design, raccourcis clavier, README du dépôt, vérification des critères de « terminé ».
 
 ## Période de test
 

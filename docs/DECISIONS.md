@@ -24,3 +24,12 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Vitest** pour les tests, environnement `node` : la logique de `src/model/` ne dépend pas du navigateur.
 - **`base: '/atelier-etageres/'`** dans Vite : le site est servi dans un sous-dossier sur GitHub Pages.
 - **Déploiement via GitHub Actions** (`.github/workflows/deploy.yml`) : lint + tests + build avant publication ; un test en échec bloque la mise en ligne.
+
+## 2026-10-04 (étape 1)
+
+- **Repère du modèle** : x depuis le bord gauche extérieur, y depuis le dessous du cadre (vers le haut). Une tablette est positionnée par la hauteur de sa face inférieure.
+- **Une cale est rattachée à la tablette située sous son étage** (`shelfBelowId`), pas à un numéro d étage : elle reste liée au bon étage si on ajoute ou supprime des tablettes.
+- **Répartition des étages** : si la hauteur libre ne se divise pas exactement en mm entiers, les mm restants vont un par un aux étages du bas. La hauteur totale est toujours exacte.
+- **`createPlan` lève une erreur** (RangeError) pour des paramètres invalides ; les contrôles de cohérence d un plan modifié sont à l étape 6.
+- **Plan créé sans cale** ; l ajout de cales vient avec les outils (étape 6). Cales et tablettes : profondeur et épaisseur propres à chaque pièce.
+- **Pièces calculées, jamais stockées** : `computePieces(plan)` recalcule les dimensions à la demande, pour éviter toute incohérence.
