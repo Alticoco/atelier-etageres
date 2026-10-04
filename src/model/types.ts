@@ -6,7 +6,16 @@
  * y part du dessous du cadre (vers le haut).
  */
 
-/** Position des tablettes du haut et du bas par rapport aux montants. */
+/**
+ * Modèle de construction.
+ * - `frame` : deux montants pleine hauteur, les tablettes entre eux (modèle « cadre »).
+ * - `frameless` : planches apparentes. Tablettes continues avec un débord à chaque bout, montants coupés à la
+ *   hauteur de chaque étage et fixés entre les tablettes, un à gauche et un à droite.
+ */
+export type PlanModel = 'frame' | 'frameless'
+
+/** Position des tablettes du haut et du bas par rapport aux montants (modèle `frame` seulement). */
+
 export type FramePlacement = 'between' | 'onTop'
 
 export interface Upright {
@@ -20,6 +29,18 @@ export interface Shelf {
   y: number
   thickness: number
   depth: number
+  /**
+   * Modèle `frameless` : débord à gauche / à droite, mesuré depuis la face extérieure des montants jusqu'au bout
+   * de la tablette. Ignoré (0) dans le modèle `frame`.
+   */
+  overhangLeft: number
+  overhangRight: number
+  /**
+   * Modèle `frameless` : y a-t-il un montant à gauche / à droite dans l'étage situé AU-DESSUS de cette tablette ?
+   * Ignoré dans le modèle `frame`.
+   */
+  verticalLeft: boolean
+  verticalRight: boolean
 }
 
 /** Planche verticale non fixée, posée dans un étage pour soutenir la tablette du dessus. */
@@ -52,8 +73,10 @@ export interface PlanOptions {
 }
 
 export interface Plan {
+  /** Modèle de construction, choisi à la création. */
+  model: PlanModel
   name: string
-  /** Largeur extérieure (hors-tout) du cadre. */
+  /** Largeur hors-tout : cadre, ou tablettes avec leurs débords pour le modèle sans cadre. */
   width: number
   /** Hauteur extérieure (hors-tout) du cadre. */
   height: number

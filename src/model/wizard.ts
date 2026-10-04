@@ -1,10 +1,14 @@
 import { createPlan } from './plan'
-import type { FramePlacement, Plan } from './types'
+import type { FramePlacement, Plan, PlanModel } from './types'
 import { parseLength } from './units'
 
 /** Valeurs brutes du formulaire de création : du texte, avec les longueurs en cm. */
 export interface WizardValues {
   name: string
+  /** Modèle de construction : avec ou sans cadre. */
+  model: PlanModel
+  /** Débord des tablettes (cm), pour le modèle sans cadre. */
+  overhang: string
   width: string
   height: string
   depth: string
@@ -15,7 +19,7 @@ export interface WizardValues {
   framePlacement: FramePlacement
 }
 
-export type WizardField = Exclude<keyof WizardValues, 'name' | 'framePlacement'>
+export type WizardField = Exclude<keyof WizardValues, 'name' | 'framePlacement' | 'model'>
 
 export type WizardResult =
   | { ok: true; plan: Plan }
@@ -23,6 +27,8 @@ export type WizardResult =
 
 export const DEFAULT_WIZARD_VALUES: WizardValues = {
   name: 'Nouvelle étagère',
+  model: 'frame',
+  overhang: '2',
   width: '80',
   height: '100',
   depth: '25',
@@ -67,6 +73,14 @@ export function resolveWizard(values: WizardValues): WizardResult {
     else mm[field] = parsed
   }
 
+  // Le débord (modèle sans cadre) peut valoir 0 : une tablette qui affleure les montants.
+  let overhangMm = 0
+  if (values.model === 'frameless') {
+    const parsed = parseLength(values.overhang, 'cm')
+    if (parsed === null) fieldErrors.overhang = NOT_A_LENGTH
+    else overhangMm = parsed
+  }
+
   const stagesText = values.stages.trim()
   const stages = /^\d+$/.test(stagesText) ? Number(stagesText) : null
   if (stages === null) fieldErrors.stages = "Entrez un nombre entier d'étages (ex. 3)."
@@ -78,6 +92,8 @@ export function resolveWizard(values: WizardValues): WizardResult {
 
   try {
     const plan = createPlan({
+      model: values.model,
+      overhang: overhangMm,
       name: values.name.trim() || DEFAULT_WIZARD_VALUES.name,
       width: mm.width!,
       height: mm.height!,

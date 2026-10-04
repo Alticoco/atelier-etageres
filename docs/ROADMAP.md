@@ -36,11 +36,13 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 
 ## V2
 
-- [ ] Modèle sans cadre (planches apparentes, débords réglables)
-- [ ] Arrondis des arêtes et des coins (plan + PDF)
-- [ ] Vue de profil éditable
-- [ ] Onglets de plans + écran partagé
-- [ ] Optimisation des découpes (à confirmer)
+Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car les arrondis et le profil éditable s'appuient dessus.
+
+- [x] **Étape 13 — Modèle sans cadre** : planches apparentes, tablettes continues avec débords réglables à gauche et à droite, montants coupés à la hauteur de chaque étage (un à gauche et un à droite), supprimables un par un ; choix du modèle à la création (assistant), largeur hors-tout ; liste de découpe, vue de face, profil et PDF.
+- [ ] **Étape 14 — Arrondis** des arêtes et des coins (plan + PDF).
+- [ ] **Étape 15 — Vue de profil éditable.**
+- [ ] **Étape 16 — Onglets de plans + écran partagé.**
+- [ ] **Étape 17 — Optimisation des découpes** (à confirmer : peut-être inutile).
 
 ## V3
 
@@ -55,6 +57,8 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - Estimation du prix
 - Version téléphone
 - Sélection par rectangle (la spec la prévoit en complément de Ctrl/Maj + clic) : en conflit avec le glisser pour déplacer la vue ; à trancher (ex. Maj + glisser) avant l étape 5.
+- Conversion d'une étagère existante d'un modèle à l'autre (avec cadre ↔ sans cadre).
+- Cotes de débord et largeur du corps sur le dessin (modèle sans cadre).
 - Synthèse des longueurs totales à acheter par section de planche (largeur × épaisseur), à côté de la liste de découpe.
 - Repères A, B, C aussi sur la vue de profil (écran et PDF) ; export PDF directement depuis la liste « Mes étagères ».
 - Impression : vérifier le rendu sur une vraie imprimante A4 (marges, lisibilité des cotes à 7 pt) pendant la période de test.

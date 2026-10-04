@@ -76,12 +76,30 @@ export function CreationWizard({ onCreate, onCancel }: CreationWizardProps) {
           <input id="name" type="text" value={values.name} onChange={(e) => set('name', e.target.value)} />
         </div>
 
+        <div className="field">
+          <label htmlFor="model">Modèle</label>
+          <select
+            id="model"
+            value={values.model}
+            onChange={(e) => set('model', e.target.value as WizardValues['model'])}
+          >
+            <option value="frame">Avec cadre (deux montants pleine hauteur)</option>
+            <option value="frameless">Sans cadre (planches apparentes)</option>
+          </select>
+          <small className="field-hint">
+            {values.model === 'frame'
+              ? 'Les tablettes se placent entre deux montants.'
+              : 'Tablettes continues qui dépassent, montants coupés à la hauteur de chaque étage.'}
+          </small>
+        </div>
+
         <fieldset>
           <legend>Dimensions extérieures (cm)</legend>
           {field('width', 'Largeur')}
           {field('height', 'Hauteur')}
           {field('depth', 'Profondeur')}
           {field('stages', 'Nombre d’étages', 'Répartis également.')}
+          {values.model === 'frameless' && field('overhang', 'Débord des tablettes', 'De chaque côté, au-delà des montants. La largeur est hors-tout, débords compris.')}
         </fieldset>
 
         <fieldset>
@@ -91,6 +109,7 @@ export function CreationWizard({ onCreate, onCancel }: CreationWizardProps) {
           {field('wedgeThickness', 'Cales')}
         </fieldset>
 
+        {values.model === 'frame' && (
         <div className="field">
           <label htmlFor="framePlacement">Tablettes du haut et du bas</label>
           <select
@@ -102,6 +121,7 @@ export function CreationWizard({ onCreate, onCancel }: CreationWizardProps) {
             <option value="onTop">Posées sur / sous les montants</option>
           </select>
         </div>
+        )}
 
         {!result.ok && result.formError && (
           <p className="form-error" role="alert">

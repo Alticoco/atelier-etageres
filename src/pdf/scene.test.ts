@@ -232,3 +232,25 @@ describe('outils de texte', () => {
     expect(wrapText('court', 90, 7)).toEqual(['court'])
   })
 })
+
+describe('modèle sans cadre', () => {
+  const frameless = () => plan({ model: 'frameless', overhang: 20, width: 900 })
+
+  it('décrit la construction dans les notes et désigne les montants et tablettes', () => {
+    const t = allText(buildScene(frameless(), { date: DATE }).primitives)
+    expect(t.join(' ')).toContain('Sans cadre')
+    expect(t).toContain('Montants')
+    expect(t).toContain('Tablettes')
+  })
+
+  it('porte les repères de chaque montant d’étage sur la vue de face', () => {
+    // 6 montants (A, B ×... ) + 4 tablettes : 10 pastilles
+    const marks = texts(buildScene(frameless(), { date: DATE }).primitives).filter((p) => p.bold && p.size === 6 && /^[A-Z]$/.test(p.text))
+    expect(marks).toHaveLength(10)
+  })
+
+  it('dessine les tablettes à l’échelle, débords compris (900 mm → 90 mm à 1:10)', () => {
+    const widths = rects(buildScene(frameless(), { date: DATE }).primitives).map((r) => Math.round(r.width * 100) / 100)
+    expect(widths).toContain(90)
+  })
+})

@@ -160,3 +160,18 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 ## 2026-10-04 (licence, précision)
 
 - **Le copyright de la licence MIT est au nom « Alticoco »** (pseudo GitHub de l auteur) et non à un nom civil, à la demande de l auteur. Remplace le nom indiqué dans l entrée « licence » ci-dessus (l historique est conservé, on n y réécrit rien).
+
+## 2026-10-05 (étape 13 — modèle sans cadre)
+
+- **Ordre de la V2 choisi avec l'auteur** : modèle sans cadre d'abord (les arrondis et le profil éditable s'appuient dessus), test du MVP en parallèle.
+- **Interprétation de la spec §3.2, validée par l'auteur** : tablettes continues avec un débord réglable à gauche et à droite ; montants coupés à la hauteur libre de chaque étage, **un à gauche et un à droite à chaque étage**, alignés sur le corps ; chaque montant se supprime individuellement (l'extrémité se termine alors par la seule tablette). Les séparations intérieures restent les cales.
+- **Largeur = hors-tout, débords compris** (ce qu'on mesure sur le mur, et la longueur de la planche à acheter). Le corps (faces extérieures des montants) se déduit : le plus grand débord de chaque côté touche le bord hors-tout, donc `corps = largeur − débord gauche max − débord droit max`. Tout est dans `src/model/geometry.ts`.
+- **Modèle choisi à la création seulement** : pas de conversion d'un plan existant (noté dans la boîte à idées). Les plans existants sont des plans avec cadre, **strictement inchangés** : tous les tests de l'ancien modèle passent sans modification.
+- **Données** : `Plan.model` (`frame` / `frameless`) ; chaque tablette porte `overhangLeft`, `overhangRight`, `verticalLeft`, `verticalRight` (montant dans l'étage **au-dessus** de cette tablette, comme une cale est rattachée à la tablette du dessous). Ces champs sont ignorés par le modèle avec cadre.
+- **Compatibilité des fichiers sans changer de version** : un fichier écrit avant (sans `model` ni débords) se lit comme un plan avec cadre (débords 0, montants présents). C'est un ajout facultatif.
+- **Montants d'un même côté partagent épaisseur et profondeur** (`leftUpright`, `rightUpright`) : modifier l'un modifie tous ceux du côté (le panneau l'indique). Identifiants `vertical-left-shelf-2` (côté + tablette du dessous), libellés « Montant gauche, étage 2 ».
+- **Cales** : toujours entre les faces intérieures des montants (`innerSpan`), même si un montant est supprimé à cet étage (règle prudente, simple). La propagation de largeur garde leur position relative dans cet espace.
+- **Vue de profil sans cadre** : les tablettes montrent leur tranche, donc elles sont pleines ; montants de gauche pleins ; montants de droite et cales en pointillés.
+- **Débord de 0 permis** (tablette qui affleure les montants). Un débord qui ne laisse plus de place entre les montants est refusé avec un message.
+- **PDF et liste de découpe** suivent automatiquement (même code). Note dédiée sur le PDF ; la désignation des lots utilise le type de pièce (« Mixte » quand un lot réunit montants et cales de mêmes dimensions).
+- **Reporté (boîte à idées)** : conversion entre modèles, cotes de débord et de largeur du corps sur le dessin.

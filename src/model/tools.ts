@@ -1,4 +1,6 @@
 import { fail, finish, type EditResult } from './edit'
+import { innerSpan } from './geometry'
+import { parseVerticalId } from './labels'
 import { getStages, sortedShelves } from './pieces'
 import type { Plan } from './types'
 
@@ -25,7 +27,17 @@ export function addShelf(plan: Plan, shelfBelowId: string): AddResult {
 
   const next = structuredClone(plan)
   const id = nextId('shelf', next.shelves.map((s) => s.id))
-  next.shelves.push({ id, y: stage.y + Math.floor(room / 2), thickness: below.thickness, depth: below.depth })
+  // La nouvelle tablette reprend les débords et les montants de celle du dessous (les deux demi-étages restent pareils).
+  next.shelves.push({
+    id,
+    y: stage.y + Math.floor(room / 2),
+    thickness: below.thickness,
+    depth: below.depth,
+    overhangLeft: below.overhangLeft,
+    overhangRight: below.overhangRight,
+    verticalLeft: below.verticalLeft,
+    verticalRight: below.verticalRight,
+  })
 
   const result = finish(next)
   return result.ok ? { ok: true, plan: result.plan, id } : result
@@ -47,8 +59,9 @@ export function addWedge(plan: Plan, shelfBelowId: string): AddResult {
 
   const existing = plan.wedges.filter((w) => w.shelfBelowId === shelfBelowId).sort((a, b) => a.x - b.x)
   let best: { start: number; size: number } | null = null
-  let cursor = plan.leftUpright.thickness
-  const edges = [...existing.map((w) => ({ from: w.x, to: w.x + w.thickness })), { from: plan.width - plan.rightUpright.thickness, to: plan.width }]
+  const span = innerSpan(plan)
+  let cursor = span.left
+  const edges = [...existing.map((w) => ({ from: w.x, to: w.x + w.thickness })), { from: span.right, to: plan.width }]
   for (const edge of edges) {
     const size = edge.from - cursor
     if (size >= thickness && (!best || size > best.size)) best = { start: cursor, size }
@@ -80,6 +93,16 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
   const next = structuredClone(plan)
 
   for (const id of ids) {
+    // Modèle sans cadre : supprimer un montant d'étage laisse l'extrémité se terminer par la seule tablette.
+    const vertical = parseVerticalId(id)
+    if (vertical && next.model === 'frameless') {
+      const shelf = next.shelves.find((s) => s.id === vertical.shelfBelowId)
+      const key = vertical.side === 'left' ? 'verticalLeft' : 'verticalRight'
+      if (!shelf || !shelf[key]) return fail(`Pièce inconnue : ${id}`)
+      shelf[key] = false
+      continue
+    }
+
     if (id === 'upright-left' || id === 'upright-right') return fail('Les montants ne se suppriment pas.')
 
     if (next.wedges.some((w) => w.id === id)) {
@@ -129,3 +152,18 @@ export function distributeShelves(plan: Plan): EditResult {
   return finish(next)
 }
 
+
+/**
+ * Modèle sans cadre : ajoute ou retire le montant de gauche / de droite dans l'étage situé au-dessus d'une tablette.
+ * Sans montant, cette extrémité de l'étage se termine par la seule tablette.
+ */
+export function setVertical(plan: Plan, shelfId: string, side: 'left' | 'right', present: boolean): EditResult {
+  if (plan.model !== 'frameless') return fail('Ce réglage concerne seulement les étagères sans cadre.')
+  if (!getStages(plan).some((s) => s.shelfBelowId === shelfId)) return fail('Il n’y a pas d’étage au-dessus de cette tablette.')
+  const next = structuredClone(plan)
+  const shelf = next.shelves.find((s) => s.id === shelfId)
+  if (!shelf) return fail('Tablette inconnue.')
+  if (side === 'left') shelf.verticalLeft = present
+  else shelf.verticalRight = present
+  return finish(next)
+}

@@ -1,6 +1,10 @@
-import type { FramePlacement, Plan, Shelf } from './types'
+import type { FramePlacement, Plan, PlanModel, Shelf } from './types'
 
 export interface PlanParams {
+  /** Modèle de construction (par défaut : avec cadre). */
+  model?: PlanModel
+  /** Modèle sans cadre : débord de chaque tablette à gauche et à droite (mm, par défaut 0). */
+  overhang?: number
   name?: string
   width: number
   height: number
@@ -43,6 +47,8 @@ function assertNonNegativeInt(value: number, label: string): void {
  */
 export function createPlan(params: PlanParams): Plan {
   const {
+    model = 'frame',
+    overhang = 0,
     name = 'Nouvelle étagère',
     width,
     height,
@@ -68,9 +74,16 @@ export function createPlan(params: PlanParams): Plan {
   assertPositiveInt(wedgeThickness, "L'épaisseur des cales")
   assertNonNegativeInt(wedgeClearance, 'Le jeu des cales')
   assertNonNegativeInt(sawKerf, 'Le trait de scie')
+  assertNonNegativeInt(overhang, 'Le débord')
 
-  if (width <= 2 * uprightThickness) {
-    throw new RangeError('La largeur est trop faible pour deux montants et un espace entre eux')
+  const frameless = model === 'frameless'
+  const sideOverhang = frameless ? overhang : 0
+  if (width <= 2 * uprightThickness + 2 * sideOverhang) {
+    throw new RangeError(
+      frameless
+        ? 'La largeur est trop faible pour deux montants, leurs débords et un espace entre eux'
+        : 'La largeur est trop faible pour deux montants et un espace entre eux',
+    )
   }
 
   const freeHeight = height - (stages + 1) * shelfThickness
@@ -83,11 +96,21 @@ export function createPlan(params: PlanParams): Plan {
   const shelves: Shelf[] = []
   let y = 0
   for (let i = 0; i <= stages; i++) {
-    shelves.push({ id: `shelf-${i + 1}`, y, thickness: shelfThickness, depth })
+    shelves.push({
+      id: `shelf-${i + 1}`,
+      y,
+      thickness: shelfThickness,
+      depth,
+      overhangLeft: sideOverhang,
+      overhangRight: sideOverhang,
+      verticalLeft: true,
+      verticalRight: true,
+    })
     y += shelfThickness + baseStageHeight + (i < extra ? 1 : 0)
   }
 
   return {
+    model,
     name,
     width,
     height,

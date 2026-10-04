@@ -7,7 +7,8 @@ import {
   type PlanChange,
 } from '../model/edit'
 import { selectPiece } from '../model/selection'
-import { addShelf, addWedge, distributeShelves, removePieces, type AddResult } from '../model/tools'
+import { pieceIds } from '../model/pieces'
+import { addShelf, addWedge, distributeShelves, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
 
@@ -42,6 +43,7 @@ export type EditorAction =
   | { type: 'addWedge'; shelfBelowId: string }
   | { type: 'removePieces'; ids: string[] }
   | { type: 'distributeShelves' }
+  | { type: 'setShelfVertical'; shelfId: string; side: 'left' | 'right'; present: boolean }
   | { type: 'undo' }
   | { type: 'redo' }
 
@@ -66,14 +68,9 @@ function samePlan(a: Plan, b: Plan): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-/** Identifiants de toutes les pièces du plan. */
-function allPieceIds(plan: Plan): string[] {
-  return ['upright-left', 'upright-right', ...plan.shelves.map((s) => s.id), ...plan.wedges.map((w) => w.id)]
-}
-
 /** Ne garde dans la sélection que les pièces qui existent dans ce plan. */
 function existingOnly(selection: string[], plan: Plan): string[] {
-  const ids = new Set(allPieceIds(plan))
+  const ids = new Set(pieceIds(plan))
   return selection.filter((id) => ids.has(id))
 }
 
@@ -88,7 +85,7 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     case 'selectPiece':
       return accepted({ ...state, selection: selectPiece(state.selection, action.id, action.additive) })
     case 'selectAll':
-      return accepted(state.plan ? { ...state, selection: allPieceIds(state.plan) } : state)
+      return accepted(state.plan ? { ...state, selection: pieceIds(state.plan) } : state)
     case 'clearSelection':
       return accepted(state.selection.length === 0 ? state : { ...state, selection: [] })
     case 'setUnit':
@@ -140,6 +137,11 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(setPlanSize(plan, { width: action.width, height: action.height }))
     case 'distributeShelves':
       return withPlan(distributeShelves(plan))
+    case 'setShelfVertical': {
+      const result = setVertical(plan, action.shelfId, action.side, action.present)
+      if (!result.ok) return refused(result.error)
+      return commit(result.plan, existingOnly(state.selection, result.plan))
+    }
     case 'addShelf':
       return withAdded(addShelf(plan, action.shelfBelowId))
     case 'addWedge':

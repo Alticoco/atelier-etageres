@@ -310,8 +310,9 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   const columnEdges = columns.reduce<number[]>((acc, w) => [...acc, acc[acc.length - 1] + w], [listX])
   const headers = ['Rep.', 'Qté', 'Long.', 'Larg.', 'Ép.', 'Pièces']
   const kindNames: Record<string, string> = { upright: 'Montants', shelf: 'Tablettes', wedge: 'Cales' }
+  const kindOf = (id: string) => (id.startsWith('shelf') ? 'shelf' : id.startsWith('wedge') ? 'wedge' : 'upright')
   const designation = (ids: string[]) => {
-    const kinds = new Set(ids.map((id) => id.split('-')[0]))
+    const kinds = new Set(ids.map(kindOf))
     return kinds.size === 1 ? (kindNames[[...kinds][0]] ?? '') : 'Mixte'
   }
 
@@ -376,9 +377,11 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   writeLines(wrapText(`Bois massif. Cotes en ${unit}. Les repères A, B… renvoient à la liste ci-dessus.`, listW, 7))
   writeLines(
     wrapText(
-      plan.options.framePlacement === 'between'
-        ? 'Tablettes du haut et du bas placées entre les montants.'
-        : 'Tablettes du haut et du bas posées sur et sous les montants.',
+      plan.model === 'frameless'
+        ? 'Sans cadre : tablettes continues avec débords, montants coupés à la hauteur de chaque étage et fixés entre les tablettes.'
+        : plan.options.framePlacement === 'between'
+          ? 'Tablettes du haut et du bas placées entre les montants.'
+          : 'Tablettes du haut et du bas posées sur et sous les montants.',
       listW,
       7,
     ),

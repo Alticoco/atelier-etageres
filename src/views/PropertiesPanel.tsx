@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
-import { pieceLabel } from '../model/labels'
-import { computePieces, getStages } from '../model/pieces'
+import { parseVerticalId, pieceLabel } from '../model/labels'
+import { computePieces, getStages, sortedShelves } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, formatNumber, parseLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
@@ -161,6 +161,10 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
           </label>
         </div>
 
+        <p className="panel-hint">
+          Modèle : {plan.model === 'frame' ? 'avec cadre' : 'sans cadre (planches apparentes)'}, choisi à la création.
+        </p>
+
         <fieldset className="panel-section">
           <legend>Dimensions hors-tout</legend>
           <LengthField
@@ -181,6 +185,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
 
         <fieldset className="panel-section">
           <legend>Montage</legend>
+          {plan.model === 'frame' && (
           <div className="field">
             <label>
               Tablettes du haut et du bas
@@ -195,6 +200,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
               </select>
             </label>
           </div>
+          )}
           <div className="field field-check">
             <label>
               <input
@@ -273,11 +279,14 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
   const single = pieces.length === 1 ? pieces[0] : null
   const computed = single ? computePieces(plan).find((p) => p.id === single.id) : undefined
   const sameKey = pieces.map((p) => p.id).join('|')
+  const shelf = single?.kind === 'shelf' ? plan.shelves.find((s) => s.id === single.id) : undefined
+  const hasStageAbove = shelf ? sortedShelves(plan).at(-1)?.id !== shelf.id : false
 
   // Étage de la pièce sélectionnée : celui de la cale, ou celui juste au-dessus de la tablette.
   let defaultStageId: string | undefined
   if (single?.kind === 'wedge') defaultStageId = plan.wedges.find((w) => w.id === single.id)?.shelfBelowId
   if (single?.kind === 'shelf') defaultStageId = single.id
+  if (single?.kind === 'upright') defaultStageId = parseVerticalId(single.id)?.shelfBelowId
 
   let title: ReactNode = `${pieces.length} pièces sélectionnées`
   if (single) title = pieceLabel(plan, single.id)
@@ -309,6 +318,48 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
           unit={unit}
           onCommit={(mm) => commitPiece('y', mm)}
         />
+      )}
+      {single?.kind === 'shelf' && plan.model === 'frameless' && shelf && (
+        <>
+          <LengthField
+            key={`ol-${single.id}-${single.overhangLeft}-${unit}`}
+            label="Débord à gauche"
+            valueMm={single.overhangLeft ?? 0}
+            unit={unit}
+            onCommit={(mm) => commitPiece('overhangLeft', mm)}
+          />
+          <LengthField
+            key={`or-${single.id}-${single.overhangRight}-${unit}`}
+            label="Débord à droite"
+            valueMm={single.overhangRight ?? 0}
+            unit={unit}
+            onCommit={(mm) => commitPiece('overhangRight', mm)}
+          />
+          {hasStageAbove && (
+            <div className="field field-check">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={shelf.verticalLeft}
+                  onChange={(e) => dispatch({ type: 'setShelfVertical', shelfId: shelf.id, side: 'left', present: e.target.checked })}
+                />
+                Montant à gauche, étage au-dessus
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={shelf.verticalRight}
+                  onChange={(e) => dispatch({ type: 'setShelfVertical', shelfId: shelf.id, side: 'right', present: e.target.checked })}
+                />
+                Montant à droite, étage au-dessus
+              </label>
+              <small className="field-hint">Sans montant, l’extrémité de l’étage se termine par la seule tablette.</small>
+            </div>
+          )}
+        </>
+      )}
+      {single?.kind === 'upright' && plan.model === 'frameless' && (
+        <p className="panel-hint">L’épaisseur et la profondeur s’appliquent à tous les montants de ce côté.</p>
       )}
       {single?.kind === 'wedge' && (
         <LengthField

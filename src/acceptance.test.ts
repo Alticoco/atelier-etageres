@@ -20,6 +20,8 @@ import { buildScene, PAGE, type Primitive, type TextPrim } from './pdf/scene'
 function mangatheque(overrides: Partial<Parameters<typeof resolveWizard>[0]> = {}, kerf = false): Plan {
   const result = resolveWizard({
     name: 'Mangathèque',
+    model: 'frame',
+    overhang: '2',
     width: '90',
     height: '180',
     depth: '22',
@@ -206,5 +208,54 @@ describe('critère 4 — PDF exporté puis ré-importé = même plan', () => {
     if (!result.ok) throw new Error(result.error)
     expect(result.plan).toEqual(original)
     expect(computeCutList(result.plan)).toEqual(computeCutList(original))
+  })
+})
+
+describe('modèle sans cadre — la liste de découpe égale le calcul à la main', () => {
+  /*
+   * Mangathèque sans cadre 90 × 180 × 22 cm (hors-tout), 5 étages, bois de 18 mm, débord de 2 cm de chaque côté.
+   *
+   *   Corps : 900 − 20 − 20 = 860 mm. Tablettes : 860 + 20 + 20 = 900 → 6 pièces de 900 × 220 × 18.
+   *   Hauteur libre : 1800 − 6 × 18 = 1692 = 5 × 338 + 2 → étages de 339, 339, 338, 338, 338.
+   *   Montants : 2 par étage → 4 de 339 (étages 1 et 2) et 6 de 338 (étages 3, 4, 5), tous 220 × 18.
+   *   Cales (une par étage, hauteur de l'étage − 1 mm) : 338, 338, 337, 337, 337.
+   *
+   *   Les pièces de mêmes dimensions vont dans le même lot, cales comprises :
+   *     A : 339 × 220 × 18 → 4 montants
+   *     B : 338 × 220 × 18 → 6 montants + 2 cales = 8
+   *     C : 900 × 220 × 18 → 6 tablettes
+   *     D : 337 × 220 × 18 → 3 cales
+   *   Total : 4 + 8 + 6 + 3 = 21 pièces.
+   */
+  it('mangathèque sans cadre 90 × 180 × 22, débord de 2 cm', () => {
+    const { groups, totalPieces } = computeCutList(mangatheque({ model: 'frameless', overhang: '2' }))
+    expect(groups.map((g) => [g.mark, g.length, g.width, g.thickness, g.quantity])).toEqual([
+      ['A', 339, 220, 18, 4],
+      ['B', 338, 220, 18, 8],
+      ['C', 900, 220, 18, 6],
+      ['D', 337, 220, 18, 3],
+    ])
+    expect(totalPieces).toBe(21)
+  })
+
+  it('le PDF d’une étagère sans cadre se ré-importe à l’identique', async () => {
+    const original = mangatheque({ model: 'frameless', overhang: '2' }, true)
+    const result = await readPlanFromPdf(await buildPlanPdf(original, { date: new Date(2026, 9, 4) }))
+    if (!result.ok) throw new Error(result.error)
+    expect(result.plan).toEqual(original)
+  })
+
+  it('le PDF d’une étagère sans cadre respecte les mêmes contraintes d’impression', () => {
+    const { primitives } = buildScene(mangatheque({ model: 'frameless', overhang: '2' }, true), { date: new Date(2026, 9, 4) })
+    const sizes = primitives.filter((p): p is TextPrim => p.kind === 'text').map((t) => t.size)
+    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(6)
+    for (const prim of primitives) {
+      if (prim.kind === 'line') {
+        expect(Math.min(prim.x1, prim.x2)).toBeGreaterThanOrEqual(5)
+        expect(Math.max(prim.x1, prim.x2)).toBeLessThanOrEqual(PAGE.width - 5)
+        expect(Math.min(prim.y1, prim.y2)).toBeGreaterThanOrEqual(5)
+        expect(Math.max(prim.y1, prim.y2)).toBeLessThanOrEqual(PAGE.height - 5)
+      }
+    }
   })
 })

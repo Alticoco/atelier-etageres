@@ -1,4 +1,4 @@
-import { shelfLength, sortedShelves, uprightLength, wedgeLength } from './pieces'
+import { shelfLength, shelfX, sortedShelves, stageVerticals, uprightLength, wedgeLength } from './pieces'
 import type { PieceKind, Plan } from './types'
 
 /** Rectangle d'une pièce vue de face, dans le repère du plan (y vers le haut, en mm). */
@@ -16,31 +16,37 @@ export function computeFrontRects(plan: Plan): Rect[] {
   const shelves = sortedShelves(plan)
   const lastIndex = shelves.length - 1
   const { leftUpright, rightUpright, options } = plan
-  const onTop = options.framePlacement === 'onTop'
+  const rects: Rect[] = []
 
-  const uprightY = onTop ? (shelves[0]?.thickness ?? 0) : 0
-  const uprightHeight = uprightLength(plan)
-
-  const rects: Rect[] = [
-    { id: 'upright-left', kind: 'upright', x: 0, y: uprightY, width: leftUpright.thickness, height: uprightHeight },
-    {
-      id: 'upright-right',
-      kind: 'upright',
-      x: plan.width - rightUpright.thickness,
-      y: uprightY,
-      width: rightUpright.thickness,
-      height: uprightHeight,
-    },
-  ]
+  if (plan.model === 'frameless') {
+    for (const v of stageVerticals(plan)) {
+      rects.push({ id: v.id, kind: 'upright', x: v.x, y: v.y, width: v.thickness, height: v.height })
+    }
+  } else {
+    const onTop = options.framePlacement === 'onTop'
+    const uprightY = onTop ? (shelves[0]?.thickness ?? 0) : 0
+    const uprightHeight = uprightLength(plan)
+    rects.push(
+      { id: 'upright-left', kind: 'upright', x: 0, y: uprightY, width: leftUpright.thickness, height: uprightHeight },
+      {
+        id: 'upright-right',
+        kind: 'upright',
+        x: plan.width - rightUpright.thickness,
+        y: uprightY,
+        width: rightUpright.thickness,
+        height: uprightHeight,
+      },
+    )
+  }
 
   shelves.forEach((shelf, i) => {
     const isOuter = i === 0 || i === lastIndex
     rects.push({
       id: shelf.id,
       kind: 'shelf',
-      x: isOuter && onTop ? 0 : leftUpright.thickness,
+      x: shelfX(plan, shelf, isOuter),
       y: shelf.y,
-      width: shelfLength(plan, isOuter),
+      width: shelfLength(plan, shelf, isOuter),
       height: shelf.thickness,
     })
   })

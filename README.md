@@ -9,6 +9,7 @@ Concevez vos étagères en bois massif dans le navigateur : dessinez-les, ajuste
 ## Ce que fait l'application
 
 - **Assistant de création** : largeur, hauteur, profondeur, nombre d'étages, épaisseurs du bois. Aperçu en direct pendant la saisie.
+- **Deux modèles de construction** : **avec cadre** (deux montants pleine hauteur, tablettes entre eux) ou **sans cadre** (planches apparentes : tablettes continues avec un débord réglable à gauche et à droite, montants coupés à la hauteur de chaque étage et supprimables un par un).
 - **Vue de face** cotée et **vue de profil** (lecture seule), avec zoom et déplacement.
 - **Édition à la souris** : déplacer les tablettes et les cales, redimensionner le cadre par ses bords, avec aimantation à un pas réglable (1 mm, 5 mm, 1 cm, 5 cm ; `Alt` pour s'en passer).
 - **Édition au clavier** : saisie de toute cote dans un panneau, flèches pour déplacer une pièce, sélection multiple pour appliquer une même épaisseur à plusieurs pièces.
@@ -85,7 +86,7 @@ docs/         spécification, feuille de route, journal des décisions
 - Pensé pour **un ordinateur** (écran d'au moins 1280 px de large) ; pas de version téléphone pour l'instant.
 - Testé surtout avec un navigateur de la famille Chrome ; conçu pour Chrome, Edge et Firefox récents.
 - La liste de découpe regroupe les pièces mais **n'optimise pas** la découpe dans les planches : on choisit soi-même les planches en magasin.
-- Le modèle actuel est le modèle « cadre » (deux montants, tablettes entre eux). Le modèle sans cadre, les arrondis, la vue 3D, les portes et les tiroirs sont prévus plus tard (voir la feuille de route).
+- Le modèle de construction (avec ou sans cadre) se choisit à la création et ne se change pas ensuite. Les arrondis, la vue de profil éditable, les onglets, la vue 3D, les portes et les tiroirs sont prévus plus tard (voir la feuille de route).
 
 ## Licence
 

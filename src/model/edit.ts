@@ -1,11 +1,16 @@
+import { innerSpan } from './geometry'
+import { parseVerticalId } from './labels'
 import { getStages, sortedShelves } from './pieces'
 import { propagateHeight, propagateWidth } from './propagation'
 import type { FramePlacement, Plan, Shelf, Upright, Wedge } from './types'
 
 export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
 
-/** Cote d'une pièce modifiable : épaisseur, profondeur, hauteur d'une tablette (y), position d'une cale (x). */
-export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x'
+/**
+ * Cote d'une pièce modifiable : épaisseur, profondeur, hauteur d'une tablette (y), position d'une cale (x),
+ * débords d'une tablette (modèle sans cadre).
+ */
+export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x' | 'overhangLeft' | 'overhangRight'
 
 export type PlanChange =
   | { property: 'width' | 'height' | 'wedgeClearance' | 'defaultWedgeThickness' | 'sawKerf'; mm: number }
@@ -21,8 +26,18 @@ type PieceRef =
   | { kind: 'wedge'; ref: Wedge }
 
 function findPiece(plan: Plan, id: string): PieceRef | null {
-  if (id === 'upright-left') return { kind: 'upright', ref: plan.leftUpright }
-  if (id === 'upright-right') return { kind: 'upright', ref: plan.rightUpright }
+  if (plan.model === 'frameless') {
+    // Montant d'un étage : son épaisseur et sa profondeur sont celles de tous les montants du même côté.
+    const vertical = parseVerticalId(id)
+    if (vertical) {
+      const shelf = plan.shelves.find((s) => s.id === vertical.shelfBelowId)
+      const present = vertical.side === 'left' ? shelf?.verticalLeft : shelf?.verticalRight
+      if (present) return { kind: 'upright', ref: vertical.side === 'left' ? plan.leftUpright : plan.rightUpright }
+    }
+  } else {
+    if (id === 'upright-left') return { kind: 'upright', ref: plan.leftUpright }
+    if (id === 'upright-right') return { kind: 'upright', ref: plan.rightUpright }
+  }
   const shelf = plan.shelves.find((s) => s.id === id)
   if (shelf) return { kind: 'shelf', ref: shelf }
   const wedge = plan.wedges.find((w) => w.id === id)
@@ -31,7 +46,18 @@ function findPiece(plan: Plan, id: string): PieceRef | null {
 }
 
 /** Cotes actuelles d'une pièce (pour remplir le panneau de propriétés). */
-export function readPiece(plan: Plan, id: string): { kind: PieceRef['kind']; thickness: number; depth: number; y?: number; x?: number } | null {
+export function readPiece(
+  plan: Plan,
+  id: string,
+): {
+  kind: PieceRef['kind']
+  thickness: number
+  depth: number
+  y?: number
+  x?: number
+  overhangLeft?: number
+  overhangRight?: number
+} | null {
   const piece = findPiece(plan, id)
   if (!piece) return null
   const { kind, ref } = piece
@@ -39,7 +65,7 @@ export function readPiece(plan: Plan, id: string): { kind: PieceRef['kind']; thi
     kind,
     thickness: ref.thickness,
     depth: ref.depth,
-    ...(kind === 'shelf' ? { y: (ref as Shelf).y } : {}),
+    ...(kind === 'shelf' ? { y: (ref as Shelf).y, overhangLeft: (ref as Shelf).overhangLeft, overhangRight: (ref as Shelf).overhangRight } : {}),
     ...(kind === 'wedge' ? { x: (ref as Wedge).x } : {}),
   }
 }
@@ -60,8 +86,17 @@ export function checkPlan(plan: Plan): string[] {
     problems.push('Toutes les dimensions doivent être des nombres entiers de mm supérieurs à 0.')
   }
 
-  if (plan.width <= left.thickness + right.thickness) {
-    problems.push('La largeur est trop faible pour deux montants et un espace entre eux.')
+  if (plan.model === 'frameless' && plan.shelves.some((s) => !Number.isInteger(s.overhangLeft) || !Number.isInteger(s.overhangRight) || s.overhangLeft < 0 || s.overhangRight < 0)) {
+    problems.push('Les débords doivent être des nombres entiers de mm positifs ou nuls.')
+  }
+
+  const span = innerSpan(plan)
+  if (span.right - span.left < 1) {
+    problems.push(
+      plan.model === 'frameless'
+        ? 'La largeur est trop faible pour les montants et les débords.'
+        : 'La largeur est trop faible pour deux montants et un espace entre eux.',
+    )
   }
 
   const shelves = sortedShelves(plan)
@@ -86,7 +121,7 @@ export function checkPlan(plan: Plan): string[] {
     } else if (stage.clearHeight - plan.options.wedgeClearance < 1) {
       problems.push('Une cale est plus haute que son étage.')
     }
-    if (wedge.x < left.thickness || wedge.x + wedge.thickness > plan.width - right.thickness) {
+    if (wedge.x < span.left || wedge.x + wedge.thickness > span.right) {
       problems.push('Une cale sort du cadre.')
     }
   }
@@ -147,6 +182,8 @@ export function setPieceProperty(plan: Plan, ids: string[], property: PiecePrope
       piece.ref.y = mm
     } else if (property === 'x' && piece.kind === 'wedge') {
       piece.ref.x = mm
+    } else if ((property === 'overhangLeft' || property === 'overhangRight') && piece.kind === 'shelf' && next.model === 'frameless') {
+      piece.ref[property] = mm
     } else {
       return fail('Cette cote ne s’applique pas à toutes les pièces sélectionnées.')
     }

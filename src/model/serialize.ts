@@ -42,6 +42,11 @@ function bool(obj: Record<string, unknown>, key: string, where: string): boolean
   return value
 }
 
+/** Entier facultatif : absent = `fallback` (fichiers écrits avant l'ajout du modèle sans cadre). */
+function optionalInt(obj: Record<string, unknown>, key: string, where: string, min: number, fallback: number): number {
+  return obj[key] === undefined ? fallback : int(obj, key, where, min)
+}
+
 /** Booléen facultatif : absent = `fallback` (pour les fichiers écrits avant l'ajout de l'option). */
 function optionalBool(obj: Record<string, unknown>, key: string, where: string, fallback: boolean): boolean {
   return obj[key] === undefined ? fallback : bool(obj, key, where)
@@ -90,6 +95,10 @@ function readPlan(value: unknown): Plan {
       y: int(obj, 'y', where, 0),
       thickness: int(obj, 'thickness', where, 1),
       depth: int(obj, 'depth', where, 1),
+      overhangLeft: optionalInt(obj, 'overhangLeft', where, 0, 0),
+      overhangRight: optionalInt(obj, 'overhangRight', where, 0, 0),
+      verticalLeft: optionalBool(obj, 'verticalLeft', where, true),
+      verticalRight: optionalBool(obj, 'verticalRight', where, true),
     }
   })
 
@@ -106,7 +115,11 @@ function readPlan(value: unknown): Plan {
   })
 
   // On reconstruit le plan champ par champ : rien d'inattendu du fichier n'est conservé.
+  const model = root.model === undefined ? 'frame' : root.model
+  if (model !== 'frame' && model !== 'frameless') fail('Plan : « model » doit valoir « frame » ou « frameless ».')
+
   const plan: Plan = {
+    model,
     name: text(root, 'name', 'Plan', MAX_NAME).trim() || 'Étagère',
     width: int(root, 'width', 'Plan', 1),
     height: int(root, 'height', 'Plan', 1),

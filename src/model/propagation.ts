@@ -1,3 +1,4 @@
+import { innerSpan } from './geometry'
 import { sortedShelves } from './pieces'
 import type { Plan } from './types'
 
@@ -6,14 +7,13 @@ import type { Plan } from './types'
  * dans l'espace libre entre les montants. `next` est la copie modifiée (largeur déjà changée).
  */
 export function propagateWidth(before: Plan, next: Plan): void {
-  const left = next.leftUpright.thickness
-  const innerBefore = before.width - left - before.rightUpright.thickness
-  const innerAfter = next.width - left - next.rightUpright.thickness
+  const spanBefore = innerSpan(before)
+  const spanAfter = innerSpan(next)
   for (const wedge of next.wedges) {
-    const roomBefore = innerBefore - wedge.thickness
-    const roomAfter = innerAfter - wedge.thickness
+    const roomBefore = spanBefore.right - spanBefore.left - wedge.thickness
+    const roomAfter = spanAfter.right - spanAfter.left - wedge.thickness
     if (roomBefore <= 0 || roomAfter < 0) continue
-    wedge.x = left + Math.round(((wedge.x - left) / roomBefore) * roomAfter)
+    wedge.x = spanAfter.left + Math.round(((wedge.x - spanBefore.left) / roomBefore) * roomAfter)
   }
 }
 
