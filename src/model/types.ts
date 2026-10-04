@@ -35,6 +35,8 @@ export interface Wedge {
 
 export interface PlanOptions {
   framePlacement: FramePlacement
+  /** Épaisseur proposée pour les nouvelles cales. */
+  defaultWedgeThickness: number
   /** Jeu retranché à la hauteur de chaque cale. */
   wedgeClearance: number
   sawKerfEnabled: boolean

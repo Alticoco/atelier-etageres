@@ -8,7 +8,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - [x] **Étape 0 — Socle** : projet Vite + React + TypeScript, lint, tests (Vitest), déploiement GitHub Pages via GitHub Actions, page « Hello » en ligne.
 - [x] **Étape 1 — Modèle de données** : types (Plan, Montant, Tablette, Cale), création d'un plan depuis des paramètres, calcul des dimensions de chaque pièce. Tests unitaires sur les règles d'assemblage.
 - [x] **Étape 2 — Vue de face** : rendu SVG du cadre, tablettes, cales, avec cotes. Zoom / déplacement de la vue.
-- [ ] **Étape 3 — Assistant de création** : formulaire (dimensions, nombre d'étages, épaisseurs).
+- [x] **Étape 3 — Assistant de création** : formulaire (dimensions, nombre d'étages, épaisseurs).
 - [ ] **Étape 4 — Sélection et panneau de propriétés** : sélection simple et multiple, édition des cotes au clavier, unités mm/cm.
 - [ ] **Étape 5 — Glisser-déposer** : déplacer tablettes et cales, redimensionner le cadre, aimantation à pas réglable.
 - [ ] **Étape 6 — Propagation et outils** : option intelligente, « espacer également », ajout/suppression de pièces, contrôles de cohérence.

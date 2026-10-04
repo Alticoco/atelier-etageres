@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatLength, mmToCm } from './units'
+import { formatLength, mmToCm, parseLength } from './units'
 
 describe('mmToCm', () => {
   it('convertit des millimètres en centimètres', () => {
@@ -17,5 +17,30 @@ describe('formatLength', () => {
 
   it('affiche en mm', () => {
     expect(formatLength(309, 'mm')).toBe('309 mm')
+  })
+})
+
+describe('parseLength', () => {
+  it('lit des cm avec virgule ou point et renvoie des mm entiers', () => {
+    expect(parseLength('80')).toBe(800)
+    expect(parseLength('80,5')).toBe(805)
+    expect(parseLength(' 1.8 ')).toBe(18)
+    expect(parseLength('0,1')).toBe(1)
+  })
+
+  it('refuse plus d’une décimale en cm (moins d’un mm)', () => {
+    expect(parseLength('1,85')).toBeNull()
+  })
+
+  it('refuse les textes qui ne sont pas des nombres', () => {
+    expect(parseLength('')).toBeNull()
+    expect(parseLength('abc')).toBeNull()
+    expect(parseLength('-5')).toBeNull()
+    expect(parseLength('1,')).toBeNull()
+  })
+
+  it('lit des mm entiers', () => {
+    expect(parseLength('309', 'mm')).toBe(309)
+    expect(parseLength('30,9', 'mm')).toBeNull()
   })
 })

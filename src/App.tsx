@@ -1,37 +1,41 @@
 import { useState } from 'react'
-import { createPlan } from './model/plan'
 import type { Plan } from './model/types'
+import { CreationWizard } from './views/CreationWizard'
 import { FrontView } from './views/FrontView'
 
-/** Plan d'exemple en attendant l'assistant de création (étape 3). */
-function createDemoPlan(): Plan {
-  const plan = createPlan({
-    name: 'Exemple',
-    width: 800,
-    height: 1000,
-    depth: 250,
-    stages: 3,
-    uprightThickness: 18,
-    shelfThickness: 18,
-  })
-  plan.wedges.push(
-    { id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250 },
-    { id: 'wedge-2', shelfBelowId: 'shelf-2', x: 520, thickness: 18, depth: 250 },
-  )
-  return plan
-}
-
 export default function App() {
-  const [plan] = useState(createDemoPlan)
+  const [plan, setPlan] = useState<Plan | null>(null)
+  const [creating, setCreating] = useState(true)
+
+  const startNew = () => {
+    if (!plan || window.confirm('Créer une nouvelle étagère ? Le plan actuel sera remplacé (rien n’est encore sauvegardé).')) {
+      setCreating(true)
+    }
+  }
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>Atelier Étagères</h1>
-        <span className="app-plan-name">{plan.name}</span>
+        {plan && <span className="app-plan-name">{plan.name}</span>}
+        {plan && !creating && (
+          <button type="button" className="header-button" onClick={startNew}>
+            Nouvelle étagère
+          </button>
+        )}
       </header>
       <main className="app-main">
-        <FrontView plan={plan} />
+        {creating || !plan ? (
+          <CreationWizard
+            onCreate={(created) => {
+              setPlan(created)
+              setCreating(false)
+            }}
+            onCancel={plan ? () => setCreating(false) : undefined}
+          />
+        ) : (
+          <FrontView plan={plan} />
+        )}
       </main>
     </div>
   )

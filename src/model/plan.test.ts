@@ -49,6 +49,7 @@ describe('createPlan', () => {
     const plan = createPlan(base)
     expect(plan.options).toEqual({
       framePlacement: 'between',
+      defaultWedgeThickness: 18,
       wedgeClearance: 1,
       sawKerfEnabled: false,
       sawKerf: 3,
@@ -61,6 +62,7 @@ describe('createPlan', () => {
     expect(() => createPlan({ ...base, height: 100.5 })).toThrow(RangeError)
     expect(() => createPlan({ ...base, stages: 0 })).toThrow(RangeError)
     expect(() => createPlan({ ...base, wedgeClearance: -1 })).toThrow(RangeError)
+    expect(() => createPlan({ ...base, wedgeThickness: 0 })).toThrow(RangeError)
     expect(() => createPlan({ ...base, width: 36 })).toThrow(RangeError)
     expect(() => createPlan({ ...base, height: 72 })).toThrow(RangeError)
   })

@@ -9,6 +9,8 @@ export interface PlanParams {
   stages: number
   uprightThickness: number
   shelfThickness: number
+  /** Épaisseur des nouvelles cales (par défaut : celle des tablettes). */
+  wedgeThickness?: number
   framePlacement?: FramePlacement
   wedgeClearance?: number
   sawKerfEnabled?: boolean
@@ -44,6 +46,7 @@ export function createPlan(params: PlanParams): Plan {
     stages,
     uprightThickness,
     shelfThickness,
+    wedgeThickness = shelfThickness,
     framePlacement = 'between',
     wedgeClearance = DEFAULT_WEDGE_CLEARANCE,
     sawKerfEnabled = false,
@@ -56,6 +59,7 @@ export function createPlan(params: PlanParams): Plan {
   assertPositiveInt(stages, "Le nombre d'étages")
   assertPositiveInt(uprightThickness, "L'épaisseur des montants")
   assertPositiveInt(shelfThickness, "L'épaisseur des tablettes")
+  assertPositiveInt(wedgeThickness, "L'épaisseur des cales")
   assertNonNegativeInt(wedgeClearance, 'Le jeu des cales')
   assertNonNegativeInt(sawKerf, 'Le trait de scie')
 
@@ -85,6 +89,6 @@ export function createPlan(params: PlanParams): Plan {
     rightUpright: { thickness: uprightThickness, depth },
     shelves,
     wedges: [],
-    options: { framePlacement, wedgeClearance, sawKerfEnabled, sawKerf },
+    options: { framePlacement, defaultWedgeThickness: wedgeThickness, wedgeClearance, sawKerfEnabled, sawKerf },
   }
 }

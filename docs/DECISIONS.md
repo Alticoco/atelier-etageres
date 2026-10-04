@@ -41,3 +41,11 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Cotes et textes à taille constante à l écran** quel que soit le zoom (dimensions converties en mm via l échelle de la caméra, traits en `non-scaling-stroke`).
 - **Affichage en cm par défaut** (`formatLength`) ; le choix mm/cm viendra à l étape 4.
 - **Plan d exemple temporaire** dans `App.tsx` jusqu à l assistant de création (étape 3).
+
+## 2026-10-04 (étape 3)
+
+- **Le formulaire est en cm, au mm près** (une décimale max, virgule ou point). La lecture et les erreurs sont dans `src/model/wizard.ts` (fonction pure testée), pas dans le composant React.
+- **Aperçu en direct** de la vue de face pendant la saisie ; le bouton « Créer » reste grisé tant que le formulaire est invalide. Les erreurs propres à un champ s affichent sous ce champ, les incohérences entre champs (ex. hauteur trop faible) au-dessus des boutons.
+- **Épaisseur des cales = option du plan** (`options.defaultWedgeThickness`, par défaut celle des tablettes) : elle servira aux cales créées à l étape 6. Un plan créé n a pas encore de cale.
+- **Plan vierge minimal** = préremplit le formulaire (60 × 40 × 25 cm, 1 étage) ; l utilisateur valide ensuite comme d habitude.
+- **Pas encore de sauvegarde** : « Nouvelle étagère » demande confirmation car le plan actuel est perdu (sauvegarde à l étape 10).
