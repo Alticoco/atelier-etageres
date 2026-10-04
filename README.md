@@ -89,4 +89,4 @@ docs/         spécification, feuille de route, journal des décisions
 
 ## Licence
 
-[MIT](LICENSE) © 2026 Alexis Meyrignac : vous pouvez utiliser, copier, modifier et redistribuer ce code, y compris dans un projet commercial, à condition de conserver la mention de copyright.
+[MIT](LICENSE) © 2026 Alticoco : vous pouvez utiliser, copier, modifier et redistribuer ce code, y compris dans un projet commercial, à condition de conserver la mention de copyright.

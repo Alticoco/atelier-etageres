@@ -156,3 +156,7 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 ## 2026-10-04 (licence)
 
 - **Licence MIT** (fichier `LICENSE`, champ `license` de `package.json`, section du README), au nom d Alexis Meyrignac, année 2026. Remplace la décision « licence à définir » de l étape 12. Choix : la plus courante pour un projet de portfolio, très permissive, une seule obligation (garder la mention de copyright). Les dépendances ont leurs propres licences, toutes permissives (pdf-lib : MIT).
+
+## 2026-10-04 (licence, précision)
+
+- **Le copyright de la licence MIT est au nom « Alticoco »** (pseudo GitHub de l auteur) et non à un nom civil, à la demande de l auteur. Remplace le nom indiqué dans l entrée « licence » ci-dessus (l historique est conservé, on n y réécrit rien).
