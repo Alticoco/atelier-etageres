@@ -1,4 +1,4 @@
-import { computeCutList } from '../model/cutlist'
+import { computeCutList, roundingCode } from '../model/cutlist'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
@@ -31,6 +31,8 @@ export interface RectPrim {
   stroke?: number
   fill?: number
   dash?: [number, number]
+  /** Rayon des coins (mm sur la page). Absent ou 0 = angles droits. */
+  radius?: number
 }
 
 export interface CirclePrim {
@@ -236,6 +238,7 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
     rect(fx(r.x), fy(r.y + r.height), r.width / d, r.height / d, {
       fill: r.kind === 'wedge' ? 1 : PIECE_FILL,
       dash: r.kind === 'wedge' ? [1.2, 0.8] : undefined,
+      radius: r.cornerRadius > 0 ? r.cornerRadius / d : undefined,
     })
   }
   for (const r of computeFrontRects(plan)) bubble(fx(r.x + r.width / 2), fy(r.y + r.height / 2), cutList.marks[r.id])
@@ -277,10 +280,15 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
 
   const profileRects = computeProfileRects(plan)
   for (const r of profileRects.filter((p) => !p.hidden)) {
-    rect(px(r.x), py(r.y + r.height), r.width / d, r.height / d, { fill: PIECE_FILL })
+    rect(px(r.x), py(r.y + r.height), r.width / d, r.height / d, { fill: PIECE_FILL, radius: r.radius > 0 ? r.radius / d : undefined })
   }
   for (const r of profileRects.filter((p) => p.hidden)) {
-    rect(px(r.x), py(r.y + r.height), r.width / d, r.height / d, { stroke: HIDDEN_GRAY, strokeWidth: 0.2, dash: [1.2, 0.8] })
+    rect(px(r.x), py(r.y + r.height), r.width / d, r.height / d, {
+      stroke: HIDDEN_GRAY,
+      strokeWidth: 0.2,
+      dash: [1.2, 0.8],
+      radius: r.radius > 0 ? r.radius / d : undefined,
+    })
   }
 
   const depthLine = profile.yBottom + 8
@@ -306,9 +314,9 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
 
   const listX = LIST_ZONE.x1 + 3
   const listW = LIST_ZONE.x2 - LIST_ZONE.x1 - 6
-  const columns = [10, 9, 21, 21, 16, 18]
+  const columns = [9, 8, 18, 16, 12, 14, 18]
   const columnEdges = columns.reduce<number[]>((acc, w) => [...acc, acc[acc.length - 1] + w], [listX])
-  const headers = ['Rep.', 'Qté', 'Long.', 'Larg.', 'Ép.', 'Pièces']
+  const headers = ['Rep.', 'Qté', 'Long.', 'Larg.', 'Ép.', 'Arrondi', 'Pièces']
   const kindNames: Record<string, string> = { upright: 'Montants', shelf: 'Tablettes', wedge: 'Cales' }
   const kindOf = (id: string) => (id.startsWith('shelf') ? 'shelf' : id.startsWith('wedge') ? 'wedge' : 'upright')
   const designation = (ids: string[]) => {
@@ -347,10 +355,11 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
       formatNumber(group.length, unit),
       formatNumber(group.width, unit),
       formatNumber(group.thickness, unit),
+      roundingCode(group.cornerRadius, group.edgeRadius, unit),
       designation(group.pieceIds),
     ])
   }
-  if (groups.length > shown.length) row(['', '', `+ ${groups.length - shown.length} autres lots`, '', '', ''])
+  if (groups.length > shown.length) row(['', '', `+ ${groups.length - shown.length} autres lots`, '', '', '', ''])
   for (const x of columnEdges.slice(1, -1)) line(x, tableTop, x, y, 0.15, 0.6)
   rect(listX, tableTop, listW, y - tableTop, { strokeWidth: 0.3 })
 
@@ -375,6 +384,9 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   text(listX, y, 'NOTES', 7, { bold: true })
   y += 4
   writeLines(wrapText(`Bois massif. Cotes en ${unit}. Les repères A, B… renvoient à la liste ci-dessus.`, listW, 7))
+  if (groups.some((g) => g.cornerRadius > 0 || g.edgeRadius > 0)) {
+    writeLines(wrapText(`Arrondis : C = rayon des coins (vue de face), A = rayon des arêtes (vue de profil), en ${unit}.`, listW, 7))
+  }
   writeLines(
     wrapText(
       plan.model === 'frameless'

@@ -53,6 +53,8 @@ export function ProfileView({ plan, unit = 'cm', selection = [] }: ProfileViewPr
     y: height - r.y - r.height,
     width: r.width,
     height: r.height,
+    rx: r.radius,
+    ry: r.radius,
     vectorEffect: 'non-scaling-stroke' as const,
   })
 

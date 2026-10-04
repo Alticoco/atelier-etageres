@@ -2,6 +2,7 @@ import { innerSpan } from './geometry'
 import { parseVerticalId } from './labels'
 import { getStages, sortedShelves } from './pieces'
 import { propagateHeight, propagateWidth } from './propagation'
+import { roundingProblems } from './rounding'
 import type { FramePlacement, Plan, Shelf, Upright, Wedge } from './types'
 
 export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
@@ -10,7 +11,7 @@ export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
  * Cote d'une pièce modifiable : épaisseur, profondeur, hauteur d'une tablette (y), position d'une cale (x),
  * débords d'une tablette (modèle sans cadre).
  */
-export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x' | 'overhangLeft' | 'overhangRight'
+export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x' | 'overhangLeft' | 'overhangRight' | 'cornerRadius' | 'edgeRadius'
 
 export type PlanChange =
   | { property: 'width' | 'height' | 'wedgeClearance' | 'defaultWedgeThickness' | 'sawKerf'; mm: number }
@@ -57,6 +58,8 @@ export function readPiece(
   x?: number
   overhangLeft?: number
   overhangRight?: number
+  cornerRadius: number
+  edgeRadius: number
 } | null {
   const piece = findPiece(plan, id)
   if (!piece) return null
@@ -65,6 +68,8 @@ export function readPiece(
     kind,
     thickness: ref.thickness,
     depth: ref.depth,
+    cornerRadius: ref.cornerRadius,
+    edgeRadius: ref.edgeRadius,
     ...(kind === 'shelf' ? { y: (ref as Shelf).y, overhangLeft: (ref as Shelf).overhangLeft, overhangRight: (ref as Shelf).overhangRight } : {}),
     ...(kind === 'wedge' ? { x: (ref as Wedge).x } : {}),
   }
@@ -126,6 +131,9 @@ export function checkPlan(plan: Plan): string[] {
     }
   }
 
+  // Les rayons d'arrondi se vérifient une fois les dimensions saines (ils en dépendent).
+  if (problems.length === 0) problems.push(...roundingProblems(plan))
+
   for (let i = 0; i < plan.wedges.length; i++) {
     for (let j = i + 1; j < plan.wedges.length; j++) {
       const a = plan.wedges[i]
@@ -175,7 +183,7 @@ export function setPieceProperty(plan: Plan, ids: string[], property: PiecePrope
     const piece = findPiece(next, id)
     if (!piece) return fail(`Pièce inconnue : ${id}`)
 
-    if (property === 'thickness' || property === 'depth') {
+    if (property === 'thickness' || property === 'depth' || property === 'cornerRadius' || property === 'edgeRadius') {
       piece.ref[property] = mm
       if (property === 'thickness' && piece.kind === 'shelf' && piece.ref.id === topBefore?.id) touchesTop = true
     } else if (property === 'y' && piece.kind === 'shelf') {

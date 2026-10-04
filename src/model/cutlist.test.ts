@@ -29,8 +29,8 @@ describe('computeCutList — regroupement', () => {
   it('regroupe les pièces identiques : 2 montants (A) et 4 tablettes (B)', () => {
     const { groups, totalPieces } = computeCutList(createPlan(base))
     expect(groups).toEqual([
-      { mark: 'A', length: 1000, width: 250, thickness: 18, quantity: 2, pieceIds: ['upright-left', 'upright-right'] },
-      { mark: 'B', length: 764, width: 250, thickness: 18, quantity: 4, pieceIds: ['shelf-1', 'shelf-2', 'shelf-3', 'shelf-4'] },
+      { mark: 'A', length: 1000, width: 250, thickness: 18, cornerRadius: 0, edgeRadius: 0, quantity: 2, pieceIds: ['upright-left', 'upright-right'] },
+      { mark: 'B', length: 764, width: 250, thickness: 18, cornerRadius: 0, edgeRadius: 0, quantity: 4, pieceIds: ['shelf-1', 'shelf-2', 'shelf-3', 'shelf-4'] },
     ])
     expect(totalPieces).toBe(6)
   })
@@ -64,7 +64,7 @@ describe('computeCutList — regroupement', () => {
   it('met dans le même lot une cale et une tablette de mêmes dimensions', () => {
     // une cale de 18 × 250 de profondeur, hauteur 764 : on force un étage assez haut
     const plan = createPlan({ ...base, height: 900 + 4 * 18 + 1, stages: 1, width: 800 })
-    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250 })
+    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
     const { groups, marks } = computeCutList(plan)
     const wedge = groups.find((g) => g.pieceIds.includes('wedge-1'))
     expect(wedge?.pieceIds).toEqual(['wedge-1'])

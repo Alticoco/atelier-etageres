@@ -254,3 +254,49 @@ describe('modèle sans cadre', () => {
     expect(widths).toContain(90)
   })
 })
+
+describe('arrondis', () => {
+  const rounded = () => {
+    const p = plan()
+    for (const s of p.shelves) {
+      s.cornerRadius = 9
+      s.edgeRadius = 5
+    }
+    return p
+  }
+
+  it('dessine les coins arrondis à l’échelle : 9 mm à 1:10 → 0,9 mm sur le papier', () => {
+    const radii = rects(buildScene(rounded(), { date: DATE }).primitives)
+      .map((r) => r.radius)
+      .filter((r): r is number => r !== undefined)
+    // 4 tablettes en vue de face (coins) ; 4 en profil (arêtes de 5 mm → 0,5 mm), cachées ou visibles
+    expect(radii.filter((r) => Math.abs(r - 0.9) < 1e-9)).toHaveLength(4)
+    expect(radii.filter((r) => Math.abs(r - 0.5) < 1e-9)).toHaveLength(4)
+  })
+
+  it('un plan sans arrondi ne produit aucun rayon', () => {
+    expect(rects(buildScene(plan(), { date: DATE }).primitives).some((r) => r.radius !== undefined)).toBe(false)
+  })
+
+  it('ajoute la colonne « Arrondi », le code des lots et la légende', () => {
+    const t = allText(buildScene(rounded(), { date: DATE }).primitives)
+    expect(t).toContain('Arrondi')
+    expect(t).toContain('C0,9 A0,5')
+    expect(t.join(' ')).toContain('C = rayon des coins')
+  })
+
+  it('sans arrondi, la légende n’apparaît pas et la colonne affiche « — »', () => {
+    const t = allText(buildScene(plan(), { date: DATE }).primitives)
+    expect(t.join(' ')).not.toContain('C = rayon des coins')
+    expect(t).toContain('—')
+  })
+
+  it('reste dans la zone imprimable avec la colonne supplémentaire', () => {
+    for (const prim of buildScene(rounded(), { date: DATE }).primitives) {
+      if (prim.kind === 'text') {
+        expect(prim.x).toBeGreaterThanOrEqual(5)
+        expect(prim.x).toBeLessThanOrEqual(PAGE.width - 5)
+      }
+    }
+  })
+})

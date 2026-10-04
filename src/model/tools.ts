@@ -37,6 +37,8 @@ export function addShelf(plan: Plan, shelfBelowId: string): AddResult {
     overhangRight: below.overhangRight,
     verticalLeft: below.verticalLeft,
     verticalRight: below.verticalRight,
+    cornerRadius: below.cornerRadius,
+    edgeRadius: below.edgeRadius,
   })
 
   const result = finish(next)
@@ -77,6 +79,8 @@ export function addWedge(plan: Plan, shelfBelowId: string): AddResult {
     x: best.start + Math.floor((best.size - thickness) / 2),
     thickness,
     depth: below.depth,
+    cornerRadius: 0,
+    edgeRadius: 0,
   })
 
   const result = finish(next)

@@ -1,4 +1,4 @@
-import { computeCutList } from '../model/cutlist'
+import { computeCutList, describeRounding } from '../model/cutlist'
 import { pieceLabel } from '../model/labels'
 import type { Plan } from '../model/types'
 import { formatLength, formatNumber, type LengthUnit } from '../model/units'
@@ -23,6 +23,7 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
             <th scope="col">Longueur ({unit})</th>
             <th scope="col">Largeur ({unit})</th>
             <th scope="col">Épaisseur ({unit})</th>
+            <th scope="col">Arrondi</th>
             <th scope="col">Pièces</th>
           </tr>
         </thead>
@@ -36,6 +37,7 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
               <td>{formatNumber(group.length, unit)}</td>
               <td>{formatNumber(group.width, unit)}</td>
               <td>{formatNumber(group.thickness, unit)}</td>
+              <td className="cutlist-rounding">{describeRounding(group.cornerRadius, group.edgeRadius, unit)}</td>
               <td className="cutlist-pieces">{group.pieceIds.map((id) => pieceLabel(plan, id)).join(', ')}</td>
             </tr>
           ))}
@@ -44,12 +46,12 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
           <tr>
             <th scope="row">Total</th>
             <td>{totalPieces}</td>
-            <td colSpan={4}>pièces à découper</td>
+            <td colSpan={5}>pièces à découper</td>
           </tr>
           {sawKerf && (
             <tr>
               <th scope="row">Perte</th>
-              <td colSpan={5}>
+              <td colSpan={6}>
                 Trait de scie (estimation) : {sawKerf.cuts} coupes × {formatLength(sawKerf.kerf, unit)} ={' '}
                 <strong>{formatLength(sawKerf.loss, unit)}</strong> de bois perdu
               </td>

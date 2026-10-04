@@ -5,7 +5,7 @@ import { FILE_FORMAT, serializePlan } from '../model/serialize'
 import { addShelf, addWedge } from '../model/tools'
 import type { Plan } from '../model/types'
 import { isPdf } from './detect'
-import { ATTACHMENT_NAME, buildPlanPdf, readPlanFromPdf } from './pdf'
+import { ATTACHMENT_NAME, buildPlanPdf, readPlanFromPdf, roundedRectPath } from './pdf'
 
 const DATE = new Date(2026, 9, 4, 12, 0, 0)
 
@@ -190,5 +190,37 @@ describe('lecture d’un PDF qui n’est pas le nôtre', () => {
     await doc.attach(new TextEncoder().encode('autre'), 'autre.txt', { mimeType: 'text/plain' })
     await doc.attach(new TextEncoder().encode(serializePlan(plan())), 'MON-PLAN.ETAGERE.JSON', { mimeType: 'application/json' })
     expect(await readPlanFromPdf(await doc.save())).toEqual({ ok: true, plan: plan() })
+  })
+})
+
+describe('arrondis dans le PDF', () => {
+  it('le contour arrondi est un chemin fermé aux bons coins', () => {
+    const path = roundedRectPath(10, 20, 100, 50, 5)
+    expect(path.startsWith('M 15.000 20.000')).toBe(true)
+    expect(path.endsWith('Z')).toBe(true)
+    expect(path.match(/A /g)).toHaveLength(4)
+  })
+
+  it('le rayon est plafonné à la moitié de la plus petite dimension', () => {
+    expect(roundedRectPath(0, 0, 10, 4, 99)).toContain('A 2.000 2.000')
+  })
+
+  it('un plan arrondi s’exporte et se ré-importe à l’identique', async () => {
+    const original = plan({ name: 'Arrondis', wallMount: true })
+    original.shelves.forEach((s) => {
+      s.cornerRadius = 9
+      s.edgeRadius = 4
+    })
+    original.leftUpright.cornerRadius = 6
+    const bytes = await buildPlanPdf(original, { date: DATE })
+    expect(await readPlanFromPdf(bytes)).toEqual({ ok: true, plan: original })
+  })
+
+  it('le dessin contient davantage de courbes quand il y a des arrondis (les pastilles de repères en ont déjà)', async () => {
+    const curves = async (p: Plan) => (await pageContent(await buildPlanPdf(p, { date: DATE }))).split(/\s[cv]\s/).length - 1
+    const rounded = plan()
+    rounded.shelves.forEach((s) => (s.cornerRadius = 9))
+    const plain = await curves(plan())
+    expect(await curves(rounded)).toBeGreaterThan(plain)
   })
 })

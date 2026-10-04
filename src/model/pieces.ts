@@ -63,6 +63,8 @@ export interface Vertical {
   height: number
   thickness: number
   depth: number
+  cornerRadius: number
+  edgeRadius: number
 }
 
 /** Montants du modèle sans cadre, étage par étage de bas en haut, gauche puis droite. Vide pour le modèle `frame`. */
@@ -83,6 +85,8 @@ export function stageVerticals(plan: Plan): Vertical[] {
         height: stage.clearHeight,
         thickness: plan.leftUpright.thickness,
         depth: plan.leftUpright.depth,
+        cornerRadius: plan.leftUpright.cornerRadius,
+        edgeRadius: plan.leftUpright.edgeRadius,
       })
     }
     if (shelf.verticalRight) {
@@ -95,6 +99,8 @@ export function stageVerticals(plan: Plan): Vertical[] {
         height: stage.clearHeight,
         thickness: plan.rightUpright.thickness,
         depth: plan.rightUpright.depth,
+        cornerRadius: plan.rightUpright.cornerRadius,
+        edgeRadius: plan.rightUpright.edgeRadius,
       })
     }
   }
@@ -131,7 +137,15 @@ export function computePieces(plan: Plan): Piece[] {
 
   if (plan.model === 'frameless') {
     for (const v of stageVerticals(plan)) {
-      pieces.push({ id: v.id, kind: 'upright', length: v.height, width: v.depth, thickness: v.thickness })
+      pieces.push({
+        id: v.id,
+        kind: 'upright',
+        length: v.height,
+        width: v.depth,
+        thickness: v.thickness,
+        cornerRadius: v.cornerRadius,
+        edgeRadius: v.edgeRadius,
+      })
     }
   } else {
     pieces.push(
@@ -141,6 +155,8 @@ export function computePieces(plan: Plan): Piece[] {
         length: uprightLength(plan),
         width: plan.leftUpright.depth,
         thickness: plan.leftUpright.thickness,
+        cornerRadius: plan.leftUpright.cornerRadius,
+        edgeRadius: plan.leftUpright.edgeRadius,
       },
       {
         id: 'upright-right',
@@ -148,6 +164,8 @@ export function computePieces(plan: Plan): Piece[] {
         length: uprightLength(plan),
         width: plan.rightUpright.depth,
         thickness: plan.rightUpright.thickness,
+        cornerRadius: plan.rightUpright.cornerRadius,
+        edgeRadius: plan.rightUpright.edgeRadius,
       },
     )
   }
@@ -159,6 +177,8 @@ export function computePieces(plan: Plan): Piece[] {
       length: shelfLength(plan, shelf, i === 0 || i === lastIndex),
       width: shelf.depth,
       thickness: shelf.thickness,
+      cornerRadius: shelf.cornerRadius,
+      edgeRadius: shelf.edgeRadius,
     })
   })
 
@@ -169,6 +189,8 @@ export function computePieces(plan: Plan): Piece[] {
       length: wedgeLength(plan, wedge),
       width: wedge.depth,
       thickness: wedge.thickness,
+      cornerRadius: wedge.cornerRadius,
+      edgeRadius: wedge.edgeRadius,
     })
   }
 

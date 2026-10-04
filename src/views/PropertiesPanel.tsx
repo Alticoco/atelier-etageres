@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
 import { parseVerticalId, pieceLabel } from '../model/labels'
 import { computePieces, getStages, sortedShelves } from '../model/pieces'
+import { radiusLimits } from '../model/rounding'
 import type { Plan } from '../model/types'
 import { formatLength, formatNumber, parseLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
@@ -280,6 +281,11 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
   const computed = single ? computePieces(plan).find((p) => p.id === single.id) : undefined
   const sameKey = pieces.map((p) => p.id).join('|')
   const shelf = single?.kind === 'shelf' ? plan.shelves.find((s) => s.id === single.id) : undefined
+  const limits = ids.map((id) => radiusLimits(plan, id)).filter((l) => l !== null)
+  const maxText =
+    limits.length > 0
+      ? `Maximum : coins ${formatLength(Math.min(...limits.map((l) => l.corner)), unit)}, arêtes ${formatLength(Math.min(...limits.map((l) => l.edge)), unit)}.`
+      : ''
   const hasStageAbove = shelf ? sortedShelves(plan).at(-1)?.id !== shelf.id : false
 
   // Étage de la pièce sélectionnée : celui de la cale, ou celui juste au-dessus de la tablette.
@@ -319,6 +325,21 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
           onCommit={(mm) => commitPiece('y', mm)}
         />
       )}
+      <LengthField
+        key={`cr-${sameKey}-${commonValue(pieces.map((p) => p.cornerRadius))}-${unit}`}
+        label="Rayon des coins (vue de face)"
+        valueMm={commonValue(pieces.map((p) => p.cornerRadius))}
+        unit={unit}
+        onCommit={(mm) => commitPiece('cornerRadius', mm)}
+      />
+      <LengthField
+        key={`er-${sameKey}-${commonValue(pieces.map((p) => p.edgeRadius))}-${unit}`}
+        label="Rayon des arêtes (vue de profil)"
+        valueMm={commonValue(pieces.map((p) => p.edgeRadius))}
+        unit={unit}
+        onCommit={(mm) => commitPiece('edgeRadius', mm)}
+      />
+      {maxText && <p className="panel-hint">0 = angle droit. {maxText}</p>}
       {single?.kind === 'shelf' && plan.model === 'frameless' && shelf && (
         <>
           <LengthField

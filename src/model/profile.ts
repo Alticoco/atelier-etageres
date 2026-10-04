@@ -1,4 +1,3 @@
-import { readPiece } from './edit'
 import { computeFrontRects } from './layout'
 import { sortedShelves } from './pieces'
 import type { PieceKind, Plan } from './types'
@@ -14,6 +13,8 @@ export interface ProfileRect {
   y: number
   width: number
   height: number
+  /** Rayon d'arrondi de la tranche (`edgeRadius`), en mm. */
+  radius: number
   /** Cachée par le montant le plus proche : dessinée en pointillés, comme un trait caché. */
   hidden: boolean
 }
@@ -34,12 +35,20 @@ export function computeProfileRects(plan: Plan): ProfileRect[] {
   const frameless = plan.model === 'frameless'
 
   return computeFrontRects(plan).map((front) => {
-    const depth = readPiece(plan, front.id)?.depth ?? 0
     let hidden: boolean
     if (front.kind === 'wedge') hidden = true
     else if (front.kind === 'shelf') hidden = !frameless && !(onTop && outerIds.has(front.id))
     else hidden = front.id.startsWith('upright-right') || front.id.startsWith('vertical-right')
-    return { id: front.id, kind: front.kind, x: 0, y: front.y, width: depth, height: front.height, hidden }
+    return {
+      id: front.id,
+      kind: front.kind,
+      x: 0,
+      y: front.y,
+      width: front.depth,
+      height: front.height,
+      radius: front.edgeRadius,
+      hidden,
+    }
   })
 }
 

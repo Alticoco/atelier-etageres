@@ -1,4 +1,5 @@
 import { computePieces } from './pieces'
+import { formatLength, formatNumber, type LengthUnit } from './units'
 import type { Plan } from './types'
 
 /** Un lot de pièces identiques (mêmes longueur, largeur et épaisseur), repéré par une lettre. */
@@ -8,6 +9,9 @@ export interface CutGroup {
   length: number
   width: number
   thickness: number
+  /** Arrondis des pièces du lot (mm, 0 = angle droit). Deux pièces d'arrondis différents ne sont jamais dans le même lot. */
+  cornerRadius: number
+  edgeRadius: number
   quantity: number
   /** Identifiants des pièces du lot (montants, tablettes, cales). */
   pieceIds: string[]
@@ -53,7 +57,7 @@ export function computeCutList(plan: Plan): CutList {
   const marks: Record<string, string> = {}
 
   for (const piece of computePieces(plan)) {
-    const key = `${piece.length}x${piece.width}x${piece.thickness}`
+    const key = `${piece.length}x${piece.width}x${piece.thickness}:${piece.cornerRadius}:${piece.edgeRadius}`
     let group = byDimensions.get(key)
     if (!group) {
       group = {
@@ -61,6 +65,8 @@ export function computeCutList(plan: Plan): CutList {
         length: piece.length,
         width: piece.width,
         thickness: piece.thickness,
+        cornerRadius: piece.cornerRadius,
+        edgeRadius: piece.edgeRadius,
         quantity: 0,
         pieceIds: [],
       }
@@ -80,4 +86,20 @@ export function computeCutList(plan: Plan): CutList {
     totalPieces,
     sawKerf: sawKerfEnabled ? { cuts: totalPieces, kerf: sawKerf, loss: totalPieces * sawKerf } : null,
   }
+}
+
+/** Arrondi d'un lot en toutes lettres (« coins R 0,9 cm · arêtes R 0,5 cm »), ou « — » s'il n'y en a pas. */
+export function describeRounding(cornerRadius: number, edgeRadius: number, unit: LengthUnit = 'cm'): string {
+  const parts: string[] = []
+  if (cornerRadius > 0) parts.push(`coins R ${formatLength(cornerRadius, unit)}`)
+  if (edgeRadius > 0) parts.push(`arêtes R ${formatLength(edgeRadius, unit)}`)
+  return parts.length > 0 ? parts.join(' · ') : '—'
+}
+
+/** Arrondi d'un lot en abrégé pour le PDF : « C0,9 A0,5 » (C = coins, A = arêtes), ou « — ». */
+export function roundingCode(cornerRadius: number, edgeRadius: number, unit: LengthUnit = 'cm'): string {
+  const parts: string[] = []
+  if (cornerRadius > 0) parts.push(`C${formatNumber(cornerRadius, unit)}`)
+  if (edgeRadius > 0) parts.push(`A${formatNumber(edgeRadius, unit)}`)
+  return parts.length > 0 ? parts.join(' ') : '—'
 }

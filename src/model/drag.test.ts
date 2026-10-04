@@ -17,7 +17,7 @@ const base = {
 
 function planWithWedge(): Plan {
   const plan = createPlan(base)
-  plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250 })
+  plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
   return plan
 }
 

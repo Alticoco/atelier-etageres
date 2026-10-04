@@ -51,7 +51,7 @@ describe('computeFrontRects — tablettes haut/bas posées sur les montants', ()
 describe('computeFrontRects — cales', () => {
   it("pose la cale sur la tablette du dessous, avec le jeu en haut", () => {
     const plan = createPlan(base)
-    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-2', x: 300, thickness: 18, depth: 250 })
+    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-2', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
     const wedge = computeFrontRects(plan).find((r) => r.id === 'wedge-1')
     // shelf-2 : y = 18 + 310 = 328, dessus à 346 ; étage de 309 mm, cale de 308
     expect(wedge).toMatchObject({ x: 300, y: 346, width: 18, height: 308 })

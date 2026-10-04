@@ -175,3 +175,14 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Débord de 0 permis** (tablette qui affleure les montants). Un débord qui ne laisse plus de place entre les montants est refusé avec un message.
 - **PDF et liste de découpe** suivent automatiquement (même code). Note dédiée sur le PDF ; la désignation des lots utilise le type de pièce (« Mixte » quand un lot réunit montants et cales de mêmes dimensions).
 - **Reporté (boîte à idées)** : conversion entre modèles, cotes de débord et de largeur du corps sur le dessin.
+
+## 2026-10-05 (étape 14 — arrondis)
+
+- **Deux rayons par pièce, validés par l'auteur** : `cornerRadius` (les quatre coins de la silhouette vue de face) et `edgeRadius` (la tranche, vue de profil : coins de la section profondeur × hauteur). Tous deux à 0 par défaut : un plan existant ne change pas d'un pixel.
+- **Les quatre coins de la pièce** (pas seulement les « coins libres ») : simple et prévisible, c'est l'utilisateur qui choisit quelles pièces arrondir. La détection des coins libres (qui ne touchent aucune autre pièce) a été écartée : complexe et surprenante avec les cales, le jeu et les débords.
+- **Plafond du rayon = moitié de la plus petite dimension visible**, en mm entiers arrondis vers le bas : coins = plus petit côté de la silhouette (9 mm pour du bois de 18 mm), arêtes = plus petit côté de la section de profil. Contrôle dans `checkPlan` (`src/model/rounding.ts`) avec un message qui nomme la pièce et donne le maximum ; il se déclenche aussi si une épaisseur est réduite après coup. Le panneau affiche le maximum commun à la sélection.
+- **L'arrondi ne change pas les dimensions de coupe** (la planche est coupée droite puis arrondie). En revanche, **deux pièces de mêmes dimensions mais d'arrondis différents forment deux lots** dans la liste de découpe, avec une colonne « Arrondi » (« coins R 0,9 cm · arêtes R 0,5 cm »).
+- **Données** : champs ajoutés aux montants, tablettes et cales. Comme pour l'épaisseur, les montants d'un même côté (modèle sans cadre) partagent leurs arrondis ; une nouvelle tablette reprend ceux de la tablette du dessous. Un fichier écrit avant cette étape se lit avec des angles droits (champs facultatifs, pas de changement de version du format).
+- **Dessin à l'écran** : `rx` / `ry` SVG sur chaque pièce, en mm du dessin, donc exact à tout zoom (un rayon de 5 mm sur du bois de 18 mm est discret à l'échelle de l'écran).
+- **PDF** : `pdf-lib` n'a pas de rectangle arrondi ; le contour est tracé comme un chemin SVG (`roundedRectPath`), avec remplissage et pointillés conservés. Vérifié en rendant le PDF avec un lecteur indépendant. Colonne « Arrondi » en abrégé (`C0,9 A0,5`, C = coins, A = arêtes) plus une légende dans les notes, seulement s'il y a des arrondis. Colonnes du tableau resserrées pour la faire tenir.
+- **Reporté** : arrondir seulement certains coins d'une pièce ; rayon par défaut dans l'assistant.

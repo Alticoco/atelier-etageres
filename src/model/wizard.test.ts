@@ -9,7 +9,7 @@ describe('resolveWizard', () => {
     const { plan } = result
     expect(plan.width).toBe(800)
     expect(plan.height).toBe(1000)
-    expect(plan.leftUpright).toEqual({ thickness: 18, depth: 250 })
+    expect(plan.leftUpright).toEqual({ thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
     expect(plan.shelves).toHaveLength(4)
     expect(plan.options.defaultWedgeThickness).toBe(18)
   })

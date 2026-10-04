@@ -31,6 +31,24 @@ const MAX_ATTACHMENTS = 100
 
 const gray = (g: number) => rgb(g, g, g)
 
+/** Contour d'un rectangle aux coins arrondis, en chemin SVG (unités du chemin = points, y vers le bas). */
+export function roundedRectPath(x: number, y: number, w: number, h: number, radius: number): string {
+  const r = Math.min(radius, w / 2, h / 2)
+  const f = (n: number) => n.toFixed(3)
+  return [
+    `M ${f(x + r)} ${f(y)}`,
+    `H ${f(x + w - r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x + w)} ${f(y + r)}`,
+    `V ${f(y + h - r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x + w - r)} ${f(y + h)}`,
+    `H ${f(x + r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x)} ${f(y + h - r)}`,
+    `V ${f(y + r)}`,
+    `A ${f(r)} ${f(r)} 0 0 1 ${f(x + r)} ${f(y)}`,
+    'Z',
+  ].join(' ')
+}
+
 export interface PdfOptions {
   unit?: LengthUnit
   /** Date affichée dans le cartouche et enregistrée dans le PDF. */
@@ -58,7 +76,19 @@ function draw(page: PDFPage, primitive: Primitive, height: number, fonts: { regu
   }
 
   if (primitive.kind === 'rect') {
-    const { x, y, width, height: h, fill, stroke, strokeWidth, dash } = primitive
+    const { x, y, width, height: h, fill, stroke, strokeWidth, dash, radius } = primitive
+    if (radius !== undefined && radius > 0 && (fill !== undefined || stroke !== undefined)) {
+      // pdf-lib n'a pas de rectangle arrondi : on trace le contour (chemin SVG, origine en haut à gauche de la page).
+      page.drawSvgPath(roundedRectPath(x * MM, y * MM, width * MM, h * MM, radius * MM), {
+        x: 0,
+        y: height * MM,
+        color: fill === undefined ? undefined : gray(fill),
+        borderColor: stroke === undefined ? undefined : gray(stroke),
+        borderWidth: stroke === undefined ? 0 : strokeWidth * MM,
+        borderDashArray: dash?.map((d) => d * MM),
+      })
+      return
+    }
     if (fill !== undefined) {
       page.drawRectangle({
         x: x * MM,

@@ -105,6 +105,8 @@ export function createPlan(params: PlanParams): Plan {
       overhangRight: sideOverhang,
       verticalLeft: true,
       verticalRight: true,
+      cornerRadius: 0,
+      edgeRadius: 0,
     })
     y += shelfThickness + baseStageHeight + (i < extra ? 1 : 0)
   }
@@ -114,8 +116,8 @@ export function createPlan(params: PlanParams): Plan {
     name,
     width,
     height,
-    leftUpright: { thickness: uprightThickness, depth },
-    rightUpright: { thickness: uprightThickness, depth },
+    leftUpright: { thickness: uprightThickness, depth, cornerRadius: 0, edgeRadius: 0 },
+    rightUpright: { thickness: uprightThickness, depth, cornerRadius: 0, edgeRadius: 0 },
     shelves,
     wedges: [],
     options: { propagation, wallMount, framePlacement, defaultWedgeThickness: wedgeThickness, wedgeClearance, sawKerfEnabled, sawKerf },

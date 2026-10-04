@@ -39,7 +39,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car les arrondis et le profil éditable s'appuient dessus.
 
 - [x] **Étape 13 — Modèle sans cadre** : planches apparentes, tablettes continues avec débords réglables à gauche et à droite, montants coupés à la hauteur de chaque étage (un à gauche et un à droite), supprimables un par un ; choix du modèle à la création (assistant), largeur hors-tout ; liste de découpe, vue de face, profil et PDF.
-- [ ] **Étape 14 — Arrondis** des arêtes et des coins (plan + PDF).
+- [x] **Étape 14 — Arrondis** des arêtes et des coins (plan + PDF) : deux rayons par pièce (coins vus de face, arêtes vues de profil), mention dans la liste de découpe.
 - [ ] **Étape 15 — Vue de profil éditable.**
 - [ ] **Étape 16 — Onglets de plans + écran partagé.**
 - [ ] **Étape 17 — Optimisation des découpes** (à confirmer : peut-être inutile).
@@ -62,3 +62,4 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - Synthèse des longueurs totales à acheter par section de planche (largeur × épaisseur), à côté de la liste de découpe.
 - Repères A, B, C aussi sur la vue de profil (écran et PDF) ; export PDF directement depuis la liste « Mes étagères ».
 - Impression : vérifier le rendu sur une vraie imprimante A4 (marges, lisibilité des cotes à 7 pt) pendant la période de test.
+- Arrondir seulement certains coins d une pièce ; rayon par défaut dans l assistant.

@@ -17,7 +17,7 @@ const base = {
 
 function planWithWedge(): Plan {
   const plan = createPlan(base)
-  plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250 })
+  plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
   return plan
 }
 
@@ -181,7 +181,7 @@ describe('readPiece', () => {
     const plan = planWithWedge()
     expect(readPiece(plan, 'shelf-2')).toMatchObject({ kind: 'shelf', thickness: 18, depth: 250, y: plan.shelves[1].y })
     expect(readPiece(plan, 'wedge-1')).toMatchObject({ kind: 'wedge', x: 300 })
-    expect(readPiece(plan, 'upright-left')).toEqual({ kind: 'upright', thickness: 18, depth: 250 })
+    expect(readPiece(plan, 'upright-left')).toEqual({ kind: 'upright', thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
     expect(readPiece(plan, 'nope')).toBeNull()
   })
 })
@@ -262,7 +262,7 @@ describe('propagation', () => {
 describe('cales entre elles', () => {
   function twoWedges(): Plan {
     const plan = planWithWedge()
-    plan.wedges.push({ id: 'wedge-2', shelfBelowId: 'shelf-1', x: 500, thickness: 18, depth: 250 })
+    plan.wedges.push({ id: 'wedge-2', shelfBelowId: 'shelf-1', x: 500, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
     return plan
   }
 

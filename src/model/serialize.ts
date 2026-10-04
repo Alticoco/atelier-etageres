@@ -68,7 +68,12 @@ function list(obj: Record<string, unknown>, key: string, where: string, max: num
 
 function upright(value: unknown, where: string) {
   const obj = record(value, where)
-  return { thickness: int(obj, 'thickness', where, 1), depth: int(obj, 'depth', where, 1) }
+  return {
+    thickness: int(obj, 'thickness', where, 1),
+    depth: int(obj, 'depth', where, 1),
+    cornerRadius: optionalInt(obj, 'cornerRadius', where, 0, 0),
+    edgeRadius: optionalInt(obj, 'edgeRadius', where, 0, 0),
+  }
 }
 
 function readPlan(value: unknown): Plan {
@@ -99,6 +104,8 @@ function readPlan(value: unknown): Plan {
       overhangRight: optionalInt(obj, 'overhangRight', where, 0, 0),
       verticalLeft: optionalBool(obj, 'verticalLeft', where, true),
       verticalRight: optionalBool(obj, 'verticalRight', where, true),
+      cornerRadius: optionalInt(obj, 'cornerRadius', where, 0, 0),
+      edgeRadius: optionalInt(obj, 'edgeRadius', where, 0, 0),
     }
   })
 
@@ -111,6 +118,8 @@ function readPlan(value: unknown): Plan {
       x: int(obj, 'x', where, 0),
       thickness: int(obj, 'thickness', where, 1),
       depth: int(obj, 'depth', where, 1),
+      cornerRadius: optionalInt(obj, 'cornerRadius', where, 0, 0),
+      edgeRadius: optionalInt(obj, 'edgeRadius', where, 0, 0),
     }
   })
 

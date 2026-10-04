@@ -19,6 +19,8 @@ function wedgeOn(plan: Plan, stageIndex: number): Wedge {
     x: 300,
     thickness: 18,
     depth: 250,
+    cornerRadius: 0,
+    edgeRadius: 0,
   }
 }
 

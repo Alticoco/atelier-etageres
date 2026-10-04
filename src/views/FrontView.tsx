@@ -205,6 +205,8 @@ export function FrontView({
               y={H - r.y - r.height}
               width={r.width}
               height={r.height}
+              rx={r.cornerRadius}
+              ry={r.cornerRadius}
               vectorEffect="non-scaling-stroke"
             />
           ))}

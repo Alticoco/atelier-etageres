@@ -15,6 +15,7 @@ Concevez vos étagères en bois massif dans le navigateur : dessinez-les, ajuste
 - **Édition au clavier** : saisie de toute cote dans un panneau, flèches pour déplacer une pièce, sélection multiple pour appliquer une même épaisseur à plusieurs pièces.
 - **Propagation « intelligente »** : changer la largeur ou la hauteur garde les cales et les tablettes à leur position proportionnelle (désactivable).
 - **Contrôles de cohérence** : pas de chevauchement, pas de cale plus haute que son étage, des messages clairs quand une modification est refusée.
+- **Arrondis** : deux rayons par pièce, un pour les coins (vue de face) et un pour les arêtes (vue de profil), limités à la moitié de la plus petite dimension visible. Dessinés sur le plan et sur le PDF, et indiqués dans la liste de découpe.
 - **Annuler / rétablir** (`Ctrl+Z`, `Ctrl+Y`), sans limite pendant la session.
 - **Liste de découpe** : pièces regroupées par dimensions identiques, avec quantités et repères A, B, C… reportés sur le plan ; option « trait de scie » pour estimer la perte de bois.
 - **Plan PDF** en A4 paysage, dessin vectoriel : vue de face et de profil cotées, liste de découpe, notes, cartouche. Option « fixation murale ».
@@ -86,7 +87,7 @@ docs/         spécification, feuille de route, journal des décisions
 - Pensé pour **un ordinateur** (écran d'au moins 1280 px de large) ; pas de version téléphone pour l'instant.
 - Testé surtout avec un navigateur de la famille Chrome ; conçu pour Chrome, Edge et Firefox récents.
 - La liste de découpe regroupe les pièces mais **n'optimise pas** la découpe dans les planches : on choisit soi-même les planches en magasin.
-- Le modèle de construction (avec ou sans cadre) se choisit à la création et ne se change pas ensuite. Les arrondis, la vue de profil éditable, les onglets, la vue 3D, les portes et les tiroirs sont prévus plus tard (voir la feuille de route).
+- Le modèle de construction (avec ou sans cadre) se choisit à la création et ne se change pas ensuite. La vue de profil éditable, les onglets, la vue 3D, les portes et les tiroirs sont prévus plus tard (voir la feuille de route).
 
 ## Licence
 

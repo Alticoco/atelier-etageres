@@ -64,7 +64,7 @@ describe('addWedge', () => {
   it("place la cale au milieu d'un étage vide", () => {
     // espace libre 18..782 = 764 ; cale de 18 -> x = 18 + 373 = 391
     const { plan, id } = ok(addWedge(createPlan(base), 'shelf-2'))
-    expect(plan.wedges).toEqual([{ id, shelfBelowId: 'shelf-2', x: 391, thickness: 18, depth: 250 }])
+    expect(plan.wedges).toEqual([{ id, shelfBelowId: 'shelf-2', x: 391, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 }])
     expect(checkPlan(plan)).toEqual([])
   })
 

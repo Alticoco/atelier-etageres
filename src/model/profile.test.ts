@@ -34,7 +34,7 @@ describe('computeProfileRects', () => {
     const plan = createPlan(base)
     plan.shelves[1].depth = 200
     plan.leftUpright.depth = 300
-    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 180 })
+    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 180, cornerRadius: 0, edgeRadius: 0 })
     const rects = byId(plan)
     expect(rects['shelf-2'].width).toBe(200)
     expect(rects['upright-left'].width).toBe(300)
@@ -59,7 +59,7 @@ describe('computeProfileRects', () => {
 
   it('les cales sont toujours cachées', () => {
     const plan = createPlan(base)
-    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250 })
+    plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
     expect(byId(plan)['wedge-1']).toMatchObject({ kind: 'wedge', hidden: true, y: 18, height: 309 })
   })
 })

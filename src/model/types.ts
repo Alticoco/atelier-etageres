@@ -21,6 +21,12 @@ export type FramePlacement = 'between' | 'onTop'
 export interface Upright {
   thickness: number
   depth: number
+  /**
+   * Arrondis (mm, 0 = angle droit). `cornerRadius` : coins de la silhouette vue de face ; `edgeRadius` : arrondi de la
+   * tranche, vu de profil. Chacun est limité à la moitié de la plus petite dimension visible de la pièce.
+   */
+  cornerRadius: number
+  edgeRadius: number
 }
 
 export interface Shelf {
@@ -41,6 +47,12 @@ export interface Shelf {
    */
   verticalLeft: boolean
   verticalRight: boolean
+  /**
+   * Arrondis (mm, 0 = angle droit). `cornerRadius` : coins de la silhouette vue de face ; `edgeRadius` : arrondi de la
+   * tranche, vu de profil. Chacun est limité à la moitié de la plus petite dimension visible de la pièce.
+   */
+  cornerRadius: number
+  edgeRadius: number
 }
 
 /** Planche verticale non fixée, posée dans un étage pour soutenir la tablette du dessus. */
@@ -52,6 +64,12 @@ export interface Wedge {
   x: number
   thickness: number
   depth: number
+  /**
+   * Arrondis (mm, 0 = angle droit). `cornerRadius` : coins de la silhouette vue de face ; `edgeRadius` : arrondi de la
+   * tranche, vu de profil. Chacun est limité à la moitié de la plus petite dimension visible de la pièce.
+   */
+  cornerRadius: number
+  edgeRadius: number
 }
 
 export interface PlanOptions {
@@ -96,6 +114,8 @@ export interface Piece {
   length: number
   width: number
   thickness: number
+  cornerRadius: number
+  edgeRadius: number
 }
 
 /** Espace entre deux tablettes consécutives. */
