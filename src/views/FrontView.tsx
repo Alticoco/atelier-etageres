@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { computeCutList } from '../model/cutlist'
 import { dragShelf, dragWedge, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
@@ -46,6 +47,8 @@ interface FrontViewProps {
   selection?: string[]
   /** Pas d'aimantation (mm) du glisser-déposer ; Alt maintenu = pas d'aimantation. */
   snapStep?: number
+  /** Affiche le repère (A, B, C…) de la liste de découpe sur chaque pièce. */
+  showMarks?: boolean
   /** Clic sur une pièce ; `additive` = Ctrl, Maj ou Cmd enfoncé. */
   onSelectPiece?: (id: string, additive: boolean) => void
   /** Clic dans le vide. */
@@ -63,6 +66,7 @@ export function FrontView({
   unit = 'cm',
   selection = [],
   snapStep = 10,
+  showMarks = false,
   onSelectPiece,
   onClearSelection,
   onChange,
@@ -166,6 +170,7 @@ export function FrontView({
   const H = shown.height
   const W = shown.width
   const rects = computeFrontRects(shown)
+  const marks = showMarks ? computeCutList(shown).marks : {}
   const stages = getStages(shown)
   const shelfOrder = sortedShelves(shown).map((s) => s.id)
   const s = scale
@@ -203,6 +208,21 @@ export function FrontView({
               vectorEffect="non-scaling-stroke"
             />
           ))}
+
+          {showMarks &&
+            rects.map((r) => (
+              <text
+                key={r.id}
+                className="mark"
+                x={r.x + r.width / 2}
+                y={H - r.y - r.height / 2}
+                fontSize={12 * s}
+                textAnchor="middle"
+                dominantBaseline="central"
+              >
+                {marks[r.id]}
+              </text>
+            ))}
 
           <g className="handles">
             <rect className="handle handle-right" data-handle="right" x={W} y={0} width={hs} height={H}>

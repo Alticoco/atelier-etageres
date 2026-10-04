@@ -8,10 +8,11 @@ export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
 export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x'
 
 export type PlanChange =
-  | { property: 'width' | 'height' | 'wedgeClearance' | 'defaultWedgeThickness'; mm: number }
+  | { property: 'width' | 'height' | 'wedgeClearance' | 'defaultWedgeThickness' | 'sawKerf'; mm: number }
   | { property: 'name'; value: string }
   | { property: 'framePlacement'; value: FramePlacement }
   | { property: 'propagation'; value: boolean }
+  | { property: 'sawKerfEnabled'; value: boolean }
 
 type PieceRef =
   | { kind: 'upright'; ref: Upright }
@@ -186,10 +187,14 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
     next.options.propagation = change.value
     return { ok: true, plan: next }
   }
+  if (change.property === 'sawKerfEnabled') {
+    next.options.sawKerfEnabled = change.value
+    return { ok: true, plan: next }
+  }
 
   const { mm } = change
   if (!Number.isInteger(mm) || mm < 0) return fail('La valeur doit être un nombre entier de mm positif ou nul.')
-  if (mm === 0 && change.property !== 'wedgeClearance') return fail('La valeur doit être supérieure à 0.')
+  if (mm === 0 && change.property !== 'wedgeClearance' && change.property !== 'sawKerf') return fail('La valeur doit être supérieure à 0.')
 
   switch (change.property) {
     case 'width':
@@ -198,6 +203,9 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
       return setPlanSize(plan, { height: mm })
     case 'wedgeClearance':
       next.options.wedgeClearance = mm
+      break
+    case 'sawKerf':
+      next.options.sawKerf = mm
       break
     case 'defaultWedgeThickness':
       next.options.defaultWedgeThickness = mm

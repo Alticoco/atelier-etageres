@@ -14,7 +14,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - [x] **Étape 6 — Propagation et outils** : option intelligente, « espacer également », ajout/suppression de pièces, contrôles de cohérence.
 - [x] **Étape 7 — Annuler / rétablir**.
 - [x] **Étape 8 — Vue de profil** (lecture seule).
-- [ ] **Étape 9 — Liste de découpe** : regroupement, repères, option trait de scie.
+- [x] **Étape 9 — Liste de découpe** : regroupement, repères, option trait de scie.
 - [x] **Étape 10 — Sauvegarde** : bibliothèque IndexedDB, export/import `.etagere.json`.
 - [x] **Étape 11 — Export PDF** : plan d'architecte A4 paysage, note fixation murale, JSON embarqué, ré-import du PDF.
 - [x] **Étape 12 — Finitions** : design, raccourcis clavier, README du dépôt, vérification des critères de « terminé ».
@@ -45,3 +45,4 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - Estimation du prix
 - Version téléphone
 - Sélection par rectangle (la spec la prévoit en complément de Ctrl/Maj + clic) : en conflit avec le glisser pour déplacer la vue ; à trancher (ex. Maj + glisser) avant l étape 5.
+- Synthèse des longueurs totales à acheter par section de planche (largeur × épaisseur), à côté de la liste de découpe.

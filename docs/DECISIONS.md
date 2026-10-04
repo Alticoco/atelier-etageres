@@ -102,3 +102,13 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Cotes du profil** : profondeur hors-tout en bas, hauteur et hauteurs libres des étages à droite (pas à gauche, pour ne pas croiser le mur). La profondeur affichée est celle de la pièce la plus profonde.
 - **Code partagé extrait** : `useViewport` (zoom, déplacement, cadrage), `Dimension` (lignes de cotes) et `ViewControls` (boutons) servent aux deux vues. Un correctif dans l une profite à l autre.
 - **Échap et Suppr** fonctionnent maintenant même quand le focus est sur un bouton radio / case à cocher (ils restent réservés aux champs de saisie et aux listes déroulantes).
+
+## 2026-10-04 (étape 9)
+
+- **Regroupement par dimensions identiques** (longueur × largeur × épaisseur) : calcul pur dans `src/model/cutlist.ts`. Une cale et une tablette de mêmes dimensions vont dans le même lot. Des pièces qui ne diffèrent que d un mm restent dans des lots séparés (c est ce qu on fait à la main).
+- **Repères A, B, C… dans l ordre d apparition** : montants, tablettes de bas en haut, puis cales ; AA, AB… après Z. Les repères sont recalculés à chaque changement de dimensions : ils ne sont pas stables d une modification à l autre, ils ne doivent donc servir qu à partir de la liste affichée.
+- **Convention de dimensions** : longueur = dimension principale de la pièce (hauteur d un montant ou d une cale, largeur utile d une tablette), largeur = profondeur, épaisseur = épaisseur. On ne parle pas de sens du fil (hors périmètre de la spec).
+- **Estimation du trait de scie = une coupe par pièce × épaisseur du trait** (3 mm par défaut), affichée sur une ligne « Perte ». C est volontairement simple : sans optimisation des découpes, on ne peut pas savoir combien de coupes un magasin fera vraiment. Option (case + épaisseur) dans les propriétés de l étagère.
+- **Repères reportés sur la vue de face**, avec une case « Repères » pour les masquer (activée par défaut). Textes non cliquables, avec contour blanc pour rester lisibles sur le bois. Le profil n en porte pas pour l instant ; le PDF (étape 11) les reprendra.
+- **Onglet « Découpe »** à côté de Face et Profil : un tableau en lecture seule (repère, quantité, longueur, largeur, épaisseur, pièces concernées, total, perte). Unités mm/cm suivent le réglage global.
+- **Idée notée** : synthèse des longueurs par section de planche (boîte à idées), non faite car la spec ne la demande pas.

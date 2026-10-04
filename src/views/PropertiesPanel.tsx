@@ -215,6 +215,26 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
             Quand on change la largeur ou la hauteur, les cales et les tablettes gardent leur position proportionnelle.
           </small>
         </div>
+        <div className="field field-check">
+          <label>
+            <input
+              type="checkbox"
+              checked={plan.options.sawKerfEnabled}
+              onChange={(e) => commitPlan({ property: 'sawKerfEnabled', value: e.target.checked })}
+            />
+            Trait de scie
+          </label>
+          <small className="field-hint">Ajoute une estimation de la perte de bois à la liste de découpe.</small>
+        </div>
+        {plan.options.sawKerfEnabled && (
+          <LengthField
+            key={`k-${plan.options.sawKerf}-${unit}`}
+            label="Épaisseur du trait de scie"
+            valueMm={plan.options.sawKerf}
+            unit={unit}
+            onCommit={(mm) => commitPlan({ property: 'sawKerf', mm })}
+          />
+        )}
         <StageTools plan={plan} unit={unit} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>

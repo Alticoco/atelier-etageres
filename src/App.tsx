@@ -3,16 +3,18 @@ import { SNAP_STEPS } from './model/drag'
 import type { LengthUnit } from './model/units'
 import { applyAction, editorReducer, initialEditorState, type EditorAction } from './store/editor'
 import { CreationWizard } from './views/CreationWizard'
+import { CutListView } from './views/CutListView'
 import { FrontView } from './views/FrontView'
 import { ProfileView } from './views/ProfileView'
 import { PropertiesPanel } from './views/PropertiesPanel'
 
 const UNITS: LengthUnit[] = ['mm', 'cm']
 
-type ViewMode = 'front' | 'side'
+type ViewMode = 'front' | 'side' | 'cut'
 const VIEWS: { mode: ViewMode; label: string }[] = [
   { mode: 'front', label: 'Face' },
   { mode: 'side', label: 'Profil' },
+  { mode: 'cut', label: 'Découpe' },
 ]
 
 /** Champ où l'on tape du texte : Ctrl+Z doit alors annuler la frappe, pas le plan. */
@@ -26,6 +28,7 @@ export default function App() {
   const [creating, setCreating] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
   const [view, setView] = useState<ViewMode>('front')
+  const [showMarks, setShowMarks] = useState(true)
   const { plan, selection, unit, snapStep, past, future } = state
 
   // Toute modification passe par ici : si les contrôles de cohérence la refusent, on explique pourquoi.
@@ -146,20 +149,31 @@ export default function App() {
         ) : (
           <div className="editor">
             <div className="canvas">
-              <div className="view-switch" role="radiogroup" aria-label="Vue">
-                {VIEWS.map(({ mode, label }) => (
-                  <label key={mode} className={mode === view ? 'active' : undefined}>
-                    <input type="radio" name="view" value={mode} checked={mode === view} onChange={() => setView(mode)} />
-                    {label}
+              <div className="canvas-tools">
+                <div className="view-switch" role="radiogroup" aria-label="Vue">
+                  {VIEWS.map(({ mode, label }) => (
+                    <label key={mode} className={mode === view ? 'active' : undefined}>
+                      <input type="radio" name="view" value={mode} checked={mode === view} onChange={() => setView(mode)} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {view === 'front' && (
+                  <label className="marks-toggle" title="Repères de la liste de découpe">
+                    <input type="checkbox" checked={showMarks} onChange={(e) => setShowMarks(e.target.checked)} />
+                    Repères
                   </label>
-                ))}
+                )}
               </div>
-              {view === 'front' ? (
+              {view === 'cut' ? (
+                <CutListView plan={plan} unit={unit} />
+              ) : view === 'front' ? (
                 <FrontView
                   plan={plan}
                   unit={unit}
                   selection={selection}
                   snapStep={snapStep}
+                  showMarks={showMarks}
                   onChange={run}
                   onSelectPiece={(id, additive) => dispatch({ type: 'selectPiece', id, additive })}
                   onClearSelection={() => dispatch({ type: 'clearSelection' })}
