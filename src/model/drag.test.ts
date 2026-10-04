@@ -148,13 +148,15 @@ describe('resizeFrame', () => {
 
   it('ne rétrécit pas la largeur au-delà d’une cale', () => {
     // bord droit de la cale = 318 ; il faut garder le montant droit (18) : largeur min = 336
-    const plan = resizeFrame(planWithWedge(), { width: 100 }, null)
+    const fixed = planWithWedge()
+    fixed.options.propagation = false
+    const plan = resizeFrame(fixed, { width: 100 }, null)
     expect(plan.width).toBe(336)
   })
 
   it('ne rétrécit pas la hauteur au-delà des tablettes', () => {
     // shelf-3 finit à 673 ; la tablette du haut (18) doit rester à 1 mm au moins au-dessus : hauteur min = 692
-    const plan = resizeFrame(createPlan(base), { height: 100 }, null)
+    const plan = resizeFrame(createPlan({ ...base, propagation: false }), { height: 100 }, null)
     expect(plan.height).toBe(692)
   })
 

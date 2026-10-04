@@ -358,3 +358,81 @@ body {
 .handle-corner {
   cursor: nesw-resize;
 }
+
+.field-check label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tools {
+  margin: 1rem 0 0;
+  padding: 0.5rem 0.75rem 0.5rem;
+  border: 1px solid #e3d9c9;
+  border-radius: 6px;
+}
+
+.tools legend {
+  padding: 0 0.3rem;
+  font-size: 0.85rem;
+  color: #7a6a58;
+}
+
+.tool-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tool-buttons button,
+.properties .danger {
+  font: inherit;
+  padding: 0.4rem 0.8rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid #cdbfa8;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool-buttons button:hover {
+  background: #f1e8d9;
+}
+
+.properties .danger {
+  margin-top: 0.75rem;
+  color: #b3261e;
+  border-color: #b3261e;
+}
+
+.properties .danger:hover {
+  background: #fbeceb;
+}
+
+.editor {
+  position: relative;
+}
+
+.notice {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(36rem, 70%);
+  padding: 0.5rem 0.9rem;
+  color: #fff;
+  background: #b3261e;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.notice button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}

@@ -34,6 +34,11 @@ export interface Wedge {
 }
 
 export interface PlanOptions {
+  /**
+   * Propagation « intelligente » : si activée, changer la largeur garde les cales à leur position
+   * proportionnelle et changer la hauteur répartit les tablettes proportionnellement.
+   */
+  propagation: boolean
   framePlacement: FramePlacement
   /** Épaisseur proposée pour les nouvelles cales. */
   defaultWedgeThickness: number

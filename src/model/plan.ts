@@ -12,6 +12,8 @@ export interface PlanParams {
   /** Épaisseur des nouvelles cales (par défaut : celle des tablettes). */
   wedgeThickness?: number
   framePlacement?: FramePlacement
+  /** Propagation intelligente (activée par défaut). */
+  propagation?: boolean
   wedgeClearance?: number
   sawKerfEnabled?: boolean
   sawKerf?: number
@@ -48,6 +50,7 @@ export function createPlan(params: PlanParams): Plan {
     shelfThickness,
     wedgeThickness = shelfThickness,
     framePlacement = 'between',
+    propagation = true,
     wedgeClearance = DEFAULT_WEDGE_CLEARANCE,
     sawKerfEnabled = false,
     sawKerf = DEFAULT_SAW_KERF,
@@ -89,6 +92,6 @@ export function createPlan(params: PlanParams): Plan {
     rightUpright: { thickness: uprightThickness, depth },
     shelves,
     wedges: [],
-    options: { framePlacement, defaultWedgeThickness: wedgeThickness, wedgeClearance, sawKerfEnabled, sawKerf },
+    options: { propagation, framePlacement, defaultWedgeThickness: wedgeThickness, wedgeClearance, sawKerfEnabled, sawKerf },
   }
 }

@@ -48,6 +48,7 @@ describe('createPlan', () => {
   it('applique les valeurs par défaut', () => {
     const plan = createPlan(base)
     expect(plan.options).toEqual({
+      propagation: true,
       framePlacement: 'between',
       defaultWedgeThickness: 18,
       wedgeClearance: 1,

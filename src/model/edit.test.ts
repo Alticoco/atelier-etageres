@@ -143,7 +143,8 @@ describe('setPlanProperty', () => {
   })
 
   it('refuse de réduire la hauteur au point de faire chevaucher les tablettes', () => {
-    expect(setPlanProperty(createPlan(base), { property: 'height', mm: 600 }).ok).toBe(false)
+    const plan = createPlan({ ...base, propagation: false })
+    expect(setPlanProperty(plan, { property: 'height', mm: 600 }).ok).toBe(false)
   })
 
   it('refuse une largeur trop faible pour les montants', () => {
@@ -206,3 +207,75 @@ describe('pieceLabel', () => {
     expect(pieceLabel(plan, 'wedge-1')).toBe('Cale 1')
   })
 })
+
+describe('propagation', () => {
+  it('largeur : les cales gardent leur position proportionnelle', () => {
+    // espace libre entre montants : 764 ; cale de 18 -> marge 746 ; x = 300 -> (300-18)/746
+    const plan = planWithWedge()
+    const result = setPlanProperty(plan, { property: 'width', mm: 1000 })
+    if (!result.ok) throw new Error(result.error)
+    // marge 946 : 18 + round(282 / 746 * 946) = 18 + 358
+    expect(result.plan.wedges[0].x).toBe(376)
+  })
+
+  it('largeur : sans propagation, les cales restent à leur place', () => {
+    const plan = planWithWedge()
+    plan.options.propagation = false
+    const result = setPlanProperty(plan, { property: 'width', mm: 1000 })
+    if (!result.ok) throw new Error(result.error)
+    expect(result.plan.wedges[0].x).toBe(300)
+  })
+
+  it('hauteur : chaque étage garde sa part de l’espace libre', () => {
+    // étages 310 / 309 / 309 (928 libres) -> 1200 : 1128 libres, facteur 1128/928
+    const result = setPlanProperty(createPlan(base), { property: 'height', mm: 1200 })
+    if (!result.ok) throw new Error(result.error)
+    const stages = getStages(result.plan).map((s) => s.clearHeight)
+    expect(stages).toEqual([377, 375, 376])
+    expect(stages.reduce((a, b) => a + b, 0) + 4 * 18).toBe(1200)
+  })
+
+  it('hauteur : sans propagation, seul l’étage du haut s’agrandit', () => {
+    const plan = createPlan({ ...base, propagation: false })
+    const result = setPlanProperty(plan, { property: 'height', mm: 1200 })
+    if (!result.ok) throw new Error(result.error)
+    expect(getStages(result.plan).map((s) => s.clearHeight)).toEqual([310, 309, 509])
+  })
+
+  it('hauteur réduite : les étages rétrécissent ensemble au lieu de se chevaucher', () => {
+    const result = setPlanProperty(createPlan(base), { property: 'height', mm: 600 })
+    expect(result.ok).toBe(true)
+  })
+
+  it('peut être activée ou désactivée', () => {
+    const off = setPlanProperty(createPlan(base), { property: 'propagation', value: false })
+    expect(off.ok && off.plan.options.propagation).toBe(false)
+  })
+})
+
+describe('cales entre elles', () => {
+  function twoWedges(): Plan {
+    const plan = planWithWedge()
+    plan.wedges.push({ id: 'wedge-2', shelfBelowId: 'shelf-1', x: 500, thickness: 18, depth: 250 })
+    return plan
+  }
+
+  it('détecte deux cales qui se chevauchent dans le même étage', () => {
+    const plan = twoWedges()
+    plan.wedges[1].x = 310
+    expect(checkPlan(plan)).toContain('Deux cales se chevauchent.')
+  })
+
+  it('accepte deux cales à la même position dans des étages différents', () => {
+    const plan = twoWedges()
+    plan.wedges[1].shelfBelowId = 'shelf-2'
+    plan.wedges[1].x = 300
+    expect(checkPlan(plan)).toEqual([])
+  })
+
+  it('une cale ne passe pas par-dessus sa voisine', () => {
+    const result = setPieceProperty(twoWedges(), ['wedge-1'], 'x', 600)
+    expect(result).toEqual({ ok: false, error: 'Une cale ne peut pas passer par-dessus une autre.' })
+  })
+})
+

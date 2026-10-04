@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react'
 import { SNAP_STEPS } from './model/drag'
 import type { LengthUnit } from './model/units'
-import { editorReducer, initialEditorState } from './store/editor'
+import { applyAction, editorReducer, initialEditorState, type EditorAction } from './store/editor'
 import { CreationWizard } from './views/CreationWizard'
 import { FrontView } from './views/FrontView'
 import { PropertiesPanel } from './views/PropertiesPanel'
@@ -11,19 +11,36 @@ const UNITS: LengthUnit[] = ['mm', 'cm']
 export default function App() {
   const [state, dispatch] = useReducer(editorReducer, initialEditorState)
   const [creating, setCreating] = useState(true)
+  const [notice, setNotice] = useState<string | null>(null)
   const { plan, selection, unit, snapStep } = state
 
-  // Échap désélectionne (sauf quand on est en train de saisir dans un champ).
+  // Toute modification passe par ici : si les contrôles de cohérence la refusent, on explique pourquoi.
+  const run = (action: EditorAction) => {
+    const { error } = applyAction(state, action)
+    setNotice(error)
+    if (!error) dispatch(action)
+  }
+
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(null), 6000)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+
+  // Échap désélectionne, Suppr supprime la sélection (sauf quand on est en train de saisir dans un champ).
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      if (e.key === 'Escape' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) {
-        dispatch({ type: 'clearSelection' })
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || creating) return
+      if (e.key === 'Escape') dispatch({ type: 'clearSelection' })
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length > 0) {
+        e.preventDefault()
+        run({ type: 'removePieces', ids: selection })
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  })
 
   const startNew = () => {
     if (!plan || window.confirm('Créer une nouvelle étagère ? Le plan actuel sera remplacé (rien n’est encore sauvegardé).')) {
@@ -84,11 +101,19 @@ export default function App() {
               unit={unit}
               selection={selection}
               snapStep={snapStep}
-              onChange={dispatch}
+              onChange={run}
               onSelectPiece={(id, additive) => dispatch({ type: 'selectPiece', id, additive })}
               onClearSelection={() => dispatch({ type: 'clearSelection' })}
             />
-            <PropertiesPanel plan={plan} selection={selection} unit={unit} dispatch={dispatch} />
+            <PropertiesPanel plan={plan} selection={selection} unit={unit} dispatch={run} />
+            {notice && (
+              <div className="notice" role="alert">
+                <span>{notice}</span>
+                <button type="button" onClick={() => setNotice(null)} aria-label="Fermer le message">
+                  ×
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>

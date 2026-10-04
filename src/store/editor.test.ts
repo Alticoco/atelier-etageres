@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createPlan } from '../model/plan'
-import { editorReducer, initialEditorState, type EditorState } from './editor'
+import { applyAction, editorReducer, initialEditorState, type EditorState } from './editor'
 
 const plan = createPlan({
   width: 800,
@@ -66,7 +66,51 @@ describe('editorReducer', () => {
   })
 
   it('setPlanSize incohérent laisse l’état inchangé', () => {
-    const state = editorReducer(withPlan, { type: 'setPlanSize', height: 100 })
+    const state = editorReducer(withPlan, { type: 'setPlanSize', width: 10 })
     expect(state).toBe(withPlan)
+  })
+
+  it('addWedge ajoute une cale et la sélectionne', () => {
+    const state = editorReducer(withPlan, { type: 'addWedge', shelfBelowId: 'shelf-1' })
+    expect(state.plan?.wedges).toHaveLength(1)
+    expect(state.selection).toEqual([state.plan?.wedges[0].id])
+  })
+
+  it('addShelf ajoute une tablette et la sélectionne', () => {
+    const state = editorReducer(withPlan, { type: 'addShelf', shelfBelowId: 'shelf-1' })
+    expect(state.plan?.shelves).toHaveLength(5)
+    expect(state.selection).toEqual(['shelf-5'])
+  })
+
+  it('removePieces supprime et retire les pièces de la sélection', () => {
+    const start = editorReducer(withPlan, { type: 'addWedge', shelfBelowId: 'shelf-1' })
+    const id = start.selection[0]
+    const state = editorReducer(start, { type: 'removePieces', ids: [id] })
+    expect(state.plan?.wedges).toEqual([])
+    expect(state.selection).toEqual([])
+  })
+
+  it('distributeShelves égalise les étages', () => {
+    const moved = editorReducer(withPlan, { type: 'setPieceProperty', ids: ['shelf-2'], property: 'y', mm: 500 })
+    const state = editorReducer(moved, { type: 'distributeShelves' })
+    expect(state.plan?.shelves[1].y).toBe(328)
+  })
+})
+
+describe('applyAction', () => {
+  it('renvoie un message en français quand une action est refusée, et l’état inchangé', () => {
+    const outcome = applyAction(withPlan, { type: 'removePieces', ids: ['upright-left'] })
+    expect(outcome.state).toBe(withPlan)
+    expect(outcome.error).toBe('Les montants ne se suppriment pas.')
+  })
+
+  it('renvoie error = null quand l’action est acceptée', () => {
+    expect(applyAction(withPlan, { type: 'addWedge', shelfBelowId: 'shelf-1' }).error).toBeNull()
+  })
+
+  it('refuse proprement une modification quand aucun plan n’est ouvert', () => {
+    const outcome = applyAction(initialEditorState, { type: 'distributeShelves' })
+    expect(outcome.state).toBe(initialEditorState)
+    expect(outcome.error).toBe('Aucune étagère ouverte.')
   })
 })

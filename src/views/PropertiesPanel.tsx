@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
 import { pieceLabel } from '../model/labels'
-import { computePieces } from '../model/pieces'
+import { computePieces, getStages } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, formatNumber, parseLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
@@ -72,6 +72,51 @@ function LengthField({ label, valueMm, unit, onCommit }: LengthFieldProps) {
 /** Valeur commune à toutes les pièces, ou null si elles diffèrent. */
 function commonValue(values: number[]): number | null {
   return values.every((v) => v === values[0]) ? values[0] : null
+}
+
+interface StageToolsProps {
+  plan: Plan
+  unit: LengthUnit
+  dispatch: (action: EditorAction) => void
+  /** Étage proposé par défaut (celui de la pièce sélectionnée), identifié par la tablette du dessous. */
+  defaultStageId?: string
+}
+
+/** Outils qui agissent sur un étage ou sur toute l'étagère : ajouter, espacer. */
+function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
+  const stages = getStages(plan)
+  const [chosen, setChosen] = useState('')
+  const valid = (id?: string) => stages.some((s) => s.shelfBelowId === id)
+  const stageId = valid(chosen) ? chosen : valid(defaultStageId) ? defaultStageId : stages[0]?.shelfBelowId
+
+  return (
+    <fieldset className="tools">
+      <legend>Outils</legend>
+      <div className="field">
+        <label>
+          Étage
+          <select value={stageId} onChange={(e) => setChosen(e.target.value)}>
+            {stages.map((stage, i) => (
+              <option key={stage.shelfBelowId} value={stage.shelfBelowId}>
+                {`Étage ${i + 1} (${formatLength(stage.clearHeight, unit)} libres)`}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="tool-buttons">
+        <button type="button" onClick={() => stageId && dispatch({ type: 'addWedge', shelfBelowId: stageId })}>
+          Ajouter une cale
+        </button>
+        <button type="button" onClick={() => stageId && dispatch({ type: 'addShelf', shelfBelowId: stageId })}>
+          Ajouter une tablette
+        </button>
+        <button type="button" onClick={() => dispatch({ type: 'distributeShelves' })}>
+          Espacer les tablettes également
+        </button>
+      </div>
+    </fieldset>
+  )
 }
 
 interface PropertiesPanelProps {
@@ -157,6 +202,20 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
             </select>
           </label>
         </div>
+        <div className="field field-check">
+          <label>
+            <input
+              type="checkbox"
+              checked={plan.options.propagation}
+              onChange={(e) => commitPlan({ property: 'propagation', value: e.target.checked })}
+            />
+            Propagation intelligente
+          </label>
+          <small className="field-hint">
+            Quand on change la largeur ou la hauteur, les cales et les tablettes gardent leur position proportionnelle.
+          </small>
+        </div>
+        <StageTools plan={plan} unit={unit} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>
     )
@@ -166,6 +225,11 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
   const single = pieces.length === 1 ? pieces[0] : null
   const computed = single ? computePieces(plan).find((p) => p.id === single.id) : undefined
   const sameKey = pieces.map((p) => p.id).join('|')
+
+  // Étage de la pièce sélectionnée : celui de la cale, ou celui juste au-dessus de la tablette.
+  let defaultStageId: string | undefined
+  if (single?.kind === 'wedge') defaultStageId = plan.wedges.find((w) => w.id === single.id)?.shelfBelowId
+  if (single?.kind === 'shelf') defaultStageId = single.id
 
   let title: ReactNode = `${pieces.length} pièces sélectionnées`
   if (single) title = pieceLabel(plan, single.id)
@@ -212,6 +276,10 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
           Longueur (calculée) : {formatLength(computed.length, unit)}
         </p>
       )}
+      <button type="button" className="danger" onClick={() => dispatch({ type: 'removePieces', ids })}>
+        {single ? 'Supprimer cette pièce' : `Supprimer ces ${pieces.length} pièces`}
+      </button>
+      <StageTools key={sameKey} plan={plan} unit={unit} dispatch={dispatch} defaultStageId={defaultStageId} />
     </aside>
   )
 }

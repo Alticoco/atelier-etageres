@@ -1,4 +1,5 @@
 import { getStages, sortedShelves } from './pieces'
+import { propagateHeight, propagateWidth } from './propagation'
 import type { FramePlacement, Plan, Shelf, Upright, Wedge } from './types'
 
 export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
@@ -10,6 +11,7 @@ export type PlanChange =
   | { property: 'width' | 'height' | 'wedgeClearance' | 'defaultWedgeThickness'; mm: number }
   | { property: 'name'; value: string }
   | { property: 'framePlacement'; value: FramePlacement }
+  | { property: 'propagation'; value: boolean }
 
 type PieceRef =
   | { kind: 'upright'; ref: Upright }
@@ -87,14 +89,25 @@ export function checkPlan(plan: Plan): string[] {
     }
   }
 
+  for (let i = 0; i < plan.wedges.length; i++) {
+    for (let j = i + 1; j < plan.wedges.length; j++) {
+      const a = plan.wedges[i]
+      const b = plan.wedges[j]
+      if (a.shelfBelowId === b.shelfBelowId && a.x < b.x + b.thickness && b.x < a.x + a.thickness) {
+        problems.push('Deux cales se chevauchent.')
+        return problems
+      }
+    }
+  }
+
   return problems
 }
 
-function fail(error: string): EditResult {
+export function fail(error: string): EditResult {
   return { ok: false, error }
 }
 
-function finish(next: Plan): EditResult {
+export function finish(next: Plan): EditResult {
   const [problem] = checkPlan(next)
   return problem ? fail(problem) : { ok: true, plan: next }
 }
@@ -143,6 +156,14 @@ export function setPieceProperty(plan: Plan, ids: string[], property: PiecePrope
     const order = (p: Plan) => sortedShelves(p).map((s) => s.id).join('|')
     if (order(next) !== order(plan)) return fail('Une tablette ne peut pas passer par-dessus une autre.')
   }
+  if (property === 'x') {
+    const order = (p: Plan) =>
+      [...p.wedges]
+        .sort((a, b) => a.shelfBelowId.localeCompare(b.shelfBelowId) || a.x - b.x || a.id.localeCompare(b.id))
+        .map((w) => w.id)
+        .join('|')
+    if (order(next) !== order(plan)) return fail('Une cale ne peut pas passer par-dessus une autre.')
+  }
   return finish(next)
 }
 
@@ -161,6 +182,10 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
     next.options.framePlacement = change.value
     return finish(next)
   }
+  if (change.property === 'propagation') {
+    next.options.propagation = change.value
+    return { ok: true, plan: next }
+  }
 
   const { mm } = change
   if (!Number.isInteger(mm) || mm < 0) return fail('La valeur doit être un nombre entier de mm positif ou nul.')
@@ -168,12 +193,9 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
 
   switch (change.property) {
     case 'width':
-      next.width = mm
-      break
+      return setPlanSize(plan, { width: mm })
     case 'height':
-      next.height = mm
-      keepTopShelfFlush(next)
-      break
+      return setPlanSize(plan, { height: mm })
     case 'wedgeClearance':
       next.options.wedgeClearance = mm
       break
@@ -186,7 +208,8 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
 
 /**
  * Change la largeur et/ou la hauteur du cadre en une seule fois (un seul contrôle de cohérence).
- * Comme pour `setPlanProperty`, la tablette du haut reste collée au haut quand la hauteur change.
+ * La tablette du haut reste collée au haut ; si la propagation est activée, les cales (largeur) et les
+ * tablettes (hauteur) gardent leur position proportionnelle.
  */
 export function setPlanSize(plan: Plan, size: { width?: number; height?: number }): EditResult {
   const { width, height } = size
@@ -196,9 +219,13 @@ export function setPlanSize(plan: Plan, size: { width?: number; height?: number 
     }
   }
   const next = structuredClone(plan)
-  if (width !== undefined) next.width = width
+  if (width !== undefined) {
+    next.width = width
+    if (plan.options.propagation) propagateWidth(plan, next)
+  }
   if (height !== undefined) {
     next.height = height
+    if (plan.options.propagation) propagateHeight(plan, next)
     keepTopShelfFlush(next)
   }
   return finish(next)
