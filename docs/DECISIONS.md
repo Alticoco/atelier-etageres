@@ -16,3 +16,11 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Sauvegarde locale (IndexedDB) + export fichier.** Pas de serveur ; l'export protège contre la perte si le navigateur est vidé.
 - **Le PDF embarque le JSON du plan.** Un PDF exporté peut être ré-importé et redevient éditable.
 - **Suivi d'avancement : `docs/ROADMAP.md` dans le dépôt + page Notion « Atelier Étagères ».**
+
+## 2026-10-04 (étape 0)
+
+- **Lint avec oxlint** (fourni par le modèle Vite actuel) plutôt qu'ESLint. Rapide, zéro configuration ; à réévaluer si des règles manquent.
+- **TypeScript en mode `strict`** activé explicitement (le modèle Vite ne l'activait pas).
+- **Vitest** pour les tests, environnement `node` : la logique de `src/model/` ne dépend pas du navigateur.
+- **`base: '/atelier-etageres/'`** dans Vite : le site est servi dans un sous-dossier sur GitHub Pages.
+- **Déploiement via GitHub Actions** (`.github/workflows/deploy.yml`) : lint + tests + build avant publication ; un test en échec bloque la mise en ligne.
