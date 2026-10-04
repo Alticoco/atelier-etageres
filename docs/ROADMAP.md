@@ -25,7 +25,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 - [x] **2. La liste de découpe correspond à ce que j'aurais calculé à la main** — quatre cas calculés à la main (chaque calcul est écrit en commentaire) dans `src/acceptance.test.ts` : cadre entre les montants, tablettes posées dessus, montants plus épais, trait de scie.
 - [x] **3. Le PDF s'imprime lisiblement en A4 paysage** — vérifié par tests (page 297 × 210 mm, marge de 5 mm, aucun texte sous 6 pt, cotes et tableau à 7 pt ou plus, traits >= 0,1 mm, 3 tailles d'étagère) et par le rendu de la page avec un lecteur indépendant. **Reste à imprimer une fois sur papier** pendant la période de test.
 - [x] **4. Un PDF exporté puis ré-importé redonne le même plan** — testé (et vérifié dans le navigateur avec la vraie base de données).
-- [ ] **5. Le site est en ligne sur GitHub Pages** — à cocher après vérification du déploiement de l'étape 12.
+- [x] **5. Le site est en ligne sur GitHub Pages** — <https://alticoco.github.io/atelier-etageres/> : déploiement de l'étape 12 vérifié (automatisation réussie, page et fichiers en HTTP 200, fichiers publiés identiques à ceux du build local).
 
 ## Période de test
 
