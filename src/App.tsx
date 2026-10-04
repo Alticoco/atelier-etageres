@@ -8,11 +8,17 @@ import { PropertiesPanel } from './views/PropertiesPanel'
 
 const UNITS: LengthUnit[] = ['mm', 'cm']
 
+/** Champ où l'on tape du texte : Ctrl+Z doit alors annuler la frappe, pas le plan. */
+function isTextEntry(el: HTMLElement): boolean {
+  if (el.tagName === 'TEXTAREA') return true
+  return el.tagName === 'INPUT' && !['checkbox', 'radio', 'button'].includes((el as HTMLInputElement).type)
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(editorReducer, initialEditorState)
   const [creating, setCreating] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
-  const { plan, selection, unit, snapStep } = state
+  const { plan, selection, unit, snapStep, past, future } = state
 
   // Toute modification passe par ici : si les contrôles de cohérence la refusent, on explique pourquoi.
   const run = (action: EditorAction) => {
@@ -27,11 +33,26 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  // Échap désélectionne, Suppr supprime la sélection (sauf quand on est en train de saisir dans un champ).
+  // Ctrl+Z annule, Ctrl+Y (ou Ctrl+Maj+Z) rétablit, Échap désélectionne, Suppr supprime la sélection.
+  // Les touches d'édition sont laissées aux champs de saisie quand on est en train d'y taper.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || creating) return
+      if (creating) return
+
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !isTextEntry(target)) {
+        const key = e.key.toLowerCase()
+        if (key === 'z' && !e.shiftKey) {
+          e.preventDefault()
+          dispatch({ type: 'undo' })
+        } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
+          e.preventDefault()
+          dispatch({ type: 'redo' })
+        }
+        return
+      }
+
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return
       if (e.key === 'Escape') dispatch({ type: 'clearSelection' })
       if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length > 0) {
         e.preventDefault()
@@ -55,6 +76,26 @@ export default function App() {
         {plan && <span className="app-plan-name">{plan.name}</span>}
         {plan && !creating && (
           <div className="header-tools">
+            <div className="history-buttons">
+              <button
+                type="button"
+                className="header-button"
+                disabled={past.length === 0}
+                onClick={() => dispatch({ type: 'undo' })}
+                title="Annuler (Ctrl+Z)"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="header-button"
+                disabled={future.length === 0}
+                onClick={() => dispatch({ type: 'redo' })}
+                title="Rétablir (Ctrl+Y)"
+              >
+                Rétablir
+              </button>
+            </div>
             <label className="snap-select" title="Maintenez Alt pour déplacer sans aimantation">
               Aimantation
               <select value={snapStep} onChange={(e) => dispatch({ type: 'setSnapStep', mm: Number(e.target.value) })}>

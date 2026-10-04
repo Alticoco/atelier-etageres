@@ -436,3 +436,13 @@ body {
   border: none;
   cursor: pointer;
 }
+
+.history-buttons {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.header-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

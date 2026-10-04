@@ -82,3 +82,13 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Contrôles de cohérence ajoutés** : deux cales d un même étage ne se chevauchent pas, une cale ne passe pas par-dessus sa voisine (comme pour les tablettes), au moins 1 mm libre entre deux tablettes (étape 5).
 - **Les actions refusées sont expliquées** : `applyAction` (store) renvoie l état et un message ; `App.run` affiche le message dans un bandeau rouge (6 s) au lieu de refuser en silence. Défaut des tests : une action refusée ne change jamais l état.
 - **Outils toujours visibles dans le panneau**, avec un choix d étage (par défaut celui de la pièce sélectionnée), pour enchaîner plusieurs ajouts sans désélectionner.
+
+## 2026-10-04 (étape 7)
+
+- **L historique vit dans le store** (`past` / `future` dans `EditorState`) : une action de modification du plan = un pas d historique. Un glisser (une seule action validée au relâchement), une saisie validée, un ajout, une suppression de plusieurs pièces sont donc chacun un seul pas. Rien de plus à brancher dans les vues.
+- **On garde des versions complètes du plan, pas des différences.** Un plan est petit (quelques dizaines de pièces) et les mises à jour sont immuables, donc les versions successives partagent leurs données : simple, sans risque d erreur de « défaire à l envers ». Historique illimité dans la session, comme la spec.
+- **Seul le plan est annulable** : sélection, unité mm/cm et aimantation ne le sont pas, et annuler ne les modifie pas.
+- **Pas d entrée pour une action refusée ni pour une action qui ne change rien** (ex. renommer avec le même nom, « espacer » un plan déjà réparti) : comparaison du contenu du plan avant/après.
+- **Une nouvelle modification efface la partie « rétablir »** ; **un nouveau plan** (assistant) repart d un historique vide.
+- **Après annuler / rétablir, la sélection ne garde que les pièces qui existent encore.**
+- **Raccourcis** : Ctrl+Z annuler, Ctrl+Y ou Ctrl+Maj+Z rétablir (Cmd sur Mac). Ils sont laissés au navigateur quand le curseur est dans un champ texte, où Ctrl+Z annule la frappe. Boutons Annuler / Rétablir dans l en-tête, grisés quand il n y a rien à faire.

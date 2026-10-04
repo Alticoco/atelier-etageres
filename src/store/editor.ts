@@ -12,8 +12,11 @@ import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
 
 /**
- * État global de l'éditeur. Toute modification passe par une action nommée ;
- * l'historique annuler/rétablir (étape 7) viendra s'y brancher.
+ * État global de l'éditeur. Toute modification passe par une action nommée.
+ *
+ * Historique : `past` garde les versions précédentes du plan (la plus récente en dernier), `future` celles
+ * qu'on a annulées (la prochaine à rétablir en premier). Seules les modifications du plan sont annulables ;
+ * la sélection, l'unité et l'aimantation ne le sont pas. Il n'y a pas de limite en dehors de la mémoire.
  */
 export interface EditorState {
   plan: Plan | null
@@ -21,6 +24,8 @@ export interface EditorState {
   unit: LengthUnit
   /** Pas d'aimantation du glisser-déposer, en mm. */
   snapStep: number
+  past: Plan[]
+  future: Plan[]
 }
 
 export type EditorAction =
@@ -36,8 +41,17 @@ export type EditorAction =
   | { type: 'addWedge'; shelfBelowId: string }
   | { type: 'removePieces'; ids: string[] }
   | { type: 'distributeShelves' }
+  | { type: 'undo' }
+  | { type: 'redo' }
 
-export const initialEditorState: EditorState = { plan: null, selection: [], unit: 'cm', snapStep: 10 }
+export const initialEditorState: EditorState = {
+  plan: null,
+  selection: [],
+  unit: 'cm',
+  snapStep: 10,
+  past: [],
+  future: [],
+}
 
 export interface ActionOutcome {
   state: EditorState
@@ -47,18 +61,24 @@ export interface ActionOutcome {
 
 const noPlan = 'Aucune étagère ouverte.'
 
+function samePlan(a: Plan, b: Plan): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** Ne garde dans la sélection que les pièces qui existent dans ce plan. */
+function existingOnly(selection: string[], plan: Plan): string[] {
+  const ids = new Set(['upright-left', 'upright-right', ...plan.shelves.map((s) => s.id), ...plan.wedges.map((w) => w.id)])
+  return selection.filter((id) => ids.has(id))
+}
+
 /** Applique une action. Une action refusée par les contrôles de cohérence renvoie l'état d'origine et un message. */
 export function applyAction(state: EditorState, action: EditorAction): ActionOutcome {
   const accepted = (next: EditorState): ActionOutcome => ({ state: next, error: null })
   const refused = (error: string): ActionOutcome => ({ state, error })
-  const withPlan = (result: EditResult): ActionOutcome =>
-    result.ok ? accepted({ ...state, plan: result.plan }) : refused(result.error)
-  const withAdded = (result: AddResult): ActionOutcome =>
-    result.ok ? accepted({ ...state, plan: result.plan, selection: [result.id] }) : refused(result.error)
 
   switch (action.type) {
     case 'newPlan':
-      return accepted({ ...state, plan: action.plan, selection: [] })
+      return accepted({ ...state, plan: action.plan, selection: [], past: [], future: [] })
     case 'selectPiece':
       return accepted({ ...state, selection: selectPiece(state.selection, action.id, action.additive) })
     case 'clearSelection':
@@ -72,7 +92,38 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
   const { plan } = state
   if (!plan) return refused(noPlan)
 
+  /** Enregistre une modification du plan dans l'historique (sauf si elle ne change rien). */
+  const commit = (next: Plan, selection: string[] = state.selection): ActionOutcome =>
+    samePlan(plan, next)
+      ? accepted({ ...state, selection })
+      : accepted({ ...state, plan: next, selection, past: [...state.past, plan], future: [] })
+  const withPlan = (result: EditResult): ActionOutcome => (result.ok ? commit(result.plan) : refused(result.error))
+  const withAdded = (result: AddResult): ActionOutcome =>
+    result.ok ? commit(result.plan, [result.id]) : refused(result.error)
+
   switch (action.type) {
+    case 'undo': {
+      const previous = state.past.at(-1)
+      if (!previous) return accepted(state)
+      return accepted({
+        ...state,
+        plan: previous,
+        selection: existingOnly(state.selection, previous),
+        past: state.past.slice(0, -1),
+        future: [plan, ...state.future],
+      })
+    }
+    case 'redo': {
+      const [next, ...rest] = state.future
+      if (!next) return accepted(state)
+      return accepted({
+        ...state,
+        plan: next,
+        selection: existingOnly(state.selection, next),
+        past: [...state.past, plan],
+        future: rest,
+      })
+    }
     case 'setPieceProperty':
       return withPlan(setPieceProperty(plan, action.ids, action.property, action.mm))
     case 'setPlanProperty':
@@ -88,11 +139,10 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     case 'removePieces': {
       const result = removePieces(plan, action.ids)
       if (!result.ok) return refused(result.error)
-      return accepted({
-        ...state,
-        plan: result.plan,
-        selection: state.selection.filter((id) => !action.ids.includes(id)),
-      })
+      return commit(
+        result.plan,
+        state.selection.filter((id) => !action.ids.includes(id)),
+      )
     }
   }
 }
