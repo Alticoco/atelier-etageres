@@ -41,7 +41,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] **Étape 13 — Modèle sans cadre** : planches apparentes, tablettes continues avec débords réglables à gauche et à droite, montants coupés à la hauteur de chaque étage (un à gauche et un à droite), supprimables un par un ; choix du modèle à la création (assistant), largeur hors-tout ; liste de découpe, vue de face, profil et PDF.
 - [x] **Étape 14 — Arrondis** des arêtes et des coins (plan + PDF) : deux rayons par pièce (coins vus de face, arêtes vues de profil), mention dans la liste de découpe.
 - [x] **Étape 15 — Vue de profil éditable** : choisir une pièce au clic, changer la profondeur en tirant son bord avant, monter / descendre les tablettes ; étages de profondeurs différentes.
-- [ ] **Étape 16 — Onglets de plans + écran partagé.**
+- [x] **Étape 16 — Onglets de plans + écran partagé** : plusieurs plans ouverts en onglets (historique et sélection propres à chacun), deux plans côte à côte avec une vue au choix dans chaque volet.
 - [ ] **Étape 17 — Optimisation des découpes** (à confirmer : peut-être inutile).
 
 ## V3
@@ -63,5 +63,6 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - Repères A, B, C aussi sur la vue de profil (écran et PDF) ; export PDF directement depuis la liste « Mes étagères ».
 - Impression : vérifier le rendu sur une vraie imprimante A4 (marges, lisibilité des cotes à 7 pt) pendant la période de test.
 - Arrondir seulement certains coins d une pièce ; rayon par défaut dans l assistant.
+- Retrouver les onglets ouverts au rechargement de la page ; copier une pièce d'un plan à l'autre en écran partagé ; synchroniser le zoom des deux volets.
 - Choisir une pièce du profil dans une liste cliquable (en plus du clic sur la plus petite pièce).
 - Profil : tirer plusieurs pièces d'un même écart (en gardant leurs différences) plutôt qu'à la même profondeur.

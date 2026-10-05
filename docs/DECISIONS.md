@@ -197,3 +197,12 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Un glisser = une seule modification** (aperçu en direct, action validée au relâchement), donc un seul pas d'historique ; la vue est figée pendant le geste pour ne pas « sauter ». Même mécanique que la vue de face.
 - **Aide à l'écran** dans le profil (bas à gauche) pour la découvrabilité : le clic « plus petite pièce » et la poignée ne sont pas évidents sans.
 - **Reporté (boîte à idées)** : liste cliquable des pièces ; glisser à écart constant au lieu de profondeur commune.
+
+## 2026-10-05 (étape 16 — onglets et écran partagé)
+
+- **Un onglet = un plan ouvert avec son propre éditeur** (plan, sélection, annuler / rétablir). Annuler dans un onglet ne touche jamais l'autre. L'unité et l'aimantation restent des réglages globaux, recopiés dans tous les onglets (`src/store/workspace.ts`, fonctions pures testées ; `editor.ts` est inchangé).
+- **Ouvrir un plan déjà ouvert ramène à son onglet** (au lieu d'en créer un second) : évite deux copies du même plan qui s'écraseraient à l'enregistrement. Deux plans non enregistrés restent deux onglets.
+- **Les onglets restent ouverts quand on va dans « Mes étagères » ou l'assistant** ; « Mes étagères » est la première entrée de la barre d'onglets, « + » crée une étagère. Ancien avertissement « le plan actuel sera perdu » supprimé pour la création (rien n'est perdu) ; fermer un onglet non enregistré demande confirmation.
+- **Écran partagé = deux volets côte à côte**, chacun avec sa vue (Face / Profil / Découpe) et un menu pour choisir son plan ; un plan n'apparaît jamais dans les deux volets (on échange). Le volet cliqué a le focus (cadre coloré) : c'est lui qui reçoit les raccourcis clavier, le panneau de propriétés, l'en-tête (annuler, exporter, nom). Fermer l'un des deux plans referme l'écran partagé.
+- **Enregistrement automatique par onglet** (`useAutosave` gère une liste de plans) ; un onglet est enregistré avant d'être fermé. Renommer ou supprimer un plan dans la bibliothèque est répercuté dans son onglet ouvert (sans pas d'historique pour le renommage).
+- **Reporté** : mémoriser les onglets entre deux visites, copier une pièce d'un plan à l'autre, zoom synchronisé.
