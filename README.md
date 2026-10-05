@@ -87,7 +87,7 @@ docs/         spécification, feuille de route, journal des décisions
 - Pensé pour **un ordinateur** (écran d'au moins 1280 px de large) ; pas de version téléphone pour l'instant.
 - Testé surtout avec un navigateur de la famille Chrome ; conçu pour Chrome, Edge et Firefox récents.
 - La liste de découpe regroupe les pièces mais **n'optimise pas** la découpe dans les planches : on choisit soi-même les planches en magasin.
-- Le modèle de construction (avec ou sans cadre) se choisit à la création et ne se change pas ensuite. La vue de profil éditable, les onglets, la vue 3D, les portes et les tiroirs sont prévus plus tard (voir la feuille de route).
+- Le modèle de construction (avec ou sans cadre) se choisit à la création et ne se change pas ensuite. La vue 3D, les portes et les tiroirs sont prévus plus tard (voir la feuille de route).
 
 ## Licence
 
