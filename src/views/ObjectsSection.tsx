@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { OBJECT_KINDS, layoutStage, objectKind, remainingCapacity, rowLabel } from '../model/objects'
+import { OBJECT_KINDS, isObjectId, layoutStage, objectKind, objectLabel, remainingCapacity, rowLabel, setObjectRowGap } from '../model/objects'
 import { getStages } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
+import { LengthField } from './LengthField'
 import type { EditorAction } from '../store/editor'
 
 interface ObjectsSectionProps {
   plan: Plan
+  selection?: string[]
   unit: LengthUnit
   dispatch: (action: EditorAction) => void
 }
@@ -46,24 +48,26 @@ function InfoCard({ kindId, unit }: { kindId: string; unit: LengthUnit }) {
 }
 
 /** Simulation : poser des mangas, des livres, des bocaux… pour se faire une idée de ce qui rentre. */
-export function ObjectsSection({ plan, unit, dispatch }: ObjectsSectionProps) {
+export function ObjectsSection({ plan, selection = [], unit, dispatch }: ObjectsSectionProps) {
   const stages = getStages(plan)
   const [stageChoice, setStageChoice] = useState('')
   const [kindId, setKindId] = useState(OBJECT_KINDS[0].id)
   const [countText, setCountText] = useState('')
+  const [gapMm, setGapMm] = useState(0)
+  const selectedObjects = selection.filter((id) => isObjectId(id) && objectLabel(plan, id) !== null)
   // Fiche ouverte : le type d'objet affiché (null = fermée).
   const [infoKind, setInfoKind] = useState<string | null>(null)
   const toggleInfo = (id: string) => setInfoKind((current) => (current === id ? null : id))
   const stageId = stages.some((s) => s.shelfBelowId === stageChoice) ? stageChoice : stages[0]?.shelfBelowId
   const kind = objectKind(kindId)
-  const room = stageId ? remainingCapacity(plan, stageId, kindId) : 0
+  const room = stageId ? remainingCapacity(plan, stageId, kindId, gapMm) : 0
   const layouts = new Map(stages.map((s, i) => [s.shelfBelowId, { index: i + 1, layout: layoutStage(plan, s) }]))
   const rows = plan.rows ?? []
 
   const add = () => {
     if (!stageId) return
     const n = countText.trim() === '' ? undefined : Number(countText.replace(',', '.'))
-    dispatch({ type: 'addObjectRow', shelfBelowId: stageId, kind: kindId, count: n })
+    dispatch({ type: 'addObjectRow', shelfBelowId: stageId, kind: kindId, count: n, gap: gapMm })
     setCountText('')
   }
 
@@ -109,11 +113,36 @@ export function ObjectsSection({ plan, unit, dispatch }: ObjectsSectionProps) {
           />
         </label>
       </div>
+      <LengthField
+        key={`gap-new-${gapMm}-${unit}`}
+        label="Espace entre les objets"
+        valueMm={gapMm}
+        unit={unit}
+        onCommit={(mm) => {
+          if (mm > 500) return 'Au plus 50 cm.'
+          setGapMm(mm)
+          return null
+        }}
+      />
       <div className="tool-buttons">
         <button type="button" onClick={add} disabled={!stageId || !kind}>
           Poser les objets
         </button>
       </div>
+
+      {selectedObjects.length > 0 && (
+        <div className="object-selected" role="status">
+          <strong>
+            {selectedObjects.length === 1 ? objectLabel(plan, selectedObjects[0]) : `${selectedObjects.length} objets choisis`}
+          </strong>
+          <p className="panel-hint">Tirez l’objet dans le dessin pour le déplacer (il se détache de sa rangée), ou supprimez-le.</p>
+          <div className="tool-buttons">
+            <button type="button" className="danger" onClick={() => dispatch({ type: 'removePieces', ids: selectedObjects })}>
+              Supprimer {selectedObjects.length === 1 ? 'l’objet' : 'les objets'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {rows.length > 0 && (
         <ul className="object-rows">
@@ -143,6 +172,20 @@ export function ObjectsSection({ plan, unit, dispatch }: ObjectsSectionProps) {
                 <button type="button" onClick={() => dispatch({ type: 'removeObjectRow', rowId: row.id })} aria-label="Supprimer la rangée">
                   ✕
                 </button>
+                <div className="row-gap">
+                  <LengthField
+                    key={`gap-${row.id}-${row.gap ?? 0}-${unit}`}
+                    label="Espace entre les objets"
+                    valueMm={row.gap ?? 0}
+                    unit={unit}
+                    onCommit={(mm) => {
+                      const result = setObjectRowGap(plan, row.id, mm)
+                      if (!result.ok) return result.error
+                      dispatch({ type: 'setObjectRowGap', rowId: row.id, gap: mm })
+                      return null
+                    }}
+                  />
+                </div>
               </li>
             )
           })}

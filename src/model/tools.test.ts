@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { checkPlan } from './edit'
 import { computePieces, getStages } from './pieces'
 import { createPlan } from './plan'
-import { addShelf, addWedge, copyStageWedges, distributeShelves, moveWedge, removePieces } from './tools'
+import { addShelf, addWedge, copyStageWedges, distributeShelves, moveWedge, removePieces, setStageHeight } from './tools'
 import type { Plan } from './types'
 
 // Tablettes à y = 0, 328, 655, 982 ; étages libres 310, 309, 309.
@@ -258,5 +258,37 @@ describe('copyStageWedges — copier la disposition d’un étage', () => {
   it('un étage source sans cale vide les étages visés', () => {
     const result = copyStageWedges(plan(), 'shelf-2', ['shelf-1'])
     expect(result.ok && result.plan.wedges.filter((w) => w.shelfBelowId === 'shelf-1')).toHaveLength(0)
+  })
+})
+
+describe('setStageHeight — régler la hauteur d’un étage', () => {
+  const plan = () => createPlan({ width: 800, height: 1000, depth: 250, stages: 3, uprightThickness: 18, shelfThickness: 18 })
+  const clear = (p: ReturnType<typeof plan>) => getStages(p).map((s) => s.clearHeight)
+
+  it('étage du bas : déplace la tablette du dessus, l’étage suivant s’adapte', () => {
+    const r = setStageHeight(plan(), 'shelf-1', 250)
+    if (!r.ok) throw new Error(r.error)
+    expect(clear(r.plan)[0]).toBe(250)
+    expect(r.plan.height).toBe(1000)
+  })
+
+  it('étage du haut : déplace la tablette du dessous', () => {
+    const r = setStageHeight(plan(), 'shelf-3', 200)
+    if (!r.ok) throw new Error(r.error)
+    expect(clear(r.plan)[2]).toBe(200)
+    expect(r.plan.height).toBe(1000)
+  })
+
+  it('une étagère d’un seul étage change de hauteur', () => {
+    const one = createPlan({ width: 800, height: 400, depth: 250, stages: 1, uprightThickness: 18, shelfThickness: 18 })
+    const r = setStageHeight(one, 'shelf-1', 500)
+    expect(r.ok && r.plan.height).toBe(536)
+  })
+
+  it('refuse ce qui ne tient pas, avec un message', () => {
+    const r = setStageHeight(plan(), 'shelf-1', 1100)
+    expect(r.ok).toBe(false)
+    expect(setStageHeight(plan(), 'shelf-1', 0).ok).toBe(false)
+    expect(setStageHeight(plan(), 'shelf-9', 100).ok).toBe(false)
   })
 })

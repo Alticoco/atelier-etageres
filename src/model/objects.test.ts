@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addObjectRow, layoutStage, removeObjectRow, setObjectRowCount, stageCapacity } from './objects'
+import { addObjectRow, layoutStage, moveObject, objectIdExists, removeObject, removeObjectRow, setObjectRowCount, setObjectRowGap, stageCapacity } from './objects'
 import { createPlan } from './plan'
 import { getStages } from './pieces'
 import { parsePlan } from './serialize'
@@ -68,5 +68,88 @@ describe('objets de simulation', () => {
     const parsed = parsePlan(JSON.parse(JSON.stringify(r.plan)))
     expect(parsed.ok && parsed.plan.rows).toEqual(r.plan.rows)
     expect(parsePlan({ ...JSON.parse(JSON.stringify(r.plan)), rows: [{ id: 'r', shelfBelowId: 'shelf-1', kind: 'ovni', count: 1 }] }).ok).toBe(false)
+  })
+
+  it('espace entre les objets : 5 mm entre chaque manga', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', 3)
+    if (!r.ok) throw new Error(r.error)
+    const gapped = setObjectRowGap(r.plan, 'row-1', 5)
+    if (!gapped.ok) throw new Error(gapped.error)
+    const xs = layoutStage(gapped.plan, getStages(gapped.plan)[0]).objects.map((o) => o.x)
+    expect(xs).toEqual([18, 37, 56])
+    expect(setObjectRowGap(r.plan, 'row-1', -1).ok).toBe(false)
+  })
+
+  it('« remplir » tient compte de l’espace : (764 + 10) / (14 + 10) = 32 mangas', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', undefined, 10)
+    expect(r.ok && r.plan.rows![0].count).toBe(32)
+  })
+
+  it('supprimer un objet de la rangée la raccourcit ; le dernier supprime la rangée', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', 2)
+    if (!r.ok) throw new Error(r.error)
+    const one = removeObject(r.plan, 'obj:row-1:0')
+    expect(one.ok && one.plan.rows![0].count).toBe(1)
+    const none = removeObject(one.ok ? one.plan : r.plan, 'obj:row-1:0')
+    expect(none.ok && none.plan.rows).toBeUndefined()
+    expect(removeObject(r.plan, 'obj:row-9:0').ok).toBe(false)
+  })
+
+  it('déplacer un objet le détache de sa rangée, qui se resserre autour de lui', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', 5)
+    if (!r.ok) throw new Error(r.error)
+    const moved = moveObject(r.plan, 'obj:row-1:2', 'shelf-2', 300, null)
+    if (!moved.ok) throw new Error(moved.error)
+    expect(moved.id).toBe('obj:placed-1')
+    expect(moved.plan.rows![0].count).toBe(4)
+    expect(moved.plan.placedObjects).toEqual([{ id: 'placed-1', shelfBelowId: 'shelf-2', kind: 'manga', x: 300 }])
+    expect(objectIdExists(moved.plan, 'obj:placed-1')).toBe(true)
+    expect(objectIdExists(moved.plan, 'obj:row-1:4')).toBe(false)
+    // Le même objet, déplacé à nouveau, reste le même objet (pas de doublon).
+    const again = moveObject(moved.plan, 'obj:placed-1', 'shelf-2', 400, null)
+    expect(again.ok && again.plan.placedObjects).toEqual([{ id: 'placed-1', shelfBelowId: 'shelf-2', kind: 'manga', x: 400 }])
+  })
+
+  it('un objet posé seul s’aimante contre le montant, contre une cale, et ne la chevauche pas', () => {
+    const p = base()
+    p.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 400, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
+    const r = addObjectRow(p, 'shelf-1', 'manga', 1)
+    if (!r.ok) throw new Error(r.error)
+    const nearUpright = moveObject(r.plan, 'obj:row-1:0', 'shelf-1', 24, 10)
+    expect(nearUpright.ok && nearUpright.plan.placedObjects![0].x).toBe(18)
+    const nearWedge = moveObject(r.plan, 'obj:row-1:0', 'shelf-1', 380, 10)
+    expect(nearWedge.ok && nearWedge.plan.placedObjects![0].x).toBe(386)
+    const onWedge = moveObject(r.plan, 'obj:row-1:0', 'shelf-1', 405, null)
+    expect(onWedge.ok && (onWedge.plan.placedObjects![0].x <= 386 || onWedge.plan.placedObjects![0].x >= 418)).toBe(true)
+  })
+
+  it('les rangées se rangent autour d’un objet posé seul', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', 1)
+    if (!r.ok) throw new Error(r.error)
+    const placed = moveObject(r.plan, 'obj:row-1:0', 'shelf-1', 18, null)
+    if (!placed.ok) throw new Error(placed.error)
+    const more = addObjectRow(placed.plan, 'shelf-1', 'manga', 2)
+    if (!more.ok) throw new Error(more.error)
+    const xs = layoutStage(more.plan, getStages(more.plan)[0]).objects.map((o) => o.x).sort((a, b) => a - b)
+    expect(xs).toEqual([18, 32, 46])
+  })
+
+  it('survit à l’enregistrement (rangées avec espace, objets posés)', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', 4, 5)
+    if (!r.ok) throw new Error(r.error)
+    const moved = moveObject(r.plan, 'obj:row-1:1', 'shelf-2', 100, null)
+    if (!moved.ok) throw new Error(moved.error)
+    const parsed = parsePlan(JSON.parse(JSON.stringify(moved.plan)))
+    expect(parsed.ok && parsed.plan.placedObjects).toEqual(moved.plan.placedObjects)
+    expect(parsed.ok && parsed.plan.rows).toEqual(moved.plan.rows)
+  })
+
+  it('supprimer une tablette fait suivre les objets posés seuls', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', 1)
+    if (!r.ok) throw new Error(r.error)
+    const moved = moveObject(r.plan, 'obj:row-1:0', 'shelf-2', 100, null)
+    if (!moved.ok) throw new Error(moved.error)
+    const removed = removePieces(moved.plan, ['shelf-2'])
+    expect(removed.ok && removed.plan.placedObjects![0].shelfBelowId).toBe('shelf-1')
   })
 })

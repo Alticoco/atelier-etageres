@@ -10,11 +10,15 @@ import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX, Dimension } from './Dimension'
+import { EditableDimension } from './EditableDimension'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
 
 const WALL_PX = 14
 const HANDLE_PX = 12
+/** Le mur dépasse l'étagère en haut et en bas d'au moins ça (mm), ou de 15 % de sa hauteur. */
+const WALL_MARGIN_MM = 150
+const WALL_MARGIN_RATIO = 0.15
 const PICK_TOLERANCE_PX = 3
 /** En dessous de ce déplacement (px), un appui est un clic et non un glisser. */
 const CLICK_TOLERANCE_PX = 4
@@ -54,10 +58,11 @@ export function ProfileView({
 }: ProfileViewProps) {
   const { width: baseDepth, height } = profileSize(plan)
   const overflow = supportOverflow(plan)
+  const wallMargin = Math.max(WALL_MARGIN_MM, Math.round(height * WALL_MARGIN_RATIO))
   const { containerRef, scale: s, viewBox, updateCamera, resetView, zoomIn, zoomOut } = useViewport(baseDepth, height, {
     right: overflow.front,
-    top: overflow.above,
-    bottom: overflow.below,
+    top: overflow.above + wallMargin,
+    bottom: overflow.below + wallMargin,
   })
   const gestureRef = useRef<Gesture | null>(null)
   const pendingRef = useRef<EditorAction | null>(null)
@@ -86,6 +91,7 @@ export function ProfileView({
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!viewBox) return
+    if ((e.target as Element).closest('[data-dim-edit]')) return
     const base = { startX: e.clientX, startY: e.clientY }
     const handle = (e.target as Element).closest('[data-handle-piece]')?.getAttribute('data-handle-piece')
     const supportId = (e.target as Element).closest('[data-support-id]')?.getAttribute('data-support-id')
@@ -201,7 +207,14 @@ export function ProfileView({
           role="img"
           aria-label={`Vue de profil de l'étagère : ${formatLength(depth, unit)} de profondeur, ${formatLength(H, unit)} de haut`}
         >
-          <rect className="wall" x={-wall} y={0} width={wall} height={height} vectorEffect="non-scaling-stroke" />
+          <rect
+            className="wall"
+            x={-wall}
+            y={-(overflow.above + wallMargin)}
+            width={wall}
+            height={height + overflow.above + overflow.below + 2 * wallMargin}
+            vectorEffect="non-scaling-stroke"
+          />
           <text
             className="wall-label"
             x={-wall / 2}
@@ -268,15 +281,29 @@ export function ProfileView({
               ))}
           </g>
 
-          <Dimension x1={0} y1={H + dimOffset} x2={depth} y2={H + dimOffset} label={formatLength(depth, unit)} s={s} side={1} />
-          <Dimension
+          <EditableDimension
+            x1={0}
+            y1={H + dimOffset}
+            x2={depth}
+            y2={H + dimOffset}
+            valueMm={depth}
+            unit={unit}
+            label={formatLength(depth, unit)}
+            s={s}
+            side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'depth', mm } })}
+          />
+          <EditableDimension
             x1={depth + 2.2 * dimOffset}
             y1={0}
             x2={depth + 2.2 * dimOffset}
             y2={H}
+            valueMm={H}
+            unit={unit}
             label={formatLength(H, unit)}
             s={s}
             side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'height', mm } })}
           />
           {stages.map((stage) => {
             const top = H - (stage.y + stage.clearHeight)
@@ -287,14 +314,17 @@ export function ProfileView({
                   <line x1={depth} y1={top} x2={depth + dimOffset + 5 * s} y2={top} vectorEffect="non-scaling-stroke" />
                   <line x1={depth} y1={bottom} x2={depth + dimOffset + 5 * s} y2={bottom} vectorEffect="non-scaling-stroke" />
                 </g>
-                <Dimension
+                <EditableDimension
                   x1={depth + dimOffset}
                   y1={top}
                   x2={depth + dimOffset}
                   y2={bottom}
+                  valueMm={stage.clearHeight}
+                  unit={unit}
                   label={formatLength(stage.clearHeight, unit)}
                   s={s}
                   side={-1}
+                  onCommit={(mm) => onChange?.({ type: 'setStageHeight', shelfBelowId: stage.shelfBelowId, mm })}
                 />
               </g>
             )

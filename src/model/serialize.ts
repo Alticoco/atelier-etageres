@@ -1,6 +1,6 @@
 import { checkPlan } from './edit'
-import { MAX_ROW_COUNT, objectKind } from './objects'
-import type { ObjectRow, Plan, Support } from './types'
+import { MAX_GAP, MAX_PLACED, MAX_ROW_COUNT, objectKind } from './objects'
+import type { ObjectRow, PlacedObject, Plan, Support } from './types'
 
 /**
  * Format de fichier d'un plan (`.etagere.json`) : { format, version, plan }.
@@ -131,7 +131,17 @@ function readPlan(value: unknown): Plan {
     if (!objectKind(kind)) fail(`${where} : type d’objet inconnu.`)
     const count = int(obj, 'count', where, 1)
     if (count > MAX_ROW_COUNT) fail(`${where} : trop d’objets.`)
-    return { id: uniqueId(text(obj, 'id', where, MAX_ID), where), shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), kind, count }
+    const gap = optionalInt(obj, 'gap', where, 0, 0)
+    if (gap > MAX_GAP) fail(`${where} : espace trop grand.`)
+    return { id: uniqueId(text(obj, 'id', where, MAX_ID), where), shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), kind, count, ...(gap > 0 ? { gap } : {}) }
+  })
+
+  const placedObjects: PlacedObject[] = root.placedObjects === undefined ? [] : list(root, 'placedObjects', 'Plan', MAX_PLACED).map((item, i) => {
+    const where = `Objet posé ${i + 1}`
+    const obj = record(item, where)
+    const kind = text(obj, 'kind', where, MAX_ID)
+    if (!objectKind(kind)) fail(`${where} : type d’objet inconnu.`)
+    return { id: uniqueId(text(obj, 'id', where, MAX_ID), where), shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), kind, x: int(obj, 'x', where, 0) }
   })
 
   const supports: Support[] = root.supports === undefined ? [] : list(root, 'supports', 'Plan', 100).map((item, i) => {
@@ -162,6 +172,7 @@ function readPlan(value: unknown): Plan {
     shelves,
     wedges,
     ...(rows.length > 0 ? { rows } : {}),
+    ...(placedObjects.length > 0 ? { placedObjects } : {}),
     ...(supports.length > 0 ? { supports } : {}),
     options: {
       propagation: bool(options, 'propagation', 'Options'),

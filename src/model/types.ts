@@ -80,6 +80,17 @@ export interface ObjectRow {
   /** Identifiant du type d'objet (voir `OBJECT_KINDS`). */
   kind: string
   count: number
+  /** Espace entre deux objets de la rangée (mm, 0 = collés). Absent = 0. */
+  gap?: number
+}
+
+/** Objet de simulation détaché d'une rangée : posé à une position précise dans un étage. */
+export interface PlacedObject {
+  id: string
+  shelfBelowId: string
+  kind: string
+  /** Bord gauche, depuis le bord gauche hors-tout. */
+  x: number
 }
 
 /**
@@ -134,6 +145,8 @@ export interface Plan {
   wedges: Wedge[]
   /** Objets de simulation, absent s'il n'y en a pas. */
   rows?: ObjectRow[]
+  /** Objets de simulation posés un par un (détachés d'une rangée), absents s'il n'y en a pas. */
+  placedObjects?: PlacedObject[]
   /** Planches de soutien (à part de l'étagère), absentes s'il n'y en a pas. */
   supports?: Support[]
   options: PlanOptions

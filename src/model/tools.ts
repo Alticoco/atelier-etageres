@@ -1,6 +1,7 @@
 import { fail, finish, type EditResult } from './edit'
 import { innerSpan } from './geometry'
 import { parseVerticalId } from './labels'
+import { isObjectId, removeObject } from './objects'
 import { getStages, sortedShelves } from './pieces'
 import type { Plan } from './types'
 
@@ -176,6 +177,10 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
   if (ids.length === 0) return fail('Aucune pièce sélectionnée.')
   const next = structuredClone(plan)
 
+  // Plusieurs objets d'une même rangée : on supprime les derniers d'abord pour que les numéros ne se décalent pas.
+  const objectIndex = (id: string) => Number(/:(\d+)$/.exec(id)?.[1] ?? -1)
+  ids = [...ids].sort((a, b) => objectIndex(b) - objectIndex(a))
+
   for (const id of ids) {
     // Modèle sans cadre : supprimer un montant d'étage laisse l'extrémité se terminer par la seule tablette.
     const vertical = parseVerticalId(id)
@@ -188,6 +193,16 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
     }
 
     if (id === 'upright-left' || id === 'upright-right') return fail('Les montants ne se suppriment pas.')
+
+    if (isObjectId(id)) {
+      const result = removeObject(next, id)
+      if (!result.ok) return result
+      next.rows = result.plan.rows
+      next.placedObjects = result.plan.placedObjects
+      if (!next.rows) delete next.rows
+      if (!next.placedObjects) delete next.placedObjects
+      continue
+    }
 
     if (next.supports?.some((s) => s.id === id)) {
       next.supports = next.supports.filter((s) => s.id !== id)
@@ -209,6 +224,7 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
     const merged = shelves[index - 1].id
     for (const wedge of next.wedges) if (wedge.shelfBelowId === id) wedge.shelfBelowId = merged
     for (const row of next.rows ?? []) if (row.shelfBelowId === id) row.shelfBelowId = merged
+    for (const placed of next.placedObjects ?? []) if (placed.shelfBelowId === id) placed.shelfBelowId = merged
     next.shelves = next.shelves.filter((s) => s.id !== id)
   }
 
@@ -256,5 +272,33 @@ export function setVertical(plan: Plan, shelfId: string, side: 'left' | 'right',
   if (!shelf) return fail('Tablette inconnue.')
   if (side === 'left') shelf.verticalLeft = present
   else shelf.verticalRight = present
+  return finish(next)
+}
+
+/**
+ * Règle la hauteur libre d'un étage (celui au-dessus de `shelfBelowId`) en déplaçant une tablette :
+ * celle du dessus si elle est intermédiaire, sinon celle du dessous. Une étagère d'un seul étage change de hauteur.
+ * Les étages voisins s'adaptent donc ; si ça ne tient plus, le contrôle de cohérence explique pourquoi.
+ */
+export function setStageHeight(plan: Plan, shelfBelowId: string, mm: number): EditResult {
+  if (!Number.isInteger(mm) || mm < 1) return fail('La hauteur d’un étage doit être un nombre entier de mm supérieur à 0.')
+  const shelves = sortedShelves(plan)
+  const i = shelves.findIndex((s) => s.id === shelfBelowId)
+  if (i < 0 || i >= shelves.length - 1) return fail('Étage inconnu.')
+  const below = shelves[i]
+  const above = shelves[i + 1]
+  const next = structuredClone(plan)
+
+  if (i + 1 < shelves.length - 1) {
+    next.shelves.find((s) => s.id === above.id)!.y = below.y + below.thickness + mm
+  } else if (i > 0) {
+    next.shelves.find((s) => s.id === below.id)!.y = above.y - mm - below.thickness
+  } else {
+    next.height = below.y + below.thickness + mm + above.thickness
+    next.shelves.find((s) => s.id === above.id)!.y = below.y + below.thickness + mm
+  }
+  // Une tablette ne passe jamais par-dessus une autre (les cales changeraient d'étage sans prévenir).
+  const order = (p: Plan) => sortedShelves(p).map((s) => s.id).join('|')
+  if (order(next) !== order(plan)) return fail('Cet étage ne peut pas être aussi haut : il n’y a plus assez de place pour les autres.')
   return finish(next)
 }
