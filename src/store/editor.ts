@@ -10,7 +10,7 @@ import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
 import { addSupport, alignSupportFront, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
 import { addObjectRow, moveObject, objectIdExists, removeObjectRow, setObjectRowCount, setObjectRowGap } from '../model/objects'
-import { addShelf, addWedge, copyStageWedges, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
+import { addShelf, addWedge, copyStageWedges, setStageCount, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
 
@@ -43,6 +43,7 @@ export type EditorAction =
   | { type: 'setPlanSize'; width?: number; height?: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
+  | { type: 'setStageCount'; count: number }
   | { type: 'setStageHeight'; shelfBelowId: string; mm: number }
   | { type: 'copyStageWedges'; fromId: string; toIds: string[] }
   | { type: 'addSupport'; placement: SupportPlacement }
@@ -158,6 +159,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     }
     case 'addShelf':
       return withAdded(addShelf(plan, action.shelfBelowId))
+    case 'setStageCount':
+      return withPlan(setStageCount(plan, action.count))
     case 'setStageHeight':
       return withPlan(setStageHeight(plan, action.shelfBelowId, action.mm))
     case 'copyStageWedges':
