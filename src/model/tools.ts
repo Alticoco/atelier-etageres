@@ -1,6 +1,7 @@
 import { fail, finish, type EditResult } from './edit'
 import { innerSpan } from './geometry'
 import { parseVerticalId } from './labels'
+import { nearestGuide, wedgeGuides } from './guides'
 import { isObjectId, removeObject } from './objects'
 import { getStages, sortedShelves } from './pieces'
 import type { Plan } from './types'
@@ -155,10 +156,17 @@ export function moveWedge(plan: Plan, wedgeId: string, shelfBelowId: string, raw
 
   let x = clampToSlots(step === null ? Math.round(rawX) : Math.round(rawX / Math.max(step, 1)) * Math.max(step, 1))
   if (step !== null) {
-    // Aimantation : bords des places libres (contre un montant ou une cale voisine).
-    const magnets = slots.flatMap((slot) => [slot.min, slot.max])
-    const near = magnets.reduce((a, b) => (Math.abs(b - rawX) < Math.abs(a - rawX) ? b : a))
-    if (Math.abs(near - rawX) <= MAGNET_MM) x = near
+    // Repères invisibles (milieu, écarts égaux, alignement) : ils l'emportent s'ils sont à portée et valides.
+    const guide = nearestGuide(wedgeGuides(plan, wedgeId, shelfBelowId), rawX)
+    const snapped = guide ? clampToSlots(guide.pos) : null
+    if (guide && snapped !== null && Math.abs(snapped - guide.pos) <= 1) {
+      x = snapped
+    } else {
+      // Aimantation : bords des places libres (contre un montant ou une cale voisine).
+      const magnets = slots.flatMap((slot) => [slot.min, slot.max])
+      const near = magnets.reduce((a, b) => (Math.abs(b - rawX) < Math.abs(a - rawX) ? b : a))
+      if (Math.abs(near - rawX) <= MAGNET_MM) x = near
+    }
   }
 
   const next = structuredClone(plan)

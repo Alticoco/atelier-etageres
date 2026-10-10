@@ -11,6 +11,7 @@ import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX, Dimension } from './Dimension'
 import { fillStyle } from './colorStyle'
+import { GuideLine } from './GuideLine'
 import { EditableDimension } from './EditableDimension'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
@@ -266,6 +267,17 @@ export function ProfileView({
                 ),
               ]
             })}
+
+          {supportDrag.guides.z && (
+            <GuideLine
+              x1={supportDrag.guides.z.pos + supportDrag.guides.z.size / 2}
+              y1={0}
+              x2={supportDrag.guides.z.pos + supportDrag.guides.z.size / 2}
+              y2={height + overflow.below}
+              label={supportDrag.guides.z.label}
+              s={s}
+            />
+          )}
 
           {/* Poignée de profondeur : une barre juste devant le bord avant de chaque pièce sélectionnée. */}
           <g className="handles">

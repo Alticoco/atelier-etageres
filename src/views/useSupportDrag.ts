@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { dragSupport } from '../model/supports'
+import type { Guide } from '../model/guides'
+import { dragSupport, supportGuidesAt } from '../model/supports'
 import type { Plan, Support } from '../model/types'
 import type { EditorAction } from '../store/editor'
 
@@ -35,9 +36,12 @@ export function useSupportDrag({ plan, scale, snapStep, mapping, onChange, onSel
   const gestureRef = useRef<Gesture | null>(null)
   const pendingRef = useRef<EditorAction | null>(null)
   const [draft, setDraft] = useState<Plan | null>(null)
+  const [guides, setGuides] = useState<{ x: Guide | null; z: Guide | null }>({ x: null, z: null })
 
   return {
     draft,
+    /** Repères sur lesquels le support est calé pendant le glisser (x : sens horizontal, z : profondeur). */
+    guides,
     /** Début d'un appui sur un support. */
     begin(e: React.PointerEvent, id: string): boolean {
       const start = plan.supports?.find((s) => s.id === id)
@@ -60,6 +64,7 @@ export function useSupportDrag({ plan, scale, snapStep, mapping, onChange, onSel
       const next = dragSupport(plan, g.id, raw, e.altKey ? null : snapStep)
       const moved = next.supports!.find((s) => s.id === g.id)!
       setDraft(next)
+      setGuides(raw.x !== undefined || raw.z !== undefined ? supportGuidesAt(next, g.id) : { x: null, z: null })
       pendingRef.current = { type: 'moveSupport', id: g.id, x: raw.x === undefined ? undefined : moved.x, y: raw.y === undefined ? undefined : moved.y, z: raw.z === undefined ? undefined : moved.z }
       return true
     },
@@ -70,6 +75,7 @@ export function useSupportDrag({ plan, scale, snapStep, mapping, onChange, onSel
       const action = pendingRef.current
       pendingRef.current = null
       setDraft(null)
+      setGuides({ x: null, z: null })
       if (!g) return false
       if (!e) return true
       if (g.active) {

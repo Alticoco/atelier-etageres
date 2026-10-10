@@ -1,5 +1,6 @@
 import { setPieceProperty, setPlanSize } from './edit'
 import { getStages, sortedShelves } from './pieces'
+import { wedgeGuides, type Guide } from './guides'
 import { moveObject } from './objects'
 import { moveWedge } from './tools'
 import type { Plan } from './types'
@@ -67,7 +68,7 @@ export function dragWedgeToStage(
   rawX: number,
   rawY: number,
   step: number | null,
-): { plan: Plan; shelfBelowId: string; x: number } | null {
+): { plan: Plan; shelfBelowId: string; x: number; guide: Guide | null } | null {
   const stages = getStages(plan)
   const distance = (s: { y: number; clearHeight: number }) =>
     rawY < s.y ? s.y - rawY : rawY > s.y + s.clearHeight ? rawY - (s.y + s.clearHeight) : 0
@@ -77,7 +78,8 @@ export function dragWedgeToStage(
     const result = moveWedge(plan, id, stage.shelfBelowId, rawX, step)
     if (result.ok) {
       const wedge = result.plan.wedges.find((w) => w.id === id)!
-      return { plan: result.plan, shelfBelowId: stage.shelfBelowId, x: wedge.x }
+      const guide = step === null ? null : (wedgeGuides(result.plan, id, stage.shelfBelowId).find((g) => g.pos === wedge.x) ?? null)
+      return { plan: result.plan, shelfBelowId: stage.shelfBelowId, x: wedge.x, guide }
     }
   }
   return null
