@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
-import { dragShelf, dragWedge, resizeFrame } from '../model/drag'
+import { dragShelf, dragWedgeToStage, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import type { Plan } from '../model/types'
@@ -27,6 +27,8 @@ type Gesture =
       startX: number
       startY: number
       startValue: number
+      /** Cale : hauteur (mm) du centre de la cale au départ. */
+      startCenterY?: number
       scale: number
       active: boolean
     }
@@ -94,7 +96,9 @@ export function FrontView({
       if (pieceId && shelfIndex > 0 && shelfIndex < shelves.length - 1) {
         gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'shelf', ...base, startValue: shelves[shelfIndex].y, scale, active: false }
       } else if (pieceId && wedge) {
-        gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'wedge', ...base, startValue: wedge.x, scale, active: false }
+        const stage = getStages(plan).find((st) => st.shelfBelowId === wedge.shelfBelowId)
+        const startCenterY = stage ? stage.y + stage.clearHeight / 2 : 0
+        gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'wedge', ...base, startValue: wedge.x, startCenterY, scale, active: false }
       } else {
         gestureRef.current = { kind: 'pan', x: e.clientX, y: e.clientY, ...base, pieceId }
       }
@@ -130,10 +134,11 @@ export function FrontView({
         setDraft(next)
         pendingRef.current = { type: 'setPieceProperty', ids: [g.pieceId], property: 'y', mm: y }
       } else {
-        const next = dragWedge(plan, g.pieceId, g.startValue + dx * g.scale, step)
-        const x = next.wedges.find((w) => w.id === g.pieceId)!.x
-        setDraft(next)
-        pendingRef.current = { type: 'setPieceProperty', ids: [g.pieceId], property: 'x', mm: x }
+        const moved = dragWedgeToStage(plan, g.pieceId, g.startValue + dx * g.scale, (g.startCenterY ?? 0) - dy * g.scale, step)
+        if (moved) {
+          setDraft(moved.plan)
+          pendingRef.current = { type: 'placeWedge', wedgeId: g.pieceId, shelfBelowId: moved.shelfBelowId, x: moved.x }
+        }
       }
     } else {
       const raw: { width?: number; height?: number } = {}
@@ -178,7 +183,7 @@ export function FrontView({
   const hs = HANDLE_PX * s
 
   const movableClass = (kind: string, id: string) => {
-    if (kind === 'wedge') return ' movable-x'
+    if (kind === 'wedge') return ' movable-x movable-y'
     const i = shelfOrder.indexOf(id)
     return kind === 'shelf' && i > 0 && i < shelfOrder.length - 1 ? ' movable-y' : ''
   }

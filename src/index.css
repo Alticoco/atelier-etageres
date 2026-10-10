@@ -487,6 +487,10 @@ input[aria-invalid='true'] {
   cursor: ew-resize;
 }
 
+.piece.movable-x.movable-y {
+  cursor: move;
+}
+
 .piece.piece-hidden {
   fill: none;
   stroke-dasharray: 6 4;

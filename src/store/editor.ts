@@ -8,7 +8,7 @@ import {
 } from '../model/edit'
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
-import { addShelf, addWedge, distributeShelves, removePieces, setVertical, type AddResult } from '../model/tools'
+import { addShelf, addWedge, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
 
@@ -41,6 +41,7 @@ export type EditorAction =
   | { type: 'setPlanSize'; width?: number; height?: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
+  | { type: 'placeWedge'; wedgeId: string; shelfBelowId: string; x: number }
   | { type: 'removePieces'; ids: string[] }
   | { type: 'distributeShelves' }
   | { type: 'setShelfVertical'; shelfId: string; side: 'left' | 'right'; present: boolean }
@@ -144,6 +145,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     }
     case 'addShelf':
       return withAdded(addShelf(plan, action.shelfBelowId))
+    case 'placeWedge':
+      return withPlan(moveWedge(plan, action.wedgeId, action.shelfBelowId, action.x, null))
     case 'addWedge':
       return withAdded(addWedge(plan, action.shelfBelowId))
     case 'removePieces': {

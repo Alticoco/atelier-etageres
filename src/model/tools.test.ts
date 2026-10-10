@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { checkPlan } from './edit'
 import { computePieces, getStages } from './pieces'
 import { createPlan } from './plan'
-import { addShelf, addWedge, distributeShelves, removePieces } from './tools'
+import { addShelf, addWedge, distributeShelves, moveWedge, removePieces } from './tools'
 import type { Plan } from './types'
 
 // Tablettes à y = 0, 328, 655, 982 ; étages libres 310, 309, 309.
@@ -193,5 +193,37 @@ describe('distributeShelves', () => {
   it('un plan à deux tablettes est laissé tel quel', () => {
     const plan = createPlan({ ...base, stages: 1 })
     expect(ok(distributeShelves(plan)).plan.shelves).toEqual(plan.shelves)
+  })
+})
+
+describe('moveWedge — passer une cale d’un étage à l’autre', () => {
+  const plan = () => {
+    const p = createPlan({ width: 800, height: 1000, depth: 250, stages: 3, uprightThickness: 18, shelfThickness: 18 })
+    p.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
+    return p
+  }
+
+  it('rattache la cale à l’étage visé et garde sa position', () => {
+    const result = moveWedge(plan(), 'wedge-1', 'shelf-2', 300, null)
+    expect(result.ok && result.plan.wedges[0]).toMatchObject({ shelfBelowId: 'shelf-2', x: 300 })
+  })
+
+  it('s’aimante contre le montant à moins de 1 cm', () => {
+    const result = moveWedge(plan(), 'wedge-1', 'shelf-2', 22, 10)
+    expect(result.ok && result.plan.wedges[0].x).toBe(18)
+  })
+
+  it('ne chevauche jamais une cale de l’étage visé : elle se range à côté', () => {
+    const p = plan()
+    p.wedges.push({ id: 'wedge-2', shelfBelowId: 'shelf-2', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
+    const result = moveWedge(p, 'wedge-1', 'shelf-2', 305, null)
+    expect(result.ok && [result.plan.wedges[0].x]).toSatisfy((x: number[]) => x[0] <= 282 || x[0] >= 318)
+  })
+
+  it('s’aimante contre une cale voisine', () => {
+    const p = plan()
+    p.wedges.push({ id: 'wedge-2', shelfBelowId: 'shelf-2', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
+    const result = moveWedge(p, 'wedge-1', 'shelf-2', 322, 10)
+    expect(result.ok && result.plan.wedges[0].x).toBe(318)
   })
 })

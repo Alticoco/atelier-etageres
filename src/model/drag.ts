@@ -1,5 +1,6 @@
 import { setPieceProperty, setPlanSize } from './edit'
-import { sortedShelves } from './pieces'
+import { getStages, sortedShelves } from './pieces'
+import { moveWedge } from './tools'
 import type { Plan } from './types'
 
 /** Pas d'aimantation proposés (mm) : 1 mm, 5 mm, 1 cm, 5 cm. */
@@ -52,6 +53,33 @@ export function dragWedge(plan: Plan, id: string, rawX: number, step: number | n
   const x = clampToValid(wedge.x, snapToStep(rawX, step), (v) => setPieceProperty(plan, [id], 'x', v).ok)
   const result = setPieceProperty(plan, [id], 'x', x)
   return result.ok ? result.plan : plan
+}
+
+/**
+ * Plan avec une cale amenée vers (`rawX`, `rawY`) : le bord gauche de la cale (mm depuis le bord gauche du cadre) et la
+ * hauteur du curseur (mm depuis le dessous du cadre). La cale passe dans l'étage sous le curseur (le plus proche s'il
+ * est sur une tablette), s'y aligne seule (hauteur de l'étage) et s'aimante contre ses voisins.
+ */
+export function dragWedgeToStage(
+  plan: Plan,
+  id: string,
+  rawX: number,
+  rawY: number,
+  step: number | null,
+): { plan: Plan; shelfBelowId: string; x: number } | null {
+  const stages = getStages(plan)
+  const distance = (s: { y: number; clearHeight: number }) =>
+    rawY < s.y ? s.y - rawY : rawY > s.y + s.clearHeight ? rawY - (s.y + s.clearHeight) : 0
+  const ordered = [...stages].sort((a, b) => distance(a) - distance(b))
+  // L'étage le plus proche d'abord ; si la cale n'y tient pas, on garde la position actuelle.
+  for (const stage of ordered.slice(0, 1)) {
+    const result = moveWedge(plan, id, stage.shelfBelowId, rawX, step)
+    if (result.ok) {
+      const wedge = result.plan.wedges.find((w) => w.id === id)!
+      return { plan: result.plan, shelfBelowId: stage.shelfBelowId, x: wedge.x }
+    }
+  }
+  return null
 }
 
 /** Plan avec le cadre amené vers la largeur et/ou la hauteur demandées (mm, non arrondis). */

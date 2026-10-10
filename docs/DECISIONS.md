@@ -210,3 +210,9 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 ## 2026-10-10 (profondeur dans les dimensions hors-tout)
 
 - **Champ « Profondeur » ajouté aux dimensions hors-tout** du panneau de l'étagère (à côté de largeur et hauteur). Le modèle stocke la profondeur par pièce (pas de profondeur globale) : saisir une valeur donne **la même profondeur à toutes les pièces** (montants, tablettes, cales), en un seul pas d'historique. Si les pièces ont des profondeurs différentes (étape 15), le champ est vide (« Valeurs différentes ») avec une note ; la saisie les uniformise. Les profondeurs par pièce restent réglables au clic (panneau ou vue de profil).
+
+## 2026-10-10 (étape 17a — cales d'un étage à l'autre)
+
+- **Une cale se glisse dans les deux sens** (horizontal et vertical) ; l'étage visé est celui sous le curseur (le plus proche si le curseur est sur une tablette). Sa hauteur s'adapte seule (hauteur libre − jeu), car elle est calculée. Fonction pure `moveWedge` (`src/model/tools.ts`), action `placeWedge` : un glisser = un pas d'historique.
+- **Aimantation** : la position est arrondie au pas réglé, puis collée contre le montant ou la cale voisine si elle en est à moins de 10 mm (`MAGNET_MM`). Alt désactive l'arrondi et l'aimantation. Une cale ne chevauche jamais une voisine : elle se range dans la place libre la plus proche.
+- **Reporté** : « Couper ici » (étape 17b) touche au cœur du modèle (les tablettes et montants traversent aujourd'hui toute la largeur / hauteur) ; la conception est à valider avec l'auteur. L'ancienne étape 17 (optimisation) devient l'étape 18.
