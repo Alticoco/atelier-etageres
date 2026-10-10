@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { checkPlan } from './edit'
 import { computePieces, getStages } from './pieces'
 import { createPlan } from './plan'
-import { addShelf, addWedge, copyStageWedges, distributeShelves, moveWedge, removePieces, setStageHeight } from './tools'
+import { addShelf, addWedge, copyStageWedges, distributeShelves, moveWedge, removePieces, setStageCount, setStageHeight } from './tools'
 import type { Plan } from './types'
 
 // Tablettes à y = 0, 328, 655, 982 ; étages libres 310, 309, 309.
@@ -290,5 +290,51 @@ describe('setStageHeight — régler la hauteur d’un étage', () => {
     expect(r.ok).toBe(false)
     expect(setStageHeight(plan(), 'shelf-1', 0).ok).toBe(false)
     expect(setStageHeight(plan(), 'shelf-9', 100).ok).toBe(false)
+  })
+})
+
+describe('setStageCount — préconstruire l’étagère', () => {
+  const plan = () => createPlan({ width: 800, height: 1000, depth: 250, stages: 3, uprightThickness: 18, shelfThickness: 18 })
+  const stages = (p: Plan) => getStages(p).map((s) => s.clearHeight)
+
+  it('passe de 3 à 5 étages, répartis à égalité, hauteur inchangée', () => {
+    const r = setStageCount(plan(), 5)
+    if (!r.ok) throw new Error(r.error)
+    expect(getStages(r.plan)).toHaveLength(5)
+    expect(r.plan.height).toBe(1000)
+    const heights = stages(r.plan)
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1)
+    expect(checkPlan(r.plan)).toEqual([])
+  })
+
+  it('passe de 3 à 1 étage : une seule grande ouverture', () => {
+    const r = setStageCount(plan(), 1)
+    if (!r.ok) throw new Error(r.error)
+    expect(stages(r.plan)).toEqual([964])
+    expect(r.plan.shelves).toHaveLength(2)
+  })
+
+  it('les cales des étages retirés disparaissent, celles qui restent suivent leur tablette', () => {
+    const p = plan()
+    p.wedges.push(
+      { id: 'wedge-1', shelfBelowId: 'shelf-1', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 },
+      { id: 'wedge-2', shelfBelowId: 'shelf-3', x: 300, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 },
+    )
+    const r = setStageCount(p, 2)
+    if (!r.ok) throw new Error(r.error)
+    expect(r.plan.wedges.map((w) => w.id)).toEqual(['wedge-1'])
+  })
+
+  it('refuse un nombre absurde, et ne change rien si le nombre est déjà bon', () => {
+    expect(setStageCount(plan(), 0).ok).toBe(false)
+    expect(setStageCount(plan(), 2.5).ok).toBe(false)
+    expect(setStageCount(plan(), 99).ok).toBe(false)
+    const same = setStageCount(plan(), 3)
+    expect(same.ok && same.plan).toEqual(plan())
+  })
+
+  it('refuse quand l’étagère est trop basse pour tant d’étages', () => {
+    const low = createPlan({ width: 800, height: 120, depth: 250, stages: 1, uprightThickness: 18, shelfThickness: 18 })
+    expect(setStageCount(low, 10).ok).toBe(false)
   })
 })

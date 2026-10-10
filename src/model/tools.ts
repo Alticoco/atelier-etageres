@@ -302,3 +302,33 @@ export function setStageHeight(plan: Plan, shelfBelowId: string, mm: number): Ed
   if (order(next) !== order(plan)) return fail('Cet étage ne peut pas être aussi haut : il n’y a plus assez de place pour les autres.')
   return finish(next)
 }
+
+export const MAX_STAGES = 20
+
+/**
+ * Change le nombre d'étages (préconstruction) : on ajoute des tablettes en coupant les plus grands étages, ou on retire
+ * les tablettes du haut, puis tous les étages sont répartis à égalité (hauteur et haut / bas de l'étagère inchangés).
+ * Les cales des étages supprimés disparaissent ; les objets de simulation passent dans l'étage fusionné.
+ */
+export function setStageCount(plan: Plan, count: number): EditResult {
+  if (!Number.isInteger(count) || count < 1 || count > MAX_STAGES) return fail(`Le nombre d’étages va de 1 à ${MAX_STAGES}.`)
+  let next = plan
+  if (getStages(next).length === count) return { ok: true, plan }
+
+  while (getStages(next).length < count) {
+    const biggest = [...getStages(next)].sort((a, b) => b.clearHeight - a.clearHeight)[0]
+    const added = addShelf(next, biggest.shelfBelowId)
+    if (!added.ok) return fail(`Impossible d’ajouter un étage : ${added.error}`)
+    next = added.plan
+  }
+  while (getStages(next).length > count) {
+    const shelves = sortedShelves(next)
+    const removed = shelves[shelves.length - 2]
+    const withoutWedges = structuredClone(next)
+    withoutWedges.wedges = withoutWedges.wedges.filter((w) => w.shelfBelowId !== removed.id)
+    const result = removePieces(withoutWedges, [removed.id])
+    if (!result.ok) return result
+    next = result.plan
+  }
+  return distributeShelves(next)
+}

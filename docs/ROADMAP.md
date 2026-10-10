@@ -48,6 +48,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] **Étape 17c — Simulation de rangement** (idée de la spec « plus tard », demandée par Alexis le 10 octobre 2026) : poser des mangas, livres, grands livres, bocaux d'épices dans un étage, avec capacité.
 - [x] **Étape 17e — Objets un par un et cotes cliquables** (demande d'Alexis, 10 octobre 2026) : cliquer, supprimer, déplacer un objet de simulation ; espace réglable entre les objets ; cliquer une cote du dessin pour la modifier.
 - [ ] **Étape 17f — Modes de construction : encoches et bouts de tablettes** (demande d'Alexis) : montant « vissé » d'un côté, « à encoches » de l'autre pour que les tablettes le traversent et dépassent ; bout qui dépasse arrondi ou coupé en biais (angle au choix), des deux côtés. Conception à valider avec l'auteur.
+- [x] **Étape 17g — Nombre d'étages et variantes** (demande d'Alexis, 10 octobre 2026) : régler le nombre d'étages dans le panneau pour préconstruire l'étagère ; bouton « Dupliquer » pour créer une variante dans un nouvel onglet.
 - [~] **Étape 18 — Supports (planches de soutien à part)** (demande d'Alexis, 10 octobre 2026) :
   - [x] 18a — Supports sous et autour de l'étagère : largeur, hauteur, profondeur, position, recul depuis le mur ; réglage au panneau et en tirant dans les vues de face, de profil et de dessous (nouvelle) ; liste de découpe à part.
   - [ ] 18b — Supports dans le PDF ; aimantation sur d'autres supports ; copie / symétrie d'un support.
@@ -57,7 +58,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 
 ## V3
 
-- [ ] Vue 3D (rotation, zoom)
+- [x] Vue 3D (rotation, zoom) — première version : mur plein / transparent / masqué, objets et supports en formes simples, vues prédéfinies. À venir : cliquer une pièce dans la 3D, ombres, encoches.
 - [ ] Portes / coffrets
 - [ ] Tiroirs
 

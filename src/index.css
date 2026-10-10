@@ -1290,3 +1290,55 @@ button.tab {
   border-color: #c0392b;
   background: #fdecea;
 }
+
+/* Vue 3D */
+.three-view {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #fdfbf7;
+}
+.three-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.three-tools {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  pointer-events: none;
+}
+.three-tools > * {
+  pointer-events: auto;
+}
+.three-presets {
+  display: flex;
+  gap: 0.3rem;
+}
+.three-error {
+  position: absolute;
+  top: 4rem;
+  left: 1rem;
+  color: #c0392b;
+}
+
+.stepper {
+  display: flex;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+.stepper input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+.stepper button {
+  width: 2.2rem;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useReducer, useState } from 'react'
 import { commandForKey, type Command, type ViewMode } from './keyboard'
 import { nudgePiece, SNAP_STEPS } from './model/drag'
 import { exportFileName, parsePlanFile, pdfFileName, serializePlan, type ParseResult } from './model/serialize'
@@ -22,6 +22,9 @@ import { PropertiesPanel } from './views/PropertiesPanel'
 import { ShortcutsDialog } from './views/ShortcutsDialog'
 import { TabBar } from './views/TabBar'
 
+/** Three.js pèse lourd : la vue 3D est chargée seulement quand on l'ouvre. */
+const ThreeView = lazy(() => import('./views/ThreeView'))
+
 const UNITS: LengthUnit[] = ['mm', 'cm']
 
 const VIEWS: { mode: ViewMode; label: string }[] = [
@@ -29,6 +32,7 @@ const VIEWS: { mode: ViewMode; label: string }[] = [
   { mode: 'side', label: 'Profil' },
   { mode: 'cut', label: 'Découpe' },
   { mode: 'bottom', label: 'Dessous' },
+  { mode: 'three', label: '3D' },
 ]
 
 type Screen = 'library' | 'wizard' | 'editor'
@@ -120,6 +124,10 @@ function Pane({ tab, split, focused, view, unit, snapStep, showMarks, choices, o
           onSelectPiece={select}
           onClearSelection={clear}
         />
+      ) : view === 'three' ? (
+        <Suspense fallback={<p className="view-hint">Chargement de la vue 3D…</p>}>
+          <ThreeView key={tab.key} plan={plan} unit={unit} selection={selection} />
+        </Suspense>
       ) : view === 'bottom' ? (
         <BottomView
           key={tab.key}
@@ -458,6 +466,14 @@ export default function App() {
                   </label>
                 ))}
               </div>
+              <button
+                type="button"
+                className="header-button"
+                onClick={() => void addPlan({ ...structuredClone(plan), name: `${plan.name} (variante)` }, 'Variante créée dans un nouvel onglet : choisissez l’onglet pour comparer, ou activez l’écran partagé.')}
+                title="Créer une copie de cette étagère dans un nouvel onglet, pour en faire une variante"
+              >
+                Dupliquer
+              </button>
               <ExportMenu onPdf={() => void exportPdf(plan)} onJson={() => exportPlan(plan)} busy={exportingPdf} />
               <button
                 type="button"
