@@ -3,9 +3,10 @@ import { computeCutList } from '../model/cutlist'
 import { isObjectId, layoutStage, objectKind } from '../model/objects'
 import { supportOverflow } from '../model/supports'
 import { useSupportDrag } from './useSupportDrag'
-import { dragObjectToStage, dragShelf, dragWedgeToStage, resizeFrame } from '../model/drag'
+import { dragObjectToStage, dragShelf, dragUpright, dragWedgeToStage, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
+import { isNotched, jointOf } from '../model/joints'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
@@ -30,7 +31,7 @@ type Gesture =
   | {
       kind: 'piece'
       pieceId: string
-      pieceKind: 'shelf' | 'wedge' | 'object'
+      pieceKind: 'shelf' | 'wedge' | 'object' | 'upright'
       startX: number
       startY: number
       startValue: number
@@ -134,6 +135,9 @@ export function FrontView({
         } else {
           gestureRef.current = { kind: 'pan', x: e.clientX, y: e.clientY, ...base, pieceId }
         }
+      } else if ((pieceId === 'upright-left' || pieceId === 'upright-right') && isNotched(plan, pieceId === 'upright-left' ? 'left' : 'right')) {
+        const side = pieceId === 'upright-left' ? 'left' : 'right'
+        gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'upright', ...base, startValue: jointOf(plan, side).overhang, scale, active: false }
       } else if (pieceId && wedge) {
         const stage = getStages(plan).find((st) => st.shelfBelowId === wedge.shelfBelowId)
         const startCenterY = stage ? stage.y + stage.clearHeight / 2 : 0
@@ -173,6 +177,11 @@ export function FrontView({
         const y = next.shelves.find((s) => s.id === g.pieceId)!.y
         setDraft(next)
         pendingRef.current = { type: 'setPieceProperty', ids: [g.pieceId], property: 'y', mm: y }
+      } else if (g.pieceKind === 'upright') {
+        const side = g.pieceId === 'upright-left' ? 'left' : 'right'
+        const next = dragUpright(plan, side, g.startValue + (side === 'left' ? dx : -dx) * g.scale, step)
+        setDraft(next)
+        pendingRef.current = { type: 'moveUpright', side, overhang: jointOf(next, side).overhang }
       } else if (g.pieceKind === 'object') {
         const moved = dragObjectToStage(plan, g.pieceId, g.startValue + dx * g.scale, (g.startCenterY ?? 0) - dy * g.scale, step)
         if (moved) {
@@ -233,6 +242,7 @@ export function FrontView({
 
   const movableClass = (kind: string, id: string) => {
     if (kind === 'wedge') return ' movable-x movable-y'
+    if (kind === 'upright' && (id === 'upright-left' || id === 'upright-right') && isNotched(shown, id === 'upright-left' ? 'left' : 'right')) return ' movable-x'
     const i = shelfOrder.indexOf(id)
     return kind === 'shelf' && i > 0 && i < shelfOrder.length - 1 ? ' movable-y' : ''
   }

@@ -2,6 +2,8 @@ import { setPieceProperty, setPlanSize } from './edit'
 import { getStages, sortedShelves } from './pieces'
 import { wedgeGuides, type Guide } from './guides'
 import { moveObject } from './objects'
+import { moveUpright } from './jointEdit'
+import { jointOf, type Side } from './joints'
 import { moveWedge } from './tools'
 import type { Plan } from './types'
 
@@ -54,6 +56,17 @@ export function dragWedge(plan: Plan, id: string, rawX: number, step: number | n
   if (!wedge) return plan
   const x = clampToValid(wedge.x, snapToStep(rawX, step), (v) => setPieceProperty(plan, [id], 'x', v).ok)
   const result = setPieceProperty(plan, [id], 'x', x)
+  return result.ok ? result.plan : plan
+}
+
+/**
+ * Plan avec le montant à encoches d'un côté amené vers la distance `rawOverhang` entre le bord hors-tout et sa face
+ * extérieure (mm, non arrondie). La largeur hors-tout ne change pas ; le montant s'arrête là où le plan reste valide.
+ */
+export function dragUpright(plan: Plan, side: Side, rawOverhang: number, step: number | null): Plan {
+  const start = jointOf(plan, side).overhang
+  const value = clampToValid(start, snapToStep(rawOverhang, step), (v) => moveUpright(plan, side, v).ok)
+  const result = moveUpright(plan, side, value)
   return result.ok ? result.plan : plan
 }
 
