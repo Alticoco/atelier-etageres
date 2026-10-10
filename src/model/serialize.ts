@@ -1,6 +1,6 @@
 import { checkPlan } from './edit'
 import { MAX_ROW_COUNT, objectKind } from './objects'
-import type { ObjectRow, Plan } from './types'
+import type { ObjectRow, Plan, Support } from './types'
 
 /**
  * Format de fichier d'un plan (`.etagere.json`) : { format, version, plan }.
@@ -134,6 +134,20 @@ function readPlan(value: unknown): Plan {
     return { id: uniqueId(text(obj, 'id', where, MAX_ID), where), shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), kind, count }
   })
 
+  const supports: Support[] = root.supports === undefined ? [] : list(root, 'supports', 'Plan', 100).map((item, i) => {
+    const where = `Support ${i + 1}`
+    const obj = record(item, where)
+    return {
+      id: uniqueId(text(obj, 'id', where, MAX_ID), where),
+      x: int(obj, 'x', where, -MAX_MM),
+      y: int(obj, 'y', where, -MAX_MM),
+      z: int(obj, 'z', where, 0),
+      width: int(obj, 'width', where, 1),
+      height: int(obj, 'height', where, 1),
+      depth: int(obj, 'depth', where, 1),
+    }
+  })
+
   // On reconstruit le plan champ par champ : rien d'inattendu du fichier n'est conservé.
   const model = root.model === undefined ? 'frame' : root.model
   if (model !== 'frame' && model !== 'frameless') fail('Plan : « model » doit valoir « frame » ou « frameless ».')
@@ -148,6 +162,7 @@ function readPlan(value: unknown): Plan {
     shelves,
     wedges,
     ...(rows.length > 0 ? { rows } : {}),
+    ...(supports.length > 0 ? { supports } : {}),
     options: {
       propagation: bool(options, 'propagation', 'Options'),
       wallMount: optionalBool(options, 'wallMount', 'Options', false),

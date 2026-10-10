@@ -3,6 +3,7 @@ import { parseVerticalId } from './labels'
 import { getStages, sortedShelves } from './pieces'
 import { propagateHeight, propagateWidth } from './propagation'
 import { roundingProblems } from './rounding'
+import { supportProblems } from './supportCheck'
 import type { FramePlacement, Plan, Shelf, Upright, Wedge } from './types'
 
 export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
@@ -130,6 +131,8 @@ export function checkPlan(plan: Plan): string[] {
       problems.push('Une cale sort du cadre.')
     }
   }
+
+  problems.push(...supportProblems(plan))
 
   // Les rayons d'arrondi se vérifient une fois les dimensions saines (ils en dépendent).
   if (problems.length === 0) problems.push(...roundingProblems(plan))

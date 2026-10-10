@@ -10,7 +10,8 @@ const BUTTON_ZOOM = 1.25
  * en mm, coin en haut à gauche en (0, 0)), gère la molette et les boutons.
  * Tant que l'utilisateur n'a pas zoomé ni déplacé, la vue reste cadrée sur tout le dessin.
  */
-export function useViewport(width: number, height: number) {
+export function useViewport(width: number, height: number, extra: { left?: number; right?: number; top?: number; bottom?: number } = {}) {
+  const { left = 0, right = 0, top = 0, bottom = 0 } = extra
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<Size | null>(null)
   const [custom, setCustom] = useState<Camera | null>(null)
@@ -25,7 +26,7 @@ export function useViewport(width: number, height: number) {
     return () => observer.disconnect()
   }, [])
 
-  const bounds: Bounds = { x: 0, y: 0, width, height }
+  const bounds: Bounds = { x: -left, y: -top, width: width + left + right, height: height + top + bottom }
   const fit = size && size.width > 0 && size.height > 0 ? fitCamera(bounds, size, FIT_PADDING_PX) : null
   const camera = custom ?? fit
 

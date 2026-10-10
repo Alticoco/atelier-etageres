@@ -11,6 +11,7 @@ import { useLibrary } from './storage/useLibrary'
 import { applyAction, initialEditorState, type EditorAction } from './store/editor'
 import { activeTab, emptyWorkspace, isSplit, tabByKey, workspaceReducer, type Tab } from './store/workspace'
 import { CreationWizard } from './views/CreationWizard'
+import { BottomView } from './views/BottomView'
 import { CutListView } from './views/CutListView'
 import { ExportMenu } from './views/ExportMenu'
 import { FrontView } from './views/FrontView'
@@ -27,6 +28,7 @@ const VIEWS: { mode: ViewMode; label: string }[] = [
   { mode: 'front', label: 'Face' },
   { mode: 'side', label: 'Profil' },
   { mode: 'cut', label: 'Découpe' },
+  { mode: 'bottom', label: 'Dessous' },
 ]
 
 type Screen = 'library' | 'wizard' | 'editor'
@@ -114,6 +116,17 @@ function Pane({ tab, split, focused, view, unit, snapStep, showMarks, choices, o
           selection={selection}
           snapStep={snapStep}
           showMarks={showMarks}
+          onChange={onChange}
+          onSelectPiece={select}
+          onClearSelection={clear}
+        />
+      ) : view === 'bottom' ? (
+        <BottomView
+          key={tab.key}
+          plan={plan}
+          unit={unit}
+          selection={selection}
+          snapStep={snapStep}
           onChange={onChange}
           onSelectPiece={select}
           onClearSelection={clear}

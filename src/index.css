@@ -1220,3 +1220,33 @@ button.tab {
 .copy-wedges {
   margin-top: 0.75rem;
 }
+
+/* Supports (planches de soutien) */
+.piece-support {
+  fill: #c9d6c1;
+  stroke: #5f7a54;
+}
+.piece-support.selected {
+  stroke: var(--accent, #8a5a2b);
+  stroke-width: 3;
+}
+.support-card {
+  margin-top: 0.6rem;
+  border: 1px solid var(--border, #d9c9a8);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+}
+.support-card.open {
+  background: #fffaf0;
+}
+.support-title {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 0.25rem 0;
+  font-weight: 600;
+}
+.supports-table {
+  margin-top: 1.5rem;
+}

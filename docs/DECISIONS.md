@@ -228,3 +228,12 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 
 - **Fiche d'information par objet** : un bouton rond « i » à côté du choix de l'objet et sur chaque rangée ouvre une fiche (largeur, hauteur, profondeur, hauteur d'étage et profondeur de tablette nécessaires, nombre par mètre). Dimensions indicatives, dans l'unité choisie (mm / cm).
 - **Copier les cales d'un étage vers d'autres** (`copyStageWedges`, `src/model/tools.ts`) : l'étage source est celui choisi dans « Outils » ; la destination est un étage ou « tous les autres ». Mêmes positions, épaisseurs, profondeurs et arrondis ; **les cales déjà présentes dans l'étage visé sont remplacées** (on récupère la même disposition, sans doublon). Un étage source sans cale vide les étages visés (le panneau le dit). Un seul pas d'historique.
+
+## 2026-10-10 (étape 18a — supports)
+
+- **Un support = une boîte à part** (`plan.supports`, facultatif, rétrocompatible) : bord gauche `x`, dessous `y` (négatif = sous l'étagère), `z` = recul entre le mur et sa face arrière, largeur / hauteur / profondeur. Placement libre : sous (cas courant), à gauche, à droite. Pas dans `computePieces` : ce ne sont pas des pièces de l'étagère.
+- **Vue de dessous ajoutée** (touche 4) : mur en haut, gauche / droite comme en vue de face (pas de miroir, plus simple à lire). Montre la tablette du bas, les montants en pointillés et les supports. Les supports se tirent dans les trois vues (un glisser = un pas d'historique) ; le glisser s'aimante contre le mur, l'avant de l'étagère, le dessous du cadre et les bords (10 mm), Alt désactive. Les cotes de recul (derrière et devant) s'affichent pour le support choisi, pour régler le « petit gap » derrière un support collé à l'avant.
+- **Nouveau support « sous l'étagère »** : collé à l'avant et au dessous du cadre, 10 × 4 × 10 cm, aux deux bords puis au milieu ; « Coller à l'avant » recale la face avant sur la pièce la plus profonde.
+- **Liste de découpe à part** (repères S1, S2…, longueur = plus grande cote) : ils ne comptent pas dans le total des pièces de l'étagère. **Choix par défaut, non confirmé par l'auteur.** Pas encore dans le PDF (étape 18b).
+- **Le cadrage des vues tient compte des supports** qui dépassent de l'étagère.
+- **`LengthField` extrait** dans son propre fichier pour être partagé par le panneau et les supports.

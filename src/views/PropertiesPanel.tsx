@@ -1,75 +1,14 @@
 import { useState, type ReactNode } from 'react'
+import { LengthField } from './LengthField'
 import { ObjectsSection } from './ObjectsSection'
+import { SupportsSection } from './SupportsSection'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
 import { parseVerticalId, pieceLabel } from '../model/labels'
 import { computePieces, getStages, sortedShelves } from '../model/pieces'
 import { radiusLimits } from '../model/rounding'
 import type { Plan } from '../model/types'
-import { formatLength, formatNumber, parseLength, type LengthUnit } from '../model/units'
+import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
-
-interface LengthFieldProps {
-  label: string
-  /** Valeur en mm, ou null quand les pièces sélectionnées ont des valeurs différentes. */
-  valueMm: number | null
-  unit: LengthUnit
-  /** Applique la valeur ; renvoie un message d'erreur, ou null si c'est accepté. */
-  onCommit: (mm: number) => string | null
-}
-
-function LengthField({ label, valueMm, unit, onCommit }: LengthFieldProps) {
-  const shown = valueMm === null ? '' : formatNumber(valueMm, unit)
-  const [text, setText] = useState(shown)
-  const [error, setError] = useState<string | null>(null)
-
-  const commit = () => {
-    if (text.trim() === '' || text === shown) {
-      setText(shown)
-      setError(null)
-      return
-    }
-    const mm = parseLength(text, unit)
-    if (mm === null) {
-      setError(unit === 'mm' ? 'Entrez un nombre entier de mm.' : 'Entrez une longueur en cm, au mm près (ex. 80,5).')
-      return
-    }
-    setError(onCommit(mm))
-  }
-
-  return (
-    <div className="field">
-      <label>
-        {label} ({unit})
-        <input
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={text}
-          placeholder={valueMm === null ? 'Valeurs différentes' : undefined}
-          aria-invalid={error ? true : undefined}
-          onChange={(e) => {
-            setText(e.target.value)
-            setError(null)
-          }}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commit()
-            if (e.key === 'Escape') {
-              setText(shown)
-              setError(null)
-              e.stopPropagation()
-            }
-          }}
-        />
-      </label>
-      {error && (
-        <small className="field-error" role="alert">
-          {error}
-        </small>
-      )}
-    </div>
-  )
-}
 
 /** Valeur commune à toutes les pièces, ou null si elles diffèrent. */
 function commonValue(values: number[]): number | null {
@@ -324,6 +263,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
 
         <StageTools plan={plan} unit={unit} dispatch={dispatch} />
         <ObjectsSection plan={plan} unit={unit} dispatch={dispatch} />
+        <SupportsSection plan={plan} selection={selection} unit={unit} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>
     )
@@ -454,6 +394,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
       </button>
       <StageTools key={sameKey} plan={plan} unit={unit} dispatch={dispatch} defaultStageId={defaultStageId} />
       <ObjectsSection plan={plan} unit={unit} dispatch={dispatch} />
+        <SupportsSection plan={plan} selection={selection} unit={unit} dispatch={dispatch} />
     </aside>
   )
 }

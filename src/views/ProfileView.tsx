@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { dragDepth, dragShelf } from '../model/drag'
+import { supportOverflow } from '../model/supports'
+import { useSupportDrag } from './useSupportDrag'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
 import { pickProfilePiece } from '../model/profilePick'
@@ -51,13 +53,27 @@ export function ProfileView({
   onChange,
 }: ProfileViewProps) {
   const { width: baseDepth, height } = profileSize(plan)
-  const { containerRef, scale: s, viewBox, updateCamera, resetView, zoomIn, zoomOut } = useViewport(baseDepth, height)
+  const overflow = supportOverflow(plan)
+  const { containerRef, scale: s, viewBox, updateCamera, resetView, zoomIn, zoomOut } = useViewport(baseDepth, height, {
+    right: overflow.front,
+    top: overflow.above,
+    bottom: overflow.below,
+  })
   const gestureRef = useRef<Gesture | null>(null)
   const pendingRef = useRef<EditorAction | null>(null)
   // Plan « en cours de glisser » : affiché à la place du vrai plan jusqu'au relâchement.
   const [draft, setDraft] = useState<Plan | null>(null)
+  const supportDrag = useSupportDrag({
+    plan,
+    scale: s,
+    snapStep,
+    mapping: (dx, dy, start) => ({ z: start.z + dx, y: start.y - dy }),
+    onChange,
+    onSelect: onSelectPiece,
+    isSelected: (id) => selection.includes(id),
+  })
 
-  const shown = draft ?? plan
+  const shown = draft ?? supportDrag.draft ?? plan
   const depth = profileSize(shown).width
   const rects = computeProfileRects(shown)
   const visible = rects.filter((r) => !r.hidden)
@@ -72,6 +88,11 @@ export function ProfileView({
     if (!viewBox) return
     const base = { startX: e.clientX, startY: e.clientY }
     const handle = (e.target as Element).closest('[data-handle-piece]')?.getAttribute('data-handle-piece')
+    const supportId = (e.target as Element).closest('[data-support-id]')?.getAttribute('data-support-id')
+    if (supportId && supportDrag.begin(e, supportId)) {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      return
+    }
 
     if (handle) {
       // Le cadrage automatique ne doit pas « sauter » pendant qu'on change la profondeur : on fige la vue.
@@ -98,6 +119,7 @@ export function ProfileView({
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (supportDrag.move(e)) return
     const g = gestureRef.current
     if (!g) return
 
@@ -132,6 +154,7 @@ export function ProfileView({
   }
 
   const finishGesture = (e: React.PointerEvent | null) => {
+    if (supportDrag.end(e)) return
     const g = gestureRef.current
     gestureRef.current = null
     const action = pendingRef.current
@@ -197,6 +220,34 @@ export function ProfileView({
           {hidden.map((r) => (
             <rect key={r.id} {...rectProps(r)} />
           ))}
+
+          {(shown.supports ?? []).map((sp) => (
+            <rect
+              key={sp.id}
+              data-support-id={sp.id}
+              className={`piece piece-support movable-x movable-y${selected.has(sp.id) ? ' selected' : ''}`}
+              x={sp.z}
+              y={height - sp.y - sp.height}
+              width={sp.depth}
+              height={sp.height}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {(shown.supports ?? [])
+            .filter((sp) => selected.has(sp.id))
+            .flatMap((sp) => {
+              const yMid = height - sp.y - sp.height / 2
+              const gapBack = sp.z
+              const gapFront = depth - (sp.z + sp.depth)
+              return [
+                gapBack > 0 && (
+                  <Dimension key={`${sp.id}-back`} x1={0} y1={yMid} x2={sp.z} y2={yMid} label={formatLength(gapBack, unit)} s={s} side={-1} />
+                ),
+                gapFront > 0 && (
+                  <Dimension key={`${sp.id}-front`} x1={sp.z + sp.depth} y1={yMid} x2={depth} y2={yMid} label={formatLength(gapFront, unit)} s={s} side={-1} />
+                ),
+              ]
+            })}
 
           {/* Poignée de profondeur : une barre juste devant le bord avant de chaque pièce sélectionnée. */}
           <g className="handles">
