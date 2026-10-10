@@ -16,6 +16,9 @@ import { ViewControls } from './ViewControls'
 
 const WALL_PX = 14
 const HANDLE_PX = 12
+/** Le mur dépasse l'étagère en haut et en bas d'au moins ça (mm), ou de 15 % de sa hauteur. */
+const WALL_MARGIN_MM = 150
+const WALL_MARGIN_RATIO = 0.15
 const PICK_TOLERANCE_PX = 3
 /** En dessous de ce déplacement (px), un appui est un clic et non un glisser. */
 const CLICK_TOLERANCE_PX = 4
@@ -55,10 +58,11 @@ export function ProfileView({
 }: ProfileViewProps) {
   const { width: baseDepth, height } = profileSize(plan)
   const overflow = supportOverflow(plan)
+  const wallMargin = Math.max(WALL_MARGIN_MM, Math.round(height * WALL_MARGIN_RATIO))
   const { containerRef, scale: s, viewBox, updateCamera, resetView, zoomIn, zoomOut } = useViewport(baseDepth, height, {
     right: overflow.front,
-    top: overflow.above,
-    bottom: overflow.below,
+    top: overflow.above + wallMargin,
+    bottom: overflow.below + wallMargin,
   })
   const gestureRef = useRef<Gesture | null>(null)
   const pendingRef = useRef<EditorAction | null>(null)
@@ -203,7 +207,14 @@ export function ProfileView({
           role="img"
           aria-label={`Vue de profil de l'étagère : ${formatLength(depth, unit)} de profondeur, ${formatLength(H, unit)} de haut`}
         >
-          <rect className="wall" x={-wall} y={0} width={wall} height={height} vectorEffect="non-scaling-stroke" />
+          <rect
+            className="wall"
+            x={-wall}
+            y={-(overflow.above + wallMargin)}
+            width={wall}
+            height={height + overflow.above + overflow.below + 2 * wallMargin}
+            vectorEffect="non-scaling-stroke"
+          />
           <text
             className="wall-label"
             x={-wall / 2}
