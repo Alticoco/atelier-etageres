@@ -1177,3 +1177,46 @@ button.tab {
 .object-rows li button {
   padding: 0.15rem 0.5rem;
 }
+
+/* Fiche d'information d'un objet */
+.info-button {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 50%;
+  font: italic 700 0.85rem Georgia, serif;
+  line-height: 1;
+}
+.field:has(> .info-button) {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+.field:has(> .info-button) > label {
+  flex: 1;
+}
+.info-card {
+  margin: 0.5rem 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border, #d9c9a8);
+  border-radius: 8px;
+  background: #fffaf0;
+  font-size: 0.9rem;
+}
+.info-card dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  margin: 0.4rem 0;
+}
+.info-card dd {
+  margin: 0;
+  font-weight: 600;
+}
+.info-card p {
+  margin: 0.3rem 0 0;
+}
+.copy-wedges {
+  margin-top: 0.75rem;
+}

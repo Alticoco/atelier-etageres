@@ -87,6 +87,29 @@ export function addWedge(plan: Plan, shelfBelowId: string): AddResult {
   return result.ok ? { ok: true, plan: result.plan, id } : result
 }
 
+/**
+ * Copie la disposition des cales de l'étage `fromId` (au-dessus de cette tablette) vers les étages `toIds` :
+ * mêmes positions, épaisseurs, profondeurs et arrondis. Les cales déjà présentes dans un étage de destination sont
+ * remplacées ; si l'étage source n'a pas de cale, les étages de destination sont vidés.
+ */
+export function copyStageWedges(plan: Plan, fromId: string, toIds: string[]): EditResult {
+  const stages = getStages(plan)
+  if (!stages.some((s) => s.shelfBelowId === fromId)) return fail('Étage source inconnu.')
+  const targets = [...new Set(toIds)].filter((id) => id !== fromId)
+  if (targets.length === 0) return fail('Choisissez au moins un autre étage.')
+  if (targets.some((id) => !stages.some((s) => s.shelfBelowId === id))) return fail('Étage de destination inconnu.')
+
+  const next = structuredClone(plan)
+  const source = plan.wedges.filter((w) => w.shelfBelowId === fromId)
+  next.wedges = next.wedges.filter((w) => !targets.includes(w.shelfBelowId))
+  for (const target of targets) {
+    for (const wedge of source) {
+      next.wedges.push({ ...wedge, id: nextId('wedge', next.wedges.map((w) => w.id)), shelfBelowId: target })
+    }
+  }
+  return finish(next)
+}
+
 /** Distance (mm) en dessous de laquelle une cale s'aimante contre un montant ou une cale voisine. */
 export const MAGNET_MM = 10
 

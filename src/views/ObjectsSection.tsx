@@ -2,19 +2,58 @@ import { useState } from 'react'
 import { OBJECT_KINDS, layoutStage, objectKind, remainingCapacity, rowLabel } from '../model/objects'
 import { getStages } from '../model/pieces'
 import type { Plan } from '../model/types'
+import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 
 interface ObjectsSectionProps {
   plan: Plan
+  unit: LengthUnit
   dispatch: (action: EditorAction) => void
 }
 
+/** Bouton « i » qui ouvre ou ferme la fiche d'un objet. */
+function InfoButton({ kindId, open, onToggle }: { kindId: string; open: boolean; onToggle: () => void }) {
+  const label = objectKind(kindId)?.label ?? 'objet'
+  return (
+    <button type="button" className="info-button" aria-expanded={open} aria-label={`Informations : ${label}`} title="Informations sur l’objet" onClick={onToggle}>
+      i
+    </button>
+  )
+}
+
+/** Fiche d'un objet : ses dimensions et ce qu'il faut pour le ranger. */
+function InfoCard({ kindId, unit }: { kindId: string; unit: LengthUnit }) {
+  const kind = objectKind(kindId)
+  if (!kind) return null
+  return (
+    <div className="info-card" role="note">
+      <strong>{kind.label}</strong>
+      <dl>
+        <dt>Largeur (rangé debout)</dt>
+        <dd>{formatLength(kind.width, unit)}</dd>
+        <dt>Hauteur</dt>
+        <dd>{formatLength(kind.height, unit)}</dd>
+        <dt>Profondeur</dt>
+        <dd>{formatLength(kind.depth, unit)}</dd>
+      </dl>
+      <p>
+        Il lui faut un étage d’au moins {formatLength(kind.height, unit)} de haut et une tablette d’au moins{' '}
+        {formatLength(kind.depth, unit)} de profondeur. On en range environ {Math.floor(1000 / kind.width)} par mètre de largeur.
+      </p>
+      <p className="panel-hint">Dimensions courantes, à titre indicatif : elles varient selon les éditions.</p>
+    </div>
+  )
+}
+
 /** Simulation : poser des mangas, des livres, des bocaux… pour se faire une idée de ce qui rentre. */
-export function ObjectsSection({ plan, dispatch }: ObjectsSectionProps) {
+export function ObjectsSection({ plan, unit, dispatch }: ObjectsSectionProps) {
   const stages = getStages(plan)
   const [stageChoice, setStageChoice] = useState('')
   const [kindId, setKindId] = useState(OBJECT_KINDS[0].id)
   const [countText, setCountText] = useState('')
+  // Fiche ouverte : le type d'objet affiché (null = fermée).
+  const [infoKind, setInfoKind] = useState<string | null>(null)
+  const toggleInfo = (id: string) => setInfoKind((current) => (current === id ? null : id))
   const stageId = stages.some((s) => s.shelfBelowId === stageChoice) ? stageChoice : stages[0]?.shelfBelowId
   const kind = objectKind(kindId)
   const room = stageId ? remainingCapacity(plan, stageId, kindId) : 0
@@ -53,7 +92,9 @@ export function ObjectsSection({ plan, dispatch }: ObjectsSectionProps) {
             ))}
           </select>
         </label>
+        <InfoButton kindId={kindId} open={infoKind === kindId} onToggle={() => toggleInfo(kindId)} />
       </div>
+      {infoKind !== null && <InfoCard kindId={infoKind} unit={unit} />}
       <div className="field">
         <label>
           Quantité
@@ -87,6 +128,7 @@ export function ObjectsSection({ plan, dispatch }: ObjectsSectionProps) {
                   {status?.tooTall && <small className="field-error"> — plus haut que l’étage</small>}
                   {status?.tooDeep && <small className="field-error"> — plus profond que la tablette</small>}
                 </span>
+                <InfoButton kindId={row.kind} open={infoKind === row.kind} onToggle={() => toggleInfo(row.kind)} />
                 <button type="button" onClick={() => dispatch({ type: 'setObjectRowCount', rowId: row.id, count: row.count + 1 })} aria-label="Ajouter un objet">
                   +
                 </button>

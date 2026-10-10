@@ -223,3 +223,8 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Catalogue fixe de 5 objets aux dimensions courantes** (`OBJECT_KINDS`, `src/model/objects.ts`) : manga 14 × 175 × 115 mm, livre de poche 25 × 177 × 108, livre grand format 30 × 215 × 140, grand livre / BD 25 × 320 × 240, bocal d'épices 55 × 100 × 55. **Ces dimensions sont mes estimations** (aucune n'avait été donnée) : à corriger par l'auteur.
 - **Rangement debout, côte à côte, de gauche à droite** depuis le montant, en sautant les cales. La quantité vide = « remplir » ce qui reste. Les objets qui n'ont plus de place sont comptés (« N sans place ») ; un objet plus haut que l'étage ou plus profond que la tablette est dessiné en rouge pointillé et signalé.
 - **Dessin dans la vue de face seulement**, non cliquable. Reporté (boîte à idées) : vue de profil, PDF, objets sur mesure, objets couchés ou empilés.
+
+## 2026-10-10 (étape 17d — fiche d'objet et copie des cales)
+
+- **Fiche d'information par objet** : un bouton rond « i » à côté du choix de l'objet et sur chaque rangée ouvre une fiche (largeur, hauteur, profondeur, hauteur d'étage et profondeur de tablette nécessaires, nombre par mètre). Dimensions indicatives, dans l'unité choisie (mm / cm).
+- **Copier les cales d'un étage vers d'autres** (`copyStageWedges`, `src/model/tools.ts`) : l'étage source est celui choisi dans « Outils » ; la destination est un étage ou « tous les autres ». Mêmes positions, épaisseurs, profondeurs et arrondis ; **les cales déjà présentes dans l'étage visé sont remplacées** (on récupère la même disposition, sans doublon). Un étage source sans cale vide les étages visés (le panneau le dit). Un seul pas d'historique.
