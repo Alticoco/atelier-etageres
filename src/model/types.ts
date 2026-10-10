@@ -133,6 +133,20 @@ export interface Support {
   depth: number
 }
 
+/**
+ * Couleurs d'affichage (estimation de l'aspect final) : une couleur par catégorie, et des couleurs propres à certaines
+ * pièces qui l'emportent. Valeurs `#rrggbb`. Absent = couleur par défaut. Sans effet sur la liste de découpe.
+ */
+export interface PlanColors {
+  upright?: string
+  shelf?: string
+  wedge?: string
+  support?: string
+  wall?: string
+  /** Couleur d'une pièce précise (identifiant de pièce ou de support). */
+  pieces?: Record<string, string>
+}
+
 export interface PlanOptions {
   /**
    * Propagation « intelligente » : si activée, changer la largeur garde les cales à leur position
@@ -171,6 +185,8 @@ export interface Plan {
   supports?: Support[]
   /** Assemblage de chaque côté (modèle `frame`), absent = vissé des deux côtés. */
   joints?: { left: Joint; right: Joint }
+  /** Couleurs d'affichage, absentes = couleurs par défaut. */
+  colors?: PlanColors
   options: PlanOptions
 }
 

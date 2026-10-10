@@ -8,6 +8,7 @@ import {
 } from '../model/edit'
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
+import { setCategoryColor, setPieceColors, type ColorCategory } from '../model/colors'
 import { setJoint } from '../model/jointEdit'
 import type { Side } from '../model/joints'
 import type { Joint } from '../model/types'
@@ -46,6 +47,8 @@ export type EditorAction =
   | { type: 'setPlanSize'; width?: number; height?: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
+  | { type: 'setCategoryColor'; category: ColorCategory; color: string | null }
+  | { type: 'setPieceColors'; ids: string[]; color: string | null }
   | { type: 'setJoint'; side: Side; patch: Partial<Joint> }
   | { type: 'setStageCount'; count: number }
   | { type: 'setStageHeight'; shelfBelowId: string; mm: number }
@@ -164,6 +167,10 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     }
     case 'addShelf':
       return withAdded(addShelf(plan, action.shelfBelowId))
+    case 'setCategoryColor':
+      return withPlan(setCategoryColor(plan, action.category, action.color))
+    case 'setPieceColors':
+      return withPlan(setPieceColors(plan, action.ids, action.color))
     case 'setJoint':
       return withPlan(setJoint(plan, action.side, action.patch))
     case 'setStageCount':

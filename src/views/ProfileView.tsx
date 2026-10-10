@@ -10,6 +10,7 @@ import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX, Dimension } from './Dimension'
+import { fillStyle } from './colorStyle'
 import { EditableDimension } from './EditableDimension'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
@@ -189,6 +190,8 @@ export function ProfileView({
     height: r.height,
     rx: r.radius,
     ry: r.radius,
+    // Une pièce cachée est en pointillés, sans remplissage : pas de couleur.
+    style: r.hidden ? undefined : fillStyle(shown, r.id, r.kind),
     vectorEffect: 'non-scaling-stroke' as const,
   })
 
@@ -209,6 +212,7 @@ export function ProfileView({
         >
           <rect
             className="wall"
+            style={fillStyle(shown, 'wall', 'wall')}
             x={-wall}
             y={-(overflow.above + wallMargin)}
             width={wall}
@@ -243,6 +247,7 @@ export function ProfileView({
               y={height - sp.y - sp.height}
               width={sp.depth}
               height={sp.height}
+              style={fillStyle(shown, sp.id, 'support')}
               vectorEffect="non-scaling-stroke"
             />
           ))}

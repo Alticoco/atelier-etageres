@@ -11,6 +11,7 @@ import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX } from './Dimension'
+import { fillStyle } from './colorStyle'
 import { EditableDimension } from './EditableDimension'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
@@ -254,6 +255,7 @@ export function FrontView({
               height={r.height}
               rx={r.cornerRadius}
               ry={r.cornerRadius}
+              style={fillStyle(shown, r.id, r.kind)}
               vectorEffect="non-scaling-stroke"
             />
           ))}
@@ -267,6 +269,7 @@ export function FrontView({
               y={H - sp.y - sp.height}
               width={sp.width}
               height={sp.height}
+              style={fillStyle(shown, sp.id, 'support')}
               vectorEffect="non-scaling-stroke"
             />
           ))}

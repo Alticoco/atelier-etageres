@@ -8,6 +8,7 @@ import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX, Dimension } from './Dimension'
+import { fillStyle } from './colorStyle'
 import { EditableDimension } from './EditableDimension'
 import { useSupportDrag } from './useSupportDrag'
 import { useViewport } from './useViewport'
@@ -102,7 +103,7 @@ export function BottomView({ plan, unit = 'cm', selection = [], snapStep = 10, o
           role="img"
           aria-label={`Vue de dessous de l'étagère : ${formatLength(plan.width, unit)} de large, ${formatLength(depth, unit)} de profondeur`}
         >
-          <rect className="wall" x={-overflow.left - wall} y={-wall} width={plan.width + overflow.left + overflow.right + 2 * wall} height={wall} vectorEffect="non-scaling-stroke" />
+          <rect className="wall" style={fillStyle(shown, 'wall', 'wall')} x={-overflow.left - wall} y={-wall} width={plan.width + overflow.left + overflow.right + 2 * wall} height={wall} vectorEffect="non-scaling-stroke" />
           <text className="wall-label" x={plan.width / 2} y={-wall / 2} fontSize={11 * s} textAnchor="middle" dominantBaseline="central">
             Mur
           </text>
@@ -114,6 +115,7 @@ export function BottomView({ plan, unit = 'cm', selection = [], snapStep = 10, o
           {lowestShelf && (
             <path
               className="piece piece-shelf"
+              style={fillStyle(shown, lowestShelf.id, 'shelf')}
               d={shelfFootprintPath(lowestShelf.x, lowestShelf.width, lowestShelf.depth, shelfEnd(shown, 'left'), shelfEnd(shown, 'right'))}
               vectorEffect="non-scaling-stroke"
             />
@@ -128,6 +130,7 @@ export function BottomView({ plan, unit = 'cm', selection = [], snapStep = 10, o
               y={sp.z}
               width={sp.width}
               height={sp.depth}
+              style={fillStyle(shown, sp.id, 'support')}
               vectorEffect="non-scaling-stroke"
             />
           ))}
