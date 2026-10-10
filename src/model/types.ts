@@ -22,6 +22,11 @@ export interface Upright {
   thickness: number
   depth: number
   /**
+   * Modèle `frame` : hauteur du montant (mm) s'il est coupé plus court que la hauteur complète (ex. un côté à 1 m,
+   * l'autre à 70 cm). Absent = hauteur complète ; une valeur trop grande est ramenée à la hauteur complète.
+   */
+  length?: number
+  /**
    * Arrondis (mm, 0 = angle droit). `cornerRadius` : coins de la silhouette vue de face ; `edgeRadius` : arrondi de la
    * tranche, vu de profil. Chacun est limité à la moitié de la plus petite dimension visible de la pièce.
    */

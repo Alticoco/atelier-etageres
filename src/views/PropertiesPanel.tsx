@@ -9,7 +9,7 @@ import { stageLabel } from './stageLabel'
 import { SupportsSection } from './SupportsSection'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
 import { parseVerticalId, pieceLabel } from '../model/labels'
-import { computePieces, getStages, sortedShelves } from '../model/pieces'
+import { computePieces, fullUprightLength, getStages, sortedShelves } from '../model/pieces'
 import { radiusLimits } from '../model/rounding'
 import { isObjectId } from '../model/objects'
 import { isSupportId } from '../model/supports'
@@ -307,6 +307,23 @@ function PieceCard({ plan, ids, unit, dispatch }: PieceCardProps) {
               <small className="field-hint">Sans montant, l’extrémité de l’étage se termine par la seule tablette.</small>
             </div>
           )}
+        </>
+      )}
+      {single?.kind === 'upright' && plan.model === 'frame' && (
+        <>
+          <LengthField
+            key={`ul-${single.id}-${single.length}-${unit}`}
+            label="Hauteur du montant (coupé)"
+            valueMm={single.length ?? 0}
+            unit={unit}
+            onCommit={(mm) => commitPiece('length', mm)}
+          />
+          {single.length !== undefined && single.length < fullUprightLength(plan) && (
+            <button type="button" className="link-button" onClick={() => commitPiece('length', fullUprightLength(plan))}>
+              Rétablir la hauteur complète ({formatLength(fullUprightLength(plan), unit)})
+            </button>
+          )}
+          <p className="panel-hint">Option : raccourcir ce montant pour avoir deux côtés de hauteurs différentes. Les tablettes ne changent pas.</p>
         </>
       )}
       {single?.kind === 'upright' && plan.model === 'frameless' && (

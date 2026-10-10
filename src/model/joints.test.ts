@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { computeCutList, describeJoinery } from './cutlist'
-import { checkPlan } from './edit'
+import { checkPlan, setPieceProperty } from './edit'
 import { moveUpright, setJoint } from './jointEdit'
 import { bevelCut, shelfFootprintPath } from './joints'
 import { computeFrontRects } from './layout'
@@ -154,5 +154,22 @@ describe('assemblage à encoches (modèle avec cadre)', () => {
     const incoherent = JSON.parse(JSON.stringify(plan))
     incoherent.joints.left.endSize = 80
     expect(parsePlan(incoherent).ok).toBe(false)
+  })
+})
+
+describe('montant coupé plus court (« Couper ici »)', () => {
+  it('raccourcit un seul montant : vue de face, liste de découpe, retour à la hauteur complète', () => {
+    const plan = base()
+    const r = setPieceProperty(plan, ['upright-right'], 'length', 700)
+    if (!r.ok) throw new Error(r.error)
+    expect(rect(r.plan, 'upright-left').height).toBe(1000)
+    expect(rect(r.plan, 'upright-right').height).toBe(700)
+    const lengths = computePieces(r.plan).filter((p) => p.kind === 'upright').map((p) => p.length)
+    expect(lengths).toEqual([1000, 700])
+    expect(parsePlan(JSON.parse(JSON.stringify(r.plan))).ok).toBe(true)
+    const back = setPieceProperty(r.plan, ['upright-right'], 'length', 1000)
+    if (!back.ok) throw new Error(back.error)
+    expect(back.plan.rightUpright.length).toBeUndefined()
+    expect(setPieceProperty(plan, ['upright-right'], 'length', 0).ok).toBe(false)
   })
 })

@@ -73,6 +73,7 @@ function upright(value: unknown, where: string) {
   return {
     thickness: int(obj, 'thickness', where, 1),
     depth: int(obj, 'depth', where, 1),
+    ...(obj.length === undefined ? {} : { length: int(obj, 'length', where, 1) }),
     cornerRadius: optionalInt(obj, 'cornerRadius', where, 0, 0),
     edgeRadius: optionalInt(obj, 'edgeRadius', where, 0, 0),
   }

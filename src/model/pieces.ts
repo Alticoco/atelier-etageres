@@ -48,13 +48,20 @@ export function shelfX(plan: Plan, shelf: Shelf, isOuter: boolean): number {
   return isNotched(plan, 'left') ? 0 : plan.leftUpright.thickness
 }
 
-/** Hauteur d'un montant (modèle `frame`) : raccourcie des tablettes extrêmes si elles sont posées dessus/dessous. */
-export function uprightLength(plan: Plan): number {
+/** Hauteur complète d'un montant (modèle `frame`) : raccourcie des tablettes extrêmes si elles sont posées dessus/dessous. */
+export function fullUprightLength(plan: Plan): number {
   if (plan.options.framePlacement === 'between') return plan.height
   const shelves = sortedShelves(plan)
   const bottom = shelves[0]
   const top = shelves[shelves.length - 1]
   return plan.height - (bottom?.thickness ?? 0) - (top?.thickness ?? 0)
+}
+
+/** Hauteur d'un montant (modèle `frame`) : la hauteur complète, ou celle où il a été coupé (« Couper ici »). */
+export function uprightLength(plan: Plan, side: 'left' | 'right'): number {
+  const full = fullUprightLength(plan)
+  const cut = (side === 'left' ? plan.leftUpright : plan.rightUpright).length
+  return cut === undefined ? full : Math.max(1, Math.min(full, cut))
 }
 
 /** Montant d'un étage (modèle `frameless`) : coupé à la hauteur libre de l'étage. */
@@ -162,7 +169,7 @@ export function computePieces(plan: Plan): Piece[] {
       {
         id: 'upright-left',
         kind: 'upright',
-        length: uprightLength(plan),
+        length: uprightLength(plan, 'left'),
         width: plan.leftUpright.depth,
         thickness: plan.leftUpright.thickness,
         cornerRadius: plan.leftUpright.cornerRadius,
@@ -172,7 +179,7 @@ export function computePieces(plan: Plan): Piece[] {
       {
         id: 'upright-right',
         kind: 'upright',
-        length: uprightLength(plan),
+        length: uprightLength(plan, 'right'),
         width: plan.rightUpright.depth,
         thickness: plan.rightUpright.thickness,
         cornerRadius: plan.rightUpright.cornerRadius,

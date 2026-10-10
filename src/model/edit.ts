@@ -1,6 +1,6 @@
 import { innerSpan } from './geometry'
 import { parseVerticalId } from './labels'
-import { getStages, sortedShelves } from './pieces'
+import { fullUprightLength, getStages, sortedShelves, uprightLength } from './pieces'
 import { propagateHeight, propagateWidth } from './propagation'
 import { roundingProblems } from './rounding'
 import { jointProblems } from './joints'
@@ -13,7 +13,7 @@ export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
  * Cote d'une pièce modifiable : épaisseur, profondeur, hauteur d'une tablette (y), position d'une cale (x),
  * débords d'une tablette (modèle sans cadre).
  */
-export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x' | 'overhangLeft' | 'overhangRight' | 'cornerRadius' | 'edgeRadius'
+export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x' | 'overhangLeft' | 'overhangRight' | 'cornerRadius' | 'edgeRadius' | 'length'
 
 export type PlanChange =
   | { property: 'width' | 'height' | 'depth' | 'wedgeClearance' | 'defaultWedgeThickness' | 'sawKerf'; mm: number }
@@ -60,6 +60,8 @@ export function readPiece(
   x?: number
   overhangLeft?: number
   overhangRight?: number
+  /** Montant du modèle avec cadre : sa hauteur (coupé ou complet). */
+  length?: number
   cornerRadius: number
   edgeRadius: number
 } | null {
@@ -74,6 +76,7 @@ export function readPiece(
     edgeRadius: ref.edgeRadius,
     ...(kind === 'shelf' ? { y: (ref as Shelf).y, overhangLeft: (ref as Shelf).overhangLeft, overhangRight: (ref as Shelf).overhangRight } : {}),
     ...(kind === 'wedge' ? { x: (ref as Wedge).x } : {}),
+    ...(kind === 'upright' && plan.model === 'frame' ? { length: uprightLength(plan, id === 'upright-left' ? 'left' : 'right') } : {}),
   }
 }
 
@@ -86,7 +89,7 @@ export function checkPlan(plan: Plan): string[] {
   const left = plan.leftUpright
   const right = plan.rightUpright
 
-  const positive = [plan.width, plan.height, left.thickness, left.depth, right.thickness, right.depth]
+  const positive = [plan.width, plan.height, left.thickness, left.depth, right.thickness, right.depth, ...[left.length, right.length].filter((v) => v !== undefined)]
   for (const s of plan.shelves) positive.push(s.thickness, s.depth)
   for (const w of plan.wedges) positive.push(w.thickness, w.depth)
   if (positive.some((v) => !Number.isInteger(v) || v <= 0)) {
@@ -177,7 +180,7 @@ function keepTopShelfFlush(plan: Plan): void {
  */
 export function setPieceProperty(plan: Plan, ids: string[], property: PieceProperty, mm: number): EditResult {
   if (!Number.isInteger(mm) || mm < 0) return fail('La valeur doit être un nombre entier de mm positif ou nul.')
-  if ((property === 'thickness' || property === 'depth') && mm === 0) return fail('La valeur doit être supérieure à 0.')
+  if ((property === 'thickness' || property === 'depth' || property === 'length') && mm === 0) return fail('La valeur doit être supérieure à 0.')
   if (ids.length === 0) return fail('Aucune pièce sélectionnée.')
 
   const next = structuredClone(plan)
@@ -193,6 +196,10 @@ export function setPieceProperty(plan: Plan, ids: string[], property: PiecePrope
       if (property === 'thickness' && piece.kind === 'shelf' && piece.ref.id === topBefore?.id) touchesTop = true
     } else if (property === 'y' && piece.kind === 'shelf') {
       piece.ref.y = mm
+    } else if (property === 'length' && piece.kind === 'upright' && next.model === 'frame') {
+      // Plus long que la hauteur complète = pas de coupe.
+      if (mm >= fullUprightLength(next)) delete (piece.ref as Upright).length
+      else (piece.ref as Upright).length = mm
     } else if (property === 'x' && piece.kind === 'wedge') {
       piece.ref.x = mm
     } else if ((property === 'overhangLeft' || property === 'overhangRight') && piece.kind === 'shelf' && next.model === 'frameless') {
