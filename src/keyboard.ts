@@ -3,7 +3,7 @@
  * L'application exécute les commandes ; la fenêtre d'aide affiche `SHORTCUTS`.
  */
 
-export type ViewMode = 'front' | 'side' | 'cut'
+export type ViewMode = 'front' | 'side' | 'cut' | 'bottom'
 
 export type Command =
   | { type: 'undo' }
@@ -34,7 +34,7 @@ export interface KeyContext {
   hasSelection: boolean
 }
 
-const VIEWS: Record<string, ViewMode> = { '1': 'front', '2': 'side', '3': 'cut' }
+const VIEWS: Record<string, ViewMode> = { '1': 'front', '2': 'side', '3': 'cut', '4': 'bottom' }
 
 /** Commande déclenchée par une touche, ou null si la touche ne doit rien faire de spécial. */
 export function commandForKey(e: KeyInfo, ctx: KeyContext): Command | null {
@@ -100,7 +100,7 @@ export const SHORTCUTS: ShortcutGroup[] = [
   {
     title: 'Affichage',
     items: [
-      { keys: '1   2   3', label: 'Vue de face, de profil, liste de découpe' },
+      { keys: '1   2   3   4', label: 'Vue de face, de profil, liste de découpe, de dessous' },
       { keys: 'Molette', label: 'Zoom' },
       { keys: 'Glisser sur le fond', label: 'Déplacer la vue' },
       { keys: '?', label: 'Afficher cette aide' },

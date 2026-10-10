@@ -8,6 +8,7 @@ import {
 } from '../model/edit'
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
+import { addSupport, alignSupportFront, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
 import { addObjectRow, removeObjectRow, setObjectRowCount } from '../model/objects'
 import { addShelf, addWedge, copyStageWedges, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
@@ -43,6 +44,10 @@ export type EditorAction =
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
   | { type: 'copyStageWedges'; fromId: string; toIds: string[] }
+  | { type: 'addSupport'; placement: SupportPlacement }
+  | { type: 'setSupportProperty'; id: string; property: SupportProperty; mm: number }
+  | { type: 'alignSupportFront'; id: string }
+  | { type: 'moveSupport'; id: string; x?: number; y?: number; z?: number }
   | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number }
   | { type: 'setObjectRowCount'; rowId: string; count: number }
   | { type: 'removeObjectRow'; rowId: string }
@@ -76,7 +81,7 @@ function samePlan(a: Plan, b: Plan): boolean {
 
 /** Ne garde dans la sélection que les pièces qui existent dans ce plan. */
 function existingOnly(selection: string[], plan: Plan): string[] {
-  const ids = new Set(pieceIds(plan))
+  const ids = new Set([...pieceIds(plan), ...(plan.supports ?? []).map((s) => s.id)])
   return selection.filter((id) => ids.has(id))
 }
 
@@ -152,6 +157,16 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withAdded(addShelf(plan, action.shelfBelowId))
     case 'copyStageWedges':
       return withPlan(copyStageWedges(plan, action.fromId, action.toIds))
+    case 'addSupport': {
+      const result = addSupport(plan, action.placement)
+      return result.ok ? commit(result.plan, [result.id]) : refused(result.error)
+    }
+    case 'setSupportProperty':
+      return withPlan(setSupportProperty(plan, action.id, action.property, action.mm))
+    case 'moveSupport':
+      return withPlan(moveSupport(plan, action.id, { x: action.x, y: action.y, z: action.z }))
+    case 'alignSupportFront':
+      return withPlan(alignSupportFront(plan, action.id))
     case 'addObjectRow': {
       const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count)
       return result.ok ? commit(result.plan) : refused(result.error)

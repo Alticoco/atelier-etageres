@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
 import { layoutStage, objectKind } from '../model/objects'
+import { supportOverflow } from '../model/supports'
+import { useSupportDrag } from './useSupportDrag'
 import { dragShelf, dragWedgeToStage, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
@@ -74,11 +76,26 @@ export function FrontView({
   onClearSelection,
   onChange,
 }: FrontViewProps) {
-  const { containerRef, scale, viewBox, updateCamera, resetView, zoomIn, zoomOut } = useViewport(plan.width, plan.height)
+  const overflow = supportOverflow(plan)
+  const { containerRef, scale, viewBox, updateCamera, resetView, zoomIn, zoomOut } = useViewport(plan.width, plan.height, {
+    left: overflow.left,
+    right: overflow.right,
+    top: overflow.above,
+    bottom: overflow.below,
+  })
   const gestureRef = useRef<Gesture | null>(null)
   const pendingRef = useRef<EditorAction | null>(null)
   // Plan « en cours de glisser » : affiché à la place du vrai plan jusqu'au relâchement.
   const [draft, setDraft] = useState<Plan | null>(null)
+  const supportDrag = useSupportDrag({
+    plan,
+    scale,
+    snapStep,
+    mapping: (dx, dy, start) => ({ x: start.x + dx, y: start.y - dy }),
+    onChange,
+    onSelect: onSelectPiece,
+    isSelected: (id) => selection.includes(id),
+  })
 
   const onPointerDown = (e: React.PointerEvent) => {
     const target = e.target as Element
@@ -86,6 +103,10 @@ export function FrontView({
     const pieceId = target.closest('[data-piece-id]')?.getAttribute('data-piece-id') ?? null
     const base = { startX: e.clientX, startY: e.clientY }
 
+    if (pieceId && supportDrag.begin(e, pieceId)) {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      return
+    }
     if (handle) {
       // Le cadrage automatique ne doit pas « sauter » pendant qu'on redimensionne : on fige la vue.
       updateCamera((c) => c)
@@ -108,6 +129,7 @@ export function FrontView({
   }
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (supportDrag.move(e)) return
     const g = gestureRef.current
     if (!g) return
 
@@ -152,6 +174,7 @@ export function FrontView({
   }
 
   const finishGesture = (e: React.PointerEvent | null) => {
+    if (supportDrag.end(e)) return
     const g = gestureRef.current
     gestureRef.current = null
     const action = pendingRef.current
@@ -172,7 +195,7 @@ export function FrontView({
     else if (!additive) onClearSelection?.()
   }
 
-  const shown = draft ?? plan
+  const shown = draft ?? supportDrag.draft ?? plan
   const H = shown.height
   const W = shown.width
   const rects = computeFrontRects(shown)
@@ -213,6 +236,19 @@ export function FrontView({
               height={r.height}
               rx={r.cornerRadius}
               ry={r.cornerRadius}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+
+          {(shown.supports ?? []).map((sp) => (
+            <rect
+              key={sp.id}
+              data-piece-id={sp.id}
+              className={`piece piece-support movable-x movable-y${selection.includes(sp.id) ? ' selected' : ''}`}
+              x={sp.x}
+              y={H - sp.y - sp.height}
+              width={sp.width}
+              height={sp.height}
               vectorEffect="non-scaling-stroke"
             />
           ))}

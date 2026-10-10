@@ -82,6 +82,26 @@ export interface ObjectRow {
   count: number
 }
 
+/**
+ * Planche de soutien posée sous ou autour de l'étagère (pieds, tasseaux, fixation latérale). Elle ne fait pas partie
+ * de l'étagère : elle sert à porter son poids ou à la caler dans son environnement. Une simple boîte.
+ */
+export interface Support {
+  id: string
+  /** Bord gauche, depuis le bord gauche hors-tout de l'étagère (négatif = à gauche de l'étagère). */
+  x: number
+  /** Dessous de la planche, depuis le dessous du cadre (négatif = sous l'étagère). */
+  y: number
+  /** Recul : distance entre le mur et la face arrière de la planche (0 = contre le mur). */
+  z: number
+  /** Dimension horizontale vue de face. */
+  width: number
+  /** Dimension verticale. */
+  height: number
+  /** Dimension dans la profondeur (du mur vers l'avant). */
+  depth: number
+}
+
 export interface PlanOptions {
   /**
    * Propagation « intelligente » : si activée, changer la largeur garde les cales à leur position
@@ -114,6 +134,8 @@ export interface Plan {
   wedges: Wedge[]
   /** Objets de simulation, absent s'il n'y en a pas. */
   rows?: ObjectRow[]
+  /** Planches de soutien (à part de l'étagère), absentes s'il n'y en a pas. */
+  supports?: Support[]
   options: PlanOptions
 }
 

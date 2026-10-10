@@ -189,6 +189,12 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
 
     if (id === 'upright-left' || id === 'upright-right') return fail('Les montants ne se suppriment pas.')
 
+    if (next.supports?.some((s) => s.id === id)) {
+      next.supports = next.supports.filter((s) => s.id !== id)
+      if (next.supports.length === 0) delete next.supports
+      continue
+    }
+
     if (next.wedges.some((w) => w.id === id)) {
       next.wedges = next.wedges.filter((w) => w.id !== id)
       continue

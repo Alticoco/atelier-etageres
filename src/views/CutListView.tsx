@@ -10,7 +10,7 @@ interface CutListViewProps {
 
 /** Liste de découpe : pièces regroupées par dimensions identiques, avec quantité et repère. */
 export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
-  const { groups, totalPieces, sawKerf } = computeCutList(plan)
+  const { groups, totalPieces, sawKerf, supports } = computeCutList(plan)
 
   return (
     <div className="cutlist">
@@ -59,6 +59,42 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
           )}
         </tfoot>
       </table>
+      {supports.length > 0 && (
+        <table className="supports-table">
+          <caption>Supports (à part de l’étagère)</caption>
+          <thead>
+            <tr>
+              <th scope="col">Repère</th>
+              <th scope="col">Quantité</th>
+              <th scope="col">Longueur ({unit})</th>
+              <th scope="col">Largeur ({unit})</th>
+              <th scope="col">Épaisseur ({unit})</th>
+              <th scope="col">Supports</th>
+            </tr>
+          </thead>
+          <tbody>
+            {supports.map((group) => (
+              <tr key={group.mark}>
+                <th scope="row" className="mark-cell">
+                  {group.mark}
+                </th>
+                <td>{group.quantity}</td>
+                <td>{formatNumber(group.length, unit)}</td>
+                <td>{formatNumber(group.width, unit)}</td>
+                <td>{formatNumber(group.thickness, unit)}</td>
+                <td className="cutlist-pieces">{group.ids.map((id) => pieceLabel(plan, id)).join(', ')}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Total</th>
+              <td>{supports.reduce((sum, g) => sum + g.quantity, 0)}</td>
+              <td colSpan={4}>planches de soutien à découper en plus</td>
+            </tr>
+          </tfoot>
+        </table>
+      )}
       {!sawKerf && (
         <p className="panel-hint">
           Pour estimer la perte de bois due à la scie, cochez « Trait de scie » dans les propriétés de l’étagère
