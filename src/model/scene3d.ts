@@ -1,3 +1,4 @@
+import { effectiveColor } from './colors'
 import { computeFrontRects } from './layout'
 import { layoutStage, objectKind } from './objects'
 import { getStages } from './pieces'
@@ -29,6 +30,8 @@ export interface Box3D {
   bad?: boolean
   /** Type d'objet de simulation (couleur). */
   objectKind?: string
+  /** Couleur `#rrggbb` choisie ou par défaut (pièces, supports et mur ; pas les objets). */
+  color?: string
 }
 
 export interface Scene3D {
@@ -51,12 +54,12 @@ export function buildScene3D(plan: Plan, options: { objects?: boolean; supports?
   const boxes: Box3D[] = []
 
   for (const r of computeFrontRects(plan)) {
-    boxes.push({ id: r.id, kind: r.kind, shape: 'box', x: r.x, y: r.y, z: 0, sx: r.width, sy: r.height, sz: r.depth })
+    boxes.push({ id: r.id, kind: r.kind, shape: 'box', x: r.x, y: r.y, z: 0, sx: r.width, sy: r.height, sz: r.depth, color: effectiveColor(plan, r.id, r.kind) })
   }
 
   if (supports) {
     for (const s of plan.supports ?? []) {
-      boxes.push({ id: s.id, kind: 'support', shape: 'box', x: s.x, y: s.y, z: s.z, sx: s.width, sy: s.height, sz: s.depth })
+      boxes.push({ id: s.id, kind: 'support', shape: 'box', x: s.x, y: s.y, z: s.z, sx: s.width, sy: s.height, sz: s.depth, color: effectiveColor(plan, s.id, 'support') })
     }
   }
 
@@ -111,6 +114,7 @@ export function buildScene3D(plan: Plan, options: { objects?: boolean; supports?
     sx: max[0] - min[0] + 2 * margin,
     sy: max[1] - min[1] + 2 * margin,
     sz: WALL_THICKNESS,
+    color: effectiveColor(plan, 'wall', 'wall'),
   }
 
   return { boxes, wall, min, max }

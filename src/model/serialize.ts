@@ -1,6 +1,7 @@
 import { checkPlan } from './edit'
 import { MAX_GAP, MAX_PLACED, MAX_ROW_COUNT, objectKind } from './objects'
-import type { Joint, ObjectRow, PlacedObject, Plan, Support } from './types'
+import { isColor } from './colors'
+import type { Joint, ObjectRow, PlacedObject, Plan, PlanColors, Support } from './types'
 
 /**
  * Format de fichier d'un plan (`.etagere.json`) : { format, version, plan }.
@@ -171,6 +172,31 @@ function readPlan(value: unknown): Plan {
     return { left: joint(obj.left, 'Assemblage gauche'), right: joint(obj.right, 'Assemblage droit') }
   })()
 
+  const readColors = (value: unknown): PlanColors | undefined => {
+    if (value === undefined) return undefined
+    const obj = record(value, 'Couleurs')
+    const colors: PlanColors = {}
+    for (const key of ['upright', 'shelf', 'wedge', 'support', 'wall'] as const) {
+      if (obj[key] === undefined) continue
+      const color = obj[key]
+      if (!isColor(color)) fail(`Couleurs : « ${key} » doit être une couleur #rrggbb.`)
+      colors[key] = color.toLowerCase()
+    }
+    if (obj.pieces !== undefined) {
+      const entries = Object.entries(record(obj.pieces, 'Couleurs des pièces'))
+      if (entries.length > 2000) fail('Couleurs : trop de pièces colorées.')
+      const pieces: Record<string, string> = {}
+      for (const [id, color] of entries) {
+        if (id.length > MAX_ID) fail('Couleurs : identifiant de pièce trop long.')
+        if (!isColor(color)) fail('Couleurs : chaque couleur doit être de la forme #rrggbb.')
+        Object.defineProperty(pieces, id, { value: color.toLowerCase(), enumerable: true, writable: true, configurable: true })
+      }
+      if (entries.length > 0) colors.pieces = pieces
+    }
+    return Object.keys(colors).length > 0 ? colors : undefined
+  }
+  const colors = readColors(root.colors)
+
   // On reconstruit le plan champ par champ : rien d'inattendu du fichier n'est conservé.
   const model = root.model === undefined ? 'frame' : root.model
   if (model !== 'frame' && model !== 'frameless') fail('Plan : « model » doit valoir « frame » ou « frameless ».')
@@ -188,6 +214,7 @@ function readPlan(value: unknown): Plan {
     ...(placedObjects.length > 0 ? { placedObjects } : {}),
     ...(supports.length > 0 ? { supports } : {}),
     ...(joints ? { joints } : {}),
+    ...(colors ? { colors } : {}),
     options: {
       propagation: bool(options, 'propagation', 'Options'),
       wallMount: optionalBool(options, 'wallMount', 'Options', false),

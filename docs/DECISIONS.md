@@ -271,3 +271,10 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 
 - **Étages numérotés sur le dessin** : une pastille avec le numéro (1 = le plus bas) à gauche de chaque cote d'étage en vue de face, et des noms explicites dans les menus (« Étage 2 · au milieu · 30,9 cm libres », `stageLabel`) pour la simulation de rangement et les outils.
 - **Défaut corrigé : le choix d'étage (et type d'objet, quantité, espace) de la simulation était perdu** dès que le panneau changeait de mode, par exemple en cliquant une tablette : le formulaire revenait à « Étage 1 » sans prévenir, d'où l'impression de ne pas pouvoir poser d'objets sur un autre étage. Ces réglages sont maintenant gardés par le panneau (`objectsForm`) et survivent au changement de sélection.
+
+## 2026-10-10 (couleurs d'affichage)
+
+- **Couleurs pour estimer l'aspect final** (`plan.colors`, facultatif, rétrocompatible) : une couleur par **catégorie** (montants, tablettes, cales, supports, mur) et des couleurs **propres à des pièces** qui l'emportent. Choix dans un jeu de 16 pastilles — 8 tons de bois (frêne blanchi, pin, chêne clair et doré, merisier, noyer, noyer foncé, wengé) et 8 couleurs de contraste (blanc cassé, gris, noir, bleu, vert sauge, terracotta, jaune moutarde, rose poudré) — ou une couleur libre ; « couleur par défaut » revient à l'aspect d'origine. Sans effet sur les dimensions et la liste de découpe (testé).
+- **Élément de décor (table, meuble voisin)** : un support avec sa propre couleur ; on choisit la pièce puis la couleur dans le panneau (« Couleur de la pièce choisie »).
+- **Où ça s'applique** : vues de face, de profil (pièces visibles seulement : les pièces cachées restent en pointillés), de dessous et 3D. **Pas le PDF** (noir et blanc, pour l'impression) ni les objets de simulation, qui gardent leur couleur par type.
+- **Sécurité** : seules les couleurs `#rrggbb` sont acceptées, à l'import comme à la saisie ; un identifiant « __proto__ » n'a aucun effet. Le sélecteur libre n'applique la couleur qu'à sa fermeture (un seul pas d'historique).

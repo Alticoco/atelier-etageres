@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { JointsSection } from './JointsSection'
 import { LengthField } from './LengthField'
+import { ColorSection } from './ColorSection'
 import { ObjectsSection } from './ObjectsSection'
 import { INITIAL_OBJECTS_FORM } from './objectsForm'
 import { stageLabel } from './stageLabel'
@@ -344,6 +345,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
         <StageTools plan={plan} unit={unit} dispatch={dispatch} />
         <ObjectsSection plan={plan} form={objectsForm} onForm={setObjectsForm} selection={selection} unit={unit} dispatch={dispatch} />
         <SupportsSection plan={plan} selection={selection} unit={unit} dispatch={dispatch} />
+        <ColorSection plan={plan} selection={selection} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>
     )
@@ -475,6 +477,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
       <StageTools key={sameKey} plan={plan} unit={unit} dispatch={dispatch} defaultStageId={defaultStageId} />
       <ObjectsSection plan={plan} form={objectsForm} onForm={setObjectsForm} selection={selection} unit={unit} dispatch={dispatch} />
         <SupportsSection plan={plan} selection={selection} unit={unit} dispatch={dispatch} />
+        <ColorSection plan={plan} selection={selection} dispatch={dispatch} />
     </aside>
   )
 }

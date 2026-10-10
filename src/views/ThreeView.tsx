@@ -80,7 +80,7 @@ function disposeGroup(group: Group) {
 
 function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selected: boolean }) {
   const isWall = box.kind === 'wall'
-  const color = box.kind === 'object' ? (OBJECT_COLORS[box.objectKind ?? ''] ?? '#7fa6c9') : KIND_COLORS[box.kind]
+  const color = box.kind === 'object' ? (OBJECT_COLORS[box.objectKind ?? ''] ?? '#7fa6c9') : (box.color ?? KIND_COLORS[box.kind])
   const transparentWall = isWall && options.wallMode === 'transparent'
 
   const geometry: BufferGeometry =
