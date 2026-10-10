@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
 import { isObjectId, layoutStage, objectKind } from '../model/objects'
 import { supportOverflow } from '../model/supports'
@@ -6,6 +6,7 @@ import { useSupportDrag } from './useSupportDrag'
 import { dragObjectToStage, dragShelf, dragUpright, dragWedgeToStage, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
+import { contextMenuItems, type MenuItem } from '../model/contextMenu'
 import { isNotched, jointOf } from '../model/joints'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
@@ -104,7 +105,35 @@ export function FrontView({
     isSelected: (id) => selection.includes(id),
   })
 
+  // Menu du clic droit : proposé sur la pièce sous le curseur (ou dans le vide), avec les actions courantes.
+  const [menu, setMenu] = useState<{ left: number; top: number; items: MenuItem[] } | null>(null)
+  useEffect(() => {
+    if (!menu) return
+    const close = () => setMenu(null)
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close()
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('blur', close)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('blur', close)
+    }
+  }, [menu])
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const svg = e.currentTarget as SVGSVGElement
+    const ctm = svg.getScreenCTM()
+    if (!ctm) return
+    const point = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse())
+    const pieceId = (e.target as Element).closest('[data-piece-id]')?.getAttribute('data-piece-id') ?? null
+    if (pieceId && !selection.includes(pieceId)) onSelectPiece?.(pieceId, false)
+    const box = containerRef.current?.getBoundingClientRect()
+    const items = contextMenuItems(plan, pieceId, { x: point.x, y: plan.height - point.y }, { unit, snapStep })
+    setMenu({ left: e.clientX - (box?.left ?? 0), top: e.clientY - (box?.top ?? 0), items })
+  }
+
   const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    setMenu(null)
     const target = e.target as Element
     if (target.closest('[data-dim-edit]')) return
     const handle = target.closest('[data-handle]')?.getAttribute('data-handle') as Handle | null
@@ -254,6 +283,7 @@ export function FrontView({
           className="front-view-svg"
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           onPointerDown={onPointerDown}
+          onContextMenu={onContextMenu}
           onPointerMove={onPointerMove}
           onPointerUp={finishGesture}
           onPointerCancel={() => finishGesture(null)}
@@ -412,6 +442,37 @@ export function FrontView({
             )
           })}
         </svg>
+      )}
+
+      {menu && (
+        <div
+          className="context-menu"
+          role="menu"
+          style={{ left: menu.left, top: menu.top }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.key === 'Escape' && setMenu(null)}
+        >
+          {menu.items.map((item, i) =>
+            item.action ? (
+              <button
+                key={i}
+                type="button"
+                role="menuitem"
+                className={item.danger ? 'danger' : undefined}
+                onClick={() => {
+                  setMenu(null)
+                  onChange?.(item.action!)
+                }}
+              >
+                {item.label}
+              </button>
+            ) : (
+              <div key={i} className="context-menu-title">
+                {item.label}
+              </div>
+            ),
+          )}
+        </div>
       )}
 
       <ViewControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} />

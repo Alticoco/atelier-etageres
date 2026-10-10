@@ -300,3 +300,7 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Option dans le menu « Exporter »** (case « Supports sur le plan PDF », cochée par défaut, visible seulement si le plan a des supports). Cochée : supports en **tireté sans remplissage** en vue de face et de profil, pastilles S1, S2…, lignes « Supports (à part de l'étagère, tireté) » sous la liste de découpe et une note. Décochée : le PDF est celui d'avant. Dans les deux cas le plan joint (ré-import) contient les supports.
 - L'échelle et le cadrage du PDF tiennent compte des supports qui dépassent de l'étagère ; les cotes hors-tout restent celles de l'étagère seule.
 
+## 2026-10-10 (17b et 19 — montant coupé, menu du clic droit)
+- **Montant coupé** : champ facultatif `leftUpright.length` / `rightUpright.length` (mm, absent = hauteur complète, ramené à la hauteur complète si trop grand). Modèle avec cadre seulement ; le montant garde son pied (bas) et perd le haut ; les tablettes ne changent pas. Longueur propre dans la liste de découpe, la vue de face, le profil, la 3D et le PDF (tout lit les mêmes rectangles).
+- **Menu au clic droit (vue de face)** : liste d'actions déjà existantes de l'éditeur, construite par une fonction pure (`src/model/contextMenu.ts`). Le clic gauche (sélection, glisser) est inchangé. Pas de menu au clic droit dans les autres vues pour l'instant.
+

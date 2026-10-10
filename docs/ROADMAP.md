@@ -44,7 +44,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] **Étape 16 — Onglets de plans + écran partagé** : plusieurs plans ouverts en onglets (historique et sélection propres à chacun), deux plans côte à côte avec une vue au choix dans chaque volet.
 - [~] **Étape 17 — Déplacer les cales entre étages et segmenter les planches** (demande d'Alexis, 10 octobre 2026) :
   - [x] 17a — Glisser une cale d'un étage à l'autre : elle prend la hauteur de l'étage et s'aimante contre les montants et les cales voisines.
-  - [ ] 17b — « Couper ici » : segmenter une planche (montant ou tablette) pour avoir des hauteurs / longueurs différentes (ex. un côté à 1 m, l'autre à 70 cm ; un étage plus court). Conception à valider avec l'auteur avant de coder.
+  - [x] 17b — « Couper ici » (option) : raccourcir un **montant** pour avoir des hauteurs différentes (ex. un côté à 1 m, l'autre à 70 cm), au clic droit sur le montant ou par le champ « Hauteur du montant » du panneau. Tablettes pas concernées pour l'instant (choix d'Alexis : montants seulement).
 - [x] **Étape 17c — Simulation de rangement** (idée de la spec « plus tard », demandée par Alexis le 10 octobre 2026) : poser des mangas, livres, grands livres, bocaux d'épices dans un étage, avec capacité.
 - [x] **Étape 17e — Objets un par un et cotes cliquables** (demande d'Alexis, 10 octobre 2026) : cliquer, supprimer, déplacer un objet de simulation ; espace réglable entre les objets ; cliquer une cote du dessin pour la modifier.
 - [x] **Étape 17f — Modes de construction : encoches et bouts de tablettes** (demande d'Alexis) : par côté, montant « vissé » ou « à encoches » (mi-bois, les tablettes traversent et dépassent) ; bout qui dépasse droit, arrondi ou coupé en biais (angle au choix), des deux côtés. Modèle avec cadre ; choix par défaut à confirmer par l'auteur (voir DECISIONS).
@@ -54,7 +54,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [~] **Étape 18 — Supports (planches de soutien à part)** (demande d'Alexis, 10 octobre 2026) :
   - [x] 18a — Supports sous et autour de l'étagère : largeur, hauteur, profondeur, position, recul depuis le mur ; réglage au panneau et en tirant dans les vues de face, de profil et de dessous (nouvelle) ; liste de découpe à part.
   - [x] 18b — Supports dans le PDF, en option au moment de l'export (tireté, repères S1…, liste à part) ; copie / symétrie d'un support (« Dupliquer »). Reste : aimantation sur d'autres supports.
-- [~] **Étape 19 — Panneau de droite repensé, nombre d'étages modifiable, menu au clic sur le dessin** : panneau en onglets fait, nombre d'étages fait ; reste le menu au clic sur le dessin (à concevoir avec Alexis).
+- [x] **Étape 19 — Panneau de droite repensé, nombre d'étages modifiable, menu au clic sur le dessin** : panneau en onglets, nombre d'étages, et menu du clic droit sur la vue de face (couper un montant, décaler / supprimer / ajouter cale ou tablette, dupliquer un support, retirer un objet, ajouter dans le vide d'un étage).
 - [ ] **Étape 20 — Optimisation des découpes** (à confirmer : peut-être inutile).
 
 
