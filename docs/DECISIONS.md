@@ -206,3 +206,7 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Écran partagé = deux volets côte à côte**, chacun avec sa vue (Face / Profil / Découpe) et un menu pour choisir son plan ; un plan n'apparaît jamais dans les deux volets (on échange). Le volet cliqué a le focus (cadre coloré) : c'est lui qui reçoit les raccourcis clavier, le panneau de propriétés, l'en-tête (annuler, exporter, nom). Fermer l'un des deux plans referme l'écran partagé.
 - **Enregistrement automatique par onglet** (`useAutosave` gère une liste de plans) ; un onglet est enregistré avant d'être fermé. Renommer ou supprimer un plan dans la bibliothèque est répercuté dans son onglet ouvert (sans pas d'historique pour le renommage).
 - **Reporté** : mémoriser les onglets entre deux visites, copier une pièce d'un plan à l'autre, zoom synchronisé.
+
+## 2026-10-10 (profondeur dans les dimensions hors-tout)
+
+- **Champ « Profondeur » ajouté aux dimensions hors-tout** du panneau de l'étagère (à côté de largeur et hauteur). Le modèle stocke la profondeur par pièce (pas de profondeur globale) : saisir une valeur donne **la même profondeur à toutes les pièces** (montants, tablettes, cales), en un seul pas d'historique. Si les pièces ont des profondeurs différentes (étape 15), le champ est vide (« Valeurs différentes ») avec une note ; la saisie les uniformise. Les profondeurs par pièce restent réglables au clic (panneau ou vue de profil).

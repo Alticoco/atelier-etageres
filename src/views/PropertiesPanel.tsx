@@ -146,6 +146,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
   }
 
   if (ids.length === 0) {
+    const depths = [plan.leftUpright, plan.rightUpright, ...plan.shelves, ...plan.wedges].map((p) => p.depth)
     return (
       <aside className="properties" aria-label="Propriétés">
         <h2>Étagère</h2>
@@ -182,6 +183,16 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
             unit={unit}
             onCommit={(mm) => commitPlan({ property: 'height', mm })}
           />
+          <LengthField
+            key={`d-${depths.join(',')}-${unit}`}
+            label="Profondeur"
+            valueMm={commonValue(depths)}
+            unit={unit}
+            onCommit={(mm) => commitPlan({ property: 'depth', mm })}
+          />
+          {commonValue(depths) === null && (
+            <p className="panel-hint">Les pièces n’ont pas toutes la même profondeur ; saisir une valeur les uniformise.</p>
+          )}
         </fieldset>
 
         <fieldset className="panel-section">
