@@ -2,6 +2,7 @@ import { computeCutList, describeJoinery, roundingCode } from '../model/cutlist'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
+import { supportFrontRect, supportOverflow, supportProfileRect } from '../model/supports'
 import type { Plan } from '../model/types'
 import { formatLength, formatNumber, type LengthUnit } from '../model/units'
 
@@ -74,7 +75,15 @@ export interface SceneOptions {
   unit?: LengthUnit
   /** Date affichée dans le cartouche. */
   date?: Date
+  /**
+   * Dessiner les supports (planches de soutien à part) en tireté, avec leurs repères S1, S2… et leur liste. Vrai par
+   * défaut ; sans effet si le plan n'a pas de support.
+   */
+  supports?: boolean
 }
+
+type Overflow = ReturnType<typeof supportOverflow>
+const NO_OVERFLOW: Overflow = { left: 0, right: 0, below: 0, above: 0, front: 0 }
 
 export const PAGE = { width: 297, height: 210 }
 const MARGIN = 8
@@ -133,22 +142,26 @@ function scaleLabel(denominator: number): string {
 }
 
 /** La plus grande échelle pour laquelle la vue de face et la vue de profil tiennent dans leur zone. */
-function chooseScale(plan: Plan): number {
-  const depth = profileSize(plan).width
+function chooseScale(plan: Plan, ov: Overflow): number {
+  const depth = profileSize(plan).width + ov.front
+  const width = plan.width + ov.left + ov.right
+  const height = plan.height + ov.below + ov.above
   const drawH = ZONE_BOTTOM - ZONE_TOP - TITLE_H
   const frontW = FRONT_ZONE.x2 - FRONT_ZONE.x1
   const profileW = PROFILE_ZONE.x2 - PROFILE_ZONE.x1
   const fits = (d: number) =>
-    plan.width / d + FRONT_MARGINS.left + FRONT_MARGINS.right <= frontW &&
-    plan.height / d + FRONT_MARGINS.top + FRONT_MARGINS.bottom <= drawH &&
+    width / d + FRONT_MARGINS.left + FRONT_MARGINS.right <= frontW &&
+    height / d + FRONT_MARGINS.top + FRONT_MARGINS.bottom <= drawH &&
     depth / d + PROFILE_MARGINS.left + PROFILE_MARGINS.right <= profileW &&
-    plan.height / d + PROFILE_MARGINS.top + PROFILE_MARGINS.bottom <= drawH
+    height / d + PROFILE_MARGINS.top + PROFILE_MARGINS.bottom <= drawH
   return SCALES.find(fits) ?? SCALES[SCALES.length - 1]
 }
 
-export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: SceneOptions = {}): Scene {
+export function buildScene(plan: Plan, { unit = 'cm', date = new Date(), supports: withSupports = true }: SceneOptions = {}): Scene {
   const primitives: Primitive[] = []
-  const d = chooseScale(plan)
+  const showSupports = withSupports && (plan.supports ?? []).length > 0
+  const ov = showSupports ? supportOverflow(plan) : NO_OVERFLOW
+  const d = chooseScale(plan, ov)
   const depth = profileSize(plan).width
 
   // --- Outils de dessin -------------------------------------------------------------------------------------
@@ -188,7 +201,7 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
 
   /** Repère : lettre dans une pastille blanche, lisible même sur une pièce de 2 mm. */
   const bubble = (cx: number, cy: number, letter: string) => {
-    primitives.push({ kind: 'circle', x: cx, y: cy, r: 1.9, strokeWidth: 0.2, stroke: BLACK, fill: 1 })
+    primitives.push({ kind: 'circle', x: cx, y: cy, r: letter.length > 1 ? 2.7 : 1.9, strokeWidth: 0.2, stroke: BLACK, fill: 1 })
     text(cx, cy + 0.75, letter, 6, { bold: true, align: 'center' })
   }
 
@@ -226,11 +239,11 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
 
   // --- Vue de face ------------------------------------------------------------------------------------------
 
-  const frontW = plan.width / d
-  const frontH = plan.height / d
+  const frontW = (plan.width + ov.left + ov.right) / d
+  const frontH = (plan.height + ov.below + ov.above) / d
   const front = place(FRONT_ZONE, FRONT_MARGINS, frontW, frontH)
-  const fx = (x: number) => front.x0 + x / d
-  const fy = (y: number) => front.yBottom - y / d
+  const fx = (x: number) => front.x0 + (x + ov.left) / d
+  const fy = (y: number) => front.yBottom - (y + ov.below) / d
 
   const cutList = computeCutList(plan)
 
@@ -243,6 +256,20 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   }
   for (const r of computeFrontRects(plan)) bubble(fx(r.x + r.width / 2), fy(r.y + r.height / 2), cutList.marks[r.id])
 
+  // Supports : planches à part, en tireté et sans remplissage pour ne pas les confondre avec l'étagère.
+  const supportMarks: Record<string, string> = {}
+  for (const g of cutList.supports) for (const id of g.ids) supportMarks[id] = g.mark
+  if (showSupports) {
+    for (const sp of plan.supports ?? []) {
+      const r = supportFrontRect(sp)
+      rect(fx(r.x), fy(r.y + r.height), r.width / d, r.height / d, { fill: 1, stroke: HIDDEN_GRAY, dash: [1.6, 1] })
+    }
+    for (const sp of plan.supports ?? []) {
+      const r = supportFrontRect(sp)
+      bubble(fx(r.x + r.width / 2), fy(r.y + r.height / 2), supportMarks[sp.id])
+    }
+  }
+
   // Largeur hors-tout, sous le dessin.
   const widthLine = front.yBottom + 8
   extension(fx(0), front.yBottom + 0.8, fx(0), widthLine + 1.5)
@@ -250,13 +277,13 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   hDim(fx(0), fx(plan.width), widthLine, formatLength(plan.width, unit))
 
   // Hauteur hors-tout, à droite.
-  const heightLine = fx(plan.width) + 8
+  const heightLine = fx(plan.width + ov.right) + 8
   extension(fx(plan.width) + 0.8, fy(0), heightLine + 1.5, fy(0))
   extension(fx(plan.width) + 0.8, fy(plan.height), heightLine + 1.5, fy(plan.height))
   vDim(heightLine, fy(plan.height), fy(0), formatLength(plan.height, unit), 'right')
 
   // Hauteur libre de chaque étage, à gauche.
-  const stageLine = fx(0) - 8
+  const stageLine = fx(-ov.left) - 8
   for (const stage of getStages(plan)) {
     const top = fy(stage.y + stage.clearHeight)
     const bottom = fy(stage.y)
@@ -267,13 +294,13 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
 
   // --- Vue de profil ----------------------------------------------------------------------------------------
 
-  const profile = place(PROFILE_ZONE, PROFILE_MARGINS, depth / d, frontH)
+  const profile = place(PROFILE_ZONE, PROFILE_MARGINS, (depth + ov.front) / d, frontH)
   const px = (x: number) => profile.x0 + x / d
-  const py = (y: number) => profile.yBottom - y / d
+  const py = (y: number) => profile.yBottom - (y + ov.below) / d
 
   // Mur : bande hachurée à gauche du dessin.
   const wallW = 3
-  const wallTop = py(plan.height)
+  const wallTop = py(plan.height + ov.above)
   rect(px(0) - wallW, wallTop, wallW, frontH, { fill: 0.92, strokeWidth: 0.2 })
   for (let t = 3; t <= frontH; t += 3) line(px(0) - wallW, wallTop + t, px(0), wallTop + t - 3, 0.1, 0.5)
   text(px(0) - wallW - 1, (wallTop + py(0)) / 2, 'MUR', 6, { align: 'center', rotate: 90, gray: 0.4 })
@@ -291,12 +318,23 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
     })
   }
 
+  if (showSupports) {
+    for (const sp of plan.supports ?? []) {
+      const r = supportProfileRect(sp)
+      rect(px(r.x), py(r.y + r.height), r.width / d, r.height / d, { fill: 1, stroke: HIDDEN_GRAY, dash: [1.6, 1] })
+    }
+    for (const sp of plan.supports ?? []) {
+      const r = supportProfileRect(sp)
+      bubble(px(r.x + r.width / 2), py(r.y + r.height / 2), supportMarks[sp.id])
+    }
+  }
+
   const depthLine = profile.yBottom + 8
   extension(px(0), profile.yBottom + 0.8, px(0), depthLine + 1.5)
   extension(px(depth), profile.yBottom + 0.8, px(depth), depthLine + 1.5)
   hDim(px(0), px(depth), depthLine, formatLength(depth, unit))
 
-  const profileHeightLine = px(depth) + 8
+  const profileHeightLine = px(depth + ov.front) + 8
   extension(px(depth) + 0.8, py(0), profileHeightLine + 1.5, py(0))
   extension(px(depth) + 0.8, py(plan.height), profileHeightLine + 1.5, py(plan.height))
   vDim(profileHeightLine, py(plan.height), py(0), formatLength(plan.height, unit), 'right')
@@ -330,8 +368,13 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   const notesReserve = 62
   const maxRows = Math.max(1, Math.floor((ZONE_BOTTOM - 4 - notesReserve - (y + headerH)) / 3.8))
   const groups = cutList.groups
-  const shown = groups.length > maxRows ? groups.slice(0, maxRows - 1) : groups
-  const rowH = Math.min(6, (ZONE_BOTTOM - 4 - notesReserve - (y + headerH)) / (shown.length + (groups.length > maxRows ? 1 : 0)))
+  const supportGroups = showSupports ? cutList.supports : []
+  // Les supports (un titre et une ligne par lot) ont leur place réservée ; les lots de l'étagère se tronquent au besoin.
+  const supportRows = supportGroups.length > 0 ? supportGroups.length + 1 : 0
+  const groupRows = Math.max(1, maxRows - supportRows)
+  const shown = groups.length > groupRows ? groups.slice(0, groupRows - 1) : groups
+  const totalRows = shown.length + (groups.length > shown.length ? 1 : 0) + supportRows
+  const rowH = Math.min(6, (ZONE_BOTTOM - 4 - notesReserve - (y + headerH)) / totalRows)
 
   rect(listX, y, listW, headerH, { fill: 0.9, strokeWidth: 0.25 })
   headers.forEach((h, i) => {
@@ -360,6 +403,14 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
     ])
   }
   if (groups.length > shown.length) row(['', '', `+ ${groups.length - shown.length} autres lots`, '', '', '', ''])
+  if (supportGroups.length > 0) {
+    rect(listX, y, listW, rowH, { fill: 0.94, strokeWidth: 0.15 })
+    text(listX + 1.5, y + rowH * 0.7, 'Supports (à part de l’étagère, tireté)', 7, { bold: true })
+    y += rowH
+    for (const g of supportGroups) {
+      row([g.mark, String(g.quantity), formatNumber(g.length, unit), formatNumber(g.width, unit), formatNumber(g.thickness, unit), '—', 'Supports'])
+    }
+  }
   for (const x of columnEdges.slice(1, -1)) line(x, tableTop, x, y, 0.15, 0.6)
   rect(listX, tableTop, listW, y - tableTop, { strokeWidth: 0.3 })
 
@@ -384,6 +435,10 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
   text(listX, y, 'NOTES', 7, { bold: true })
   y += 4
   writeLines(wrapText(`Bois massif. Cotes en ${unit}. Les repères A, B… renvoient à la liste ci-dessus.`, listW, 7))
+  if (supportGroups.length > 0) {
+    const count = supportGroups.reduce((sum, g) => sum + g.quantity, 0)
+    writeLines(wrapText(`Supports S1, S2… (${count} planches, dessinées en tireté) : planches de soutien à part, en plus des pièces de l’étagère.`, listW, 7))
+  }
   if (groups.some((g) => g.cornerRadius > 0 || g.edgeRadius > 0)) {
     writeLines(wrapText(`Arrondis : C = rayon des coins (vue de face), A = rayon des arêtes (vue de profil), en ${unit}.`, listW, 7))
   }

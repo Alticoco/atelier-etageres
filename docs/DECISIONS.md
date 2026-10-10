@@ -296,3 +296,7 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Passer un côté à encoches ne déplace plus le montant** : ce sont les tablettes qui s'allongent vers l'extérieur de la longueur qui dépasse, donc la **largeur hors-tout augmente** (et diminue en repassant en vissé). Changer « Tablette qui dépasse » dans le panneau fait pareil. Les cales et les supports suivent le décalage de l'origine côté gauche.
 - **Le montant à encoches se glisse à la souris en vue de face** (comme une cale, aimantation et Alt comprises) : la largeur hors-tout reste alors fixe et c'est la longueur qui dépasse qui change (action `moveUpright`). L'arrondi du bout ne concerne que la partie qui dépasse (rayon ≤ longueur qui dépasse).
 
+## 2026-10-10 (étape 18b — supports dans le PDF)
+- **Option dans le menu « Exporter »** (case « Supports sur le plan PDF », cochée par défaut, visible seulement si le plan a des supports). Cochée : supports en **tireté sans remplissage** en vue de face et de profil, pastilles S1, S2…, lignes « Supports (à part de l'étagère, tireté) » sous la liste de découpe et une note. Décochée : le PDF est celui d'avant. Dans les deux cas le plan joint (ré-import) contient les supports.
+- L'échelle et le cadrage du PDF tiennent compte des supports qui dépassent de l'étagère ; les cotes hors-tout restent celles de l'étagère seule.
+

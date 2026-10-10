@@ -53,6 +53,8 @@ export interface PdfOptions {
   unit?: LengthUnit
   /** Date affichée dans le cartouche et enregistrée dans le PDF. */
   date?: Date
+  /** Dessiner les supports en tireté avec leur liste (vrai par défaut). */
+  supports?: boolean
 }
 
 /** Remplace par « ? » les caractères que la police standard ne sait pas écrire (émojis, idéogrammes…). */
@@ -153,8 +155,8 @@ function draw(page: PDFPage, primitive: Primitive, height: number, fonts: { regu
  * Plan d'architecte en PDF (A4 paysage, dessin vectoriel) avec le plan éditable joint au fichier
  * (`plan.etagere.json`) : le PDF peut être ré-importé dans l'application.
  */
-export async function buildPlanPdf(plan: Plan, { unit = 'cm', date = new Date() }: PdfOptions = {}): Promise<Uint8Array> {
-  const scene = buildScene(plan, { unit, date })
+export async function buildPlanPdf(plan: Plan, { unit = 'cm', date = new Date(), supports = true }: PdfOptions = {}): Promise<Uint8Array> {
+  const scene = buildScene(plan, { unit, date, supports })
 
   const doc = await PDFDocument.create()
   doc.setTitle(`${plan.name} — plan d’étagère`)

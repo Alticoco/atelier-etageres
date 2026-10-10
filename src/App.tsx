@@ -166,6 +166,7 @@ export default function App() {
   const [paneViews, setPaneViews] = useState<ViewMode[]>(['front', 'front'])
   const [showMarks, setShowMarks] = useState(true)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [pdfSupports, setPdfSupports] = useState(true)
   const [helpOpen, setHelpOpen] = useState(false)
   const tab = activeTab(ws)
   const state = tab?.editor ?? initialEditorState
@@ -346,7 +347,7 @@ export default function App() {
     setExportingPdf(true)
     try {
       const { buildPlanPdf } = await import('./pdf/pdf')
-      const bytes = await buildPlanPdf(exported, { unit })
+      const bytes = await buildPlanPdf(exported, { unit, supports: pdfSupports })
       downloadBytes(pdfFileName(exported.name), bytes, 'application/pdf')
       notify('Le plan PDF a été créé. Vous pouvez le ré-importer plus tard pour le modifier.', 'info')
     } catch (error) {
@@ -476,7 +477,14 @@ export default function App() {
               >
                 Dupliquer
               </button>
-              <ExportMenu onPdf={() => void exportPdf(plan)} onJson={() => exportPlan(plan)} busy={exportingPdf} />
+              <ExportMenu
+                onPdf={() => void exportPdf(plan)}
+                onJson={() => exportPlan(plan)}
+                busy={exportingPdf}
+                hasSupports={(plan.supports ?? []).length > 0}
+                pdfSupports={pdfSupports}
+                onPdfSupportsChange={setPdfSupports}
+              />
               <button
                 type="button"
                 className="header-button icon-button"

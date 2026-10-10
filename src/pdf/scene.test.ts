@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createPlan } from '../model/plan'
+import { addSupport } from '../model/supports'
 import { addWedge } from '../model/tools'
 import type { Plan } from '../model/types'
 import { buildScene, formatDate, PAGE, wrapText, type Primitive, type RectPrim, type TextPrim } from './scene'
@@ -296,6 +297,46 @@ describe('arrondis', () => {
       if (prim.kind === 'text') {
         expect(prim.x).toBeGreaterThanOrEqual(5)
         expect(prim.x).toBeLessThanOrEqual(PAGE.width - 5)
+      }
+    }
+  })
+})
+
+describe('supports sur le plan PDF', () => {
+  const withSupports = () => {
+    let p = plan()
+    for (const placement of ['under', 'left'] as const) {
+      const r = addSupport(p, placement)
+      if (!r.ok) throw new Error(r.error)
+      p = r.plan
+    }
+    return p
+  }
+  const dashed = (primitives: Primitive[]) => rects(primitives).filter((r) => r.dash && r.fill === 1 && r.stroke !== 0)
+
+  it('dessine les supports en tireté avec leurs repères et leur liste', () => {
+    const { primitives } = buildScene(withSupports(), { date: DATE })
+    expect(dashed(primitives).length).toBeGreaterThanOrEqual(4) // vue de face + vue de profil
+    const all = texts(primitives).map((t) => t.text)
+    expect(all).toContain('S1')
+    expect(all).toContain('S2')
+    expect(all.some((t) => t.startsWith('Supports (à part'))).toBe(true)
+  })
+
+  it('l’option désactivée ne dessine ni supports ni liste', () => {
+    const { primitives } = buildScene(withSupports(), { date: DATE, supports: false })
+    expect(dashed(primitives)).toHaveLength(0)
+    expect(texts(primitives).some((t) => t.text === 'S1')).toBe(false)
+  })
+
+  it('tout reste dans la page', () => {
+    for (const q of [true, false]) {
+      for (const p of buildScene(withSupports(), { date: DATE, supports: q }).primitives) {
+        if (p.kind === 'rect') {
+          expect(p.x).toBeGreaterThanOrEqual(0)
+          expect(p.x + p.width).toBeLessThanOrEqual(PAGE.width)
+          expect(p.y + p.height).toBeLessThanOrEqual(PAGE.height)
+        }
       }
     }
   })

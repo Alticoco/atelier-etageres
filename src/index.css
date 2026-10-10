@@ -1562,3 +1562,18 @@ button.tab {
   stroke: #fffdfa;
   stroke-width: 3px;
 }
+
+.export-items .export-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.export-items .export-option small {
+  display: block;
+  color: var(--ink-soft, inherit);
+  opacity: 0.75;
+}

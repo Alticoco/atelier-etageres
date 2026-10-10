@@ -5,10 +5,14 @@ interface ExportMenuProps {
   onJson: () => void
   /** Génération du PDF en cours. */
   busy?: boolean
+  /** Le plan a des supports : l'option « supports sur le plan PDF » est proposée. */
+  hasSupports?: boolean
+  pdfSupports?: boolean
+  onPdfSupportsChange?: (value: boolean) => void
 }
 
 /** Menu « Exporter » : plan PDF imprimable, ou fichier de sauvegarde `.etagere.json`. */
-export function ExportMenu({ onPdf, onJson, busy = false }: ExportMenuProps) {
+export function ExportMenu({ onPdf, onJson, busy = false, hasSupports = false, pdfSupports = true, onPdfSupportsChange }: ExportMenuProps) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -50,6 +54,15 @@ export function ExportMenu({ onPdf, onJson, busy = false }: ExportMenuProps) {
             <strong>Plan PDF</strong>
             <small>A4 paysage, à imprimer ; ré-importable</small>
           </button>
+          {hasSupports && (
+            <label className="export-option">
+              <input type="checkbox" checked={pdfSupports} onChange={(e) => onPdfSupportsChange?.(e.target.checked)} />
+              <span>
+                Supports sur le plan PDF
+                <small>en tireté, avec leurs repères S1, S2… et leur liste</small>
+              </span>
+            </label>
+          )}
           <button type="button" role="menuitem" onClick={choose(onJson)}>
             <strong>Fichier de sauvegarde</strong>
             <small>.etagere.json</small>
