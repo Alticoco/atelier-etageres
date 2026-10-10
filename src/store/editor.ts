@@ -9,8 +9,8 @@ import {
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
 import { addSupport, alignSupportFront, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
-import { addObjectRow, removeObjectRow, setObjectRowCount } from '../model/objects'
-import { addShelf, addWedge, copyStageWedges, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
+import { addObjectRow, moveObject, objectIdExists, removeObjectRow, setObjectRowCount, setObjectRowGap } from '../model/objects'
+import { addShelf, addWedge, copyStageWedges, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
 
@@ -43,13 +43,16 @@ export type EditorAction =
   | { type: 'setPlanSize'; width?: number; height?: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
+  | { type: 'setStageHeight'; shelfBelowId: string; mm: number }
   | { type: 'copyStageWedges'; fromId: string; toIds: string[] }
   | { type: 'addSupport'; placement: SupportPlacement }
   | { type: 'setSupportProperty'; id: string; property: SupportProperty; mm: number }
   | { type: 'alignSupportFront'; id: string }
   | { type: 'moveSupport'; id: string; x?: number; y?: number; z?: number }
-  | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number }
+  | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number; gap?: number }
   | { type: 'setObjectRowCount'; rowId: string; count: number }
+  | { type: 'setObjectRowGap'; rowId: string; gap: number }
+  | { type: 'moveObject'; id: string; shelfBelowId: string; x: number }
   | { type: 'removeObjectRow'; rowId: string }
   | { type: 'placeWedge'; wedgeId: string; shelfBelowId: string; x: number }
   | { type: 'removePieces'; ids: string[] }
@@ -82,7 +85,7 @@ function samePlan(a: Plan, b: Plan): boolean {
 /** Ne garde dans la sélection que les pièces qui existent dans ce plan. */
 function existingOnly(selection: string[], plan: Plan): string[] {
   const ids = new Set([...pieceIds(plan), ...(plan.supports ?? []).map((s) => s.id)])
-  return selection.filter((id) => ids.has(id))
+  return selection.filter((id) => ids.has(id) || objectIdExists(plan, id))
 }
 
 /** Applique une action. Une action refusée par les contrôles de cohérence renvoie l'état d'origine et un message. */
@@ -155,6 +158,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     }
     case 'addShelf':
       return withAdded(addShelf(plan, action.shelfBelowId))
+    case 'setStageHeight':
+      return withPlan(setStageHeight(plan, action.shelfBelowId, action.mm))
     case 'copyStageWedges':
       return withPlan(copyStageWedges(plan, action.fromId, action.toIds))
     case 'addSupport': {
@@ -168,8 +173,14 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     case 'alignSupportFront':
       return withPlan(alignSupportFront(plan, action.id))
     case 'addObjectRow': {
-      const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count)
+      const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count, action.gap)
       return result.ok ? commit(result.plan) : refused(result.error)
+    }
+    case 'setObjectRowGap':
+      return withPlan(setObjectRowGap(plan, action.rowId, action.gap))
+    case 'moveObject': {
+      const result = moveObject(plan, action.id, action.shelfBelowId, action.x, null)
+      return result.ok ? commit(result.plan, [result.id]) : refused(result.error)
     }
     case 'setObjectRowCount':
       return withPlan(setObjectRowCount(plan, action.rowId, action.count))

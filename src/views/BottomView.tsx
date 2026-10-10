@@ -7,6 +7,7 @@ import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX, Dimension } from './Dimension'
+import { EditableDimension } from './EditableDimension'
 import { useSupportDrag } from './useSupportDrag'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
@@ -58,6 +59,7 @@ export function BottomView({ plan, unit = 'cm', selection = [], snapStep = 10, o
   const dimOffset = DIM_OFFSET_PX * s
 
   const onPointerDown = (e: React.PointerEvent) => {
+    if ((e.target as Element).closest('[data-dim-edit]')) return
     const id = (e.target as Element).closest('[data-support-id]')?.getAttribute('data-support-id')
     if (id && supportDrag.begin(e, id)) {
       e.currentTarget.setPointerCapture(e.pointerId)
@@ -138,8 +140,30 @@ export function BottomView({ plan, unit = 'cm', selection = [], snapStep = 10, o
               ]
             })}
 
-          <Dimension x1={0} y1={depth + dimOffset} x2={plan.width} y2={depth + dimOffset} label={formatLength(plan.width, unit)} s={s} side={1} />
-          <Dimension x1={plan.width + dimOffset} y1={0} x2={plan.width + dimOffset} y2={depth} label={formatLength(depth, unit)} s={s} side={1} />
+          <EditableDimension
+            x1={0}
+            y1={depth + dimOffset}
+            x2={plan.width}
+            y2={depth + dimOffset}
+            valueMm={plan.width}
+            unit={unit}
+            label={formatLength(plan.width, unit)}
+            s={s}
+            side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'width', mm } })}
+          />
+          <EditableDimension
+            x1={plan.width + dimOffset}
+            y1={0}
+            x2={plan.width + dimOffset}
+            y2={depth}
+            valueMm={depth}
+            unit={unit}
+            label={formatLength(depth, unit)}
+            s={s}
+            side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'depth', mm } })}
+          />
         </svg>
       )}
 

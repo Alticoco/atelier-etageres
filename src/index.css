@@ -1250,3 +1250,43 @@ button.tab {
 .supports-table {
   margin-top: 1.5rem;
 }
+
+.object.selected {
+  stroke: var(--accent, #8a5a2b);
+  stroke-width: 3;
+  opacity: 1;
+}
+.object-rows li {
+  flex-wrap: wrap;
+}
+.row-gap {
+  flex-basis: 100%;
+}
+.object-selected {
+  margin: 0.6rem 0;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--accent, #8a5a2b);
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+/* Cotes cliquables */
+.dim-editable {
+  cursor: pointer;
+}
+.dim-editable:not(.editing):hover text {
+  fill: var(--accent, #8a5a2b);
+  font-weight: 700;
+}
+.dim-input {
+  box-sizing: border-box;
+  border: 2px solid var(--accent, #8a5a2b);
+  border-radius: 4px;
+  background: #fff;
+  text-align: center;
+  font-family: inherit;
+}
+.dim-input.invalid {
+  border-color: #c0392b;
+  background: #fdecea;
+}

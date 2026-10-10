@@ -1,16 +1,17 @@
 import { useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
-import { layoutStage, objectKind } from '../model/objects'
+import { isObjectId, layoutStage, objectKind } from '../model/objects'
 import { supportOverflow } from '../model/supports'
 import { useSupportDrag } from './useSupportDrag'
-import { dragShelf, dragWedgeToStage, resizeFrame } from '../model/drag'
+import { dragObjectToStage, dragShelf, dragWedgeToStage, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
-import { DIM_OFFSET_PX, Dimension } from './Dimension'
+import { DIM_OFFSET_PX } from './Dimension'
+import { EditableDimension } from './EditableDimension'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
 
@@ -26,7 +27,7 @@ type Gesture =
   | {
       kind: 'piece'
       pieceId: string
-      pieceKind: 'shelf' | 'wedge'
+      pieceKind: 'shelf' | 'wedge' | 'object'
       startX: number
       startY: number
       startValue: number
@@ -99,6 +100,7 @@ export function FrontView({
 
   const onPointerDown = (e: React.PointerEvent) => {
     const target = e.target as Element
+    if (target.closest('[data-dim-edit]')) return
     const handle = target.closest('[data-handle]')?.getAttribute('data-handle') as Handle | null
     const pieceId = target.closest('[data-piece-id]')?.getAttribute('data-piece-id') ?? null
     const base = { startX: e.clientX, startY: e.clientY }
@@ -117,6 +119,16 @@ export function FrontView({
       const wedge = plan.wedges.find((w) => w.id === pieceId)
       if (pieceId && shelfIndex > 0 && shelfIndex < shelves.length - 1) {
         gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'shelf', ...base, startValue: shelves[shelfIndex].y, scale, active: false }
+      } else if (pieceId && isObjectId(pieceId)) {
+        const found = getStages(plan)
+          .map((st) => ({ st, o: layoutStage(plan, st).objects.find((o) => o.id === pieceId) }))
+          .find((f) => f.o)
+        if (found?.o) {
+          const startCenterY = found.st.y + found.st.clearHeight / 2
+          gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'object', ...base, startValue: found.o.x, startCenterY, scale, active: false }
+        } else {
+          gestureRef.current = { kind: 'pan', x: e.clientX, y: e.clientY, ...base, pieceId }
+        }
       } else if (pieceId && wedge) {
         const stage = getStages(plan).find((st) => st.shelfBelowId === wedge.shelfBelowId)
         const startCenterY = stage ? stage.y + stage.clearHeight / 2 : 0
@@ -156,6 +168,12 @@ export function FrontView({
         const y = next.shelves.find((s) => s.id === g.pieceId)!.y
         setDraft(next)
         pendingRef.current = { type: 'setPieceProperty', ids: [g.pieceId], property: 'y', mm: y }
+      } else if (g.pieceKind === 'object') {
+        const moved = dragObjectToStage(plan, g.pieceId, g.startValue + dx * g.scale, (g.startCenterY ?? 0) - dy * g.scale, step)
+        if (moved) {
+          setDraft(moved.plan)
+          pendingRef.current = { type: 'moveObject', id: g.pieceId, shelfBelowId: moved.shelfBelowId, x: moved.x }
+        }
       } else {
         const moved = dragWedgeToStage(plan, g.pieceId, g.startValue + dx * g.scale, (g.startCenterY ?? 0) - dy * g.scale, step)
         if (moved) {
@@ -253,12 +271,13 @@ export function FrontView({
             />
           ))}
 
-          <g className="objects" pointerEvents="none">
+          <g className="objects">
             {stages.flatMap((stage) =>
               layoutStage(shown, stage).objects.map((o, i) => (
                 <rect
-                  key={`${o.rowId}-${stage.shelfBelowId}-${i}`}
-                  className={`object object-${o.kindId}${o.tooTall || o.tooDeep ? ' object-bad' : ''}`}
+                  key={`${o.id}-${stage.shelfBelowId}-${i}`}
+                  data-piece-id={o.id}
+                  className={`object object-${o.kindId}${o.tooTall || o.tooDeep ? ' object-bad' : ''}${selection.includes(o.id) ? ' selected' : ''} movable-x movable-y`}
                   x={o.x}
                   y={H - o.y - o.height}
                   width={o.width}
@@ -297,8 +316,30 @@ export function FrontView({
             </rect>
           </g>
 
-          <Dimension x1={0} y1={H + dimOffset} x2={W} y2={H + dimOffset} label={formatLength(W, unit)} s={s} side={1} />
-          <Dimension x1={W + dimOffset} y1={0} x2={W + dimOffset} y2={H} label={formatLength(H, unit)} s={s} side={1} />
+          <EditableDimension
+            x1={0}
+            y1={H + dimOffset}
+            x2={W}
+            y2={H + dimOffset}
+            valueMm={W}
+            unit={unit}
+            label={formatLength(W, unit)}
+            s={s}
+            side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'width', mm } })}
+          />
+          <EditableDimension
+            x1={W + dimOffset}
+            y1={0}
+            x2={W + dimOffset}
+            y2={H}
+            valueMm={H}
+            unit={unit}
+            label={formatLength(H, unit)}
+            s={s}
+            side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'height', mm } })}
+          />
           {stages.map((stage) => {
             const top = H - (stage.y + stage.clearHeight)
             const bottom = H - stage.y
@@ -308,14 +349,17 @@ export function FrontView({
                   <line x1={0} y1={top} x2={-dimOffset - 5 * s} y2={top} vectorEffect="non-scaling-stroke" />
                   <line x1={0} y1={bottom} x2={-dimOffset - 5 * s} y2={bottom} vectorEffect="non-scaling-stroke" />
                 </g>
-                <Dimension
+                <EditableDimension
                   x1={-dimOffset}
                   y1={top}
                   x2={-dimOffset}
                   y2={bottom}
+                  valueMm={stage.clearHeight}
+                  unit={unit}
                   label={formatLength(stage.clearHeight, unit)}
                   s={s}
                   side={-1}
+                  onCommit={(mm) => onChange?.({ type: 'setStageHeight', shelfBelowId: stage.shelfBelowId, mm })}
                 />
               </g>
             )

@@ -1,5 +1,6 @@
 import { setPieceProperty, setPlanSize } from './edit'
 import { getStages, sortedShelves } from './pieces'
+import { moveObject } from './objects'
 import { moveWedge } from './tools'
 import type { Plan } from './types'
 
@@ -80,6 +81,28 @@ export function dragWedgeToStage(
     }
   }
   return null
+}
+
+/**
+ * Plan avec un objet de simulation amené vers (`rawX`, `rawY`) : bord gauche de l'objet et hauteur du curseur (mm).
+ * L'objet passe dans l'étage sous le curseur (le plus proche s'il est sur une tablette) et s'aimante contre ses voisins.
+ */
+export function dragObjectToStage(
+  plan: Plan,
+  id: string,
+  rawX: number,
+  rawY: number,
+  step: number | null,
+): { plan: Plan; id: string; shelfBelowId: string; x: number } | null {
+  const stages = getStages(plan)
+  const distance = (s: { y: number; clearHeight: number }) =>
+    rawY < s.y ? s.y - rawY : rawY > s.y + s.clearHeight ? rawY - (s.y + s.clearHeight) : 0
+  const stage = [...stages].sort((a, b) => distance(a) - distance(b))[0]
+  if (!stage) return null
+  const result = moveObject(plan, id, stage.shelfBelowId, rawX, step)
+  if (!result.ok) return null
+  const placed = result.plan.placedObjects!.find((p) => `obj:${p.id}` === result.id)!
+  return { plan: result.plan, id: result.id, shelfBelowId: stage.shelfBelowId, x: placed.x }
 }
 
 /** Plan avec le cadre amené vers la largeur et/ou la hauteur demandées (mm, non arrondis). */

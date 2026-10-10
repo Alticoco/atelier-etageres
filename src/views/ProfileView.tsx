@@ -10,6 +10,7 @@ import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX, Dimension } from './Dimension'
+import { EditableDimension } from './EditableDimension'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
 
@@ -86,6 +87,7 @@ export function ProfileView({
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!viewBox) return
+    if ((e.target as Element).closest('[data-dim-edit]')) return
     const base = { startX: e.clientX, startY: e.clientY }
     const handle = (e.target as Element).closest('[data-handle-piece]')?.getAttribute('data-handle-piece')
     const supportId = (e.target as Element).closest('[data-support-id]')?.getAttribute('data-support-id')
@@ -268,15 +270,29 @@ export function ProfileView({
               ))}
           </g>
 
-          <Dimension x1={0} y1={H + dimOffset} x2={depth} y2={H + dimOffset} label={formatLength(depth, unit)} s={s} side={1} />
-          <Dimension
+          <EditableDimension
+            x1={0}
+            y1={H + dimOffset}
+            x2={depth}
+            y2={H + dimOffset}
+            valueMm={depth}
+            unit={unit}
+            label={formatLength(depth, unit)}
+            s={s}
+            side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'depth', mm } })}
+          />
+          <EditableDimension
             x1={depth + 2.2 * dimOffset}
             y1={0}
             x2={depth + 2.2 * dimOffset}
             y2={H}
+            valueMm={H}
+            unit={unit}
             label={formatLength(H, unit)}
             s={s}
             side={1}
+            onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'height', mm } })}
           />
           {stages.map((stage) => {
             const top = H - (stage.y + stage.clearHeight)
@@ -287,14 +303,17 @@ export function ProfileView({
                   <line x1={depth} y1={top} x2={depth + dimOffset + 5 * s} y2={top} vectorEffect="non-scaling-stroke" />
                   <line x1={depth} y1={bottom} x2={depth + dimOffset + 5 * s} y2={bottom} vectorEffect="non-scaling-stroke" />
                 </g>
-                <Dimension
+                <EditableDimension
                   x1={depth + dimOffset}
                   y1={top}
                   x2={depth + dimOffset}
                   y2={bottom}
+                  valueMm={stage.clearHeight}
+                  unit={unit}
                   label={formatLength(stage.clearHeight, unit)}
                   s={s}
                   side={-1}
+                  onCommit={(mm) => onChange?.({ type: 'setStageHeight', shelfBelowId: stage.shelfBelowId, mm })}
                 />
               </g>
             )
