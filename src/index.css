@@ -1415,3 +1415,17 @@ button.tab {
   border-radius: 8px;
   background: #fffaf0;
 }
+
+/* Repères d'aimantation (visibles seulement quand une pièce s'y cale) */
+.guide-line line {
+  stroke: #d1478a;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+.guide-line text {
+  fill: #d1478a;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #fffdfa;
+  stroke-width: 3px;
+}

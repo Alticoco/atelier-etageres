@@ -9,6 +9,7 @@ import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX, Dimension } from './Dimension'
 import { fillStyle } from './colorStyle'
+import { GuideLine } from './GuideLine'
 import { EditableDimension } from './EditableDimension'
 import { useSupportDrag } from './useSupportDrag'
 import { useViewport } from './useViewport'
@@ -147,6 +148,27 @@ export function BottomView({ plan, unit = 'cm', selection = [], snapStep = 10, o
                 ),
               ]
             })}
+
+          {supportDrag.guides.x && (
+            <GuideLine
+              x1={supportDrag.guides.x.pos + supportDrag.guides.x.size / 2}
+              y1={0}
+              x2={supportDrag.guides.x.pos + supportDrag.guides.x.size / 2}
+              y2={depth + overflow.front}
+              label={supportDrag.guides.x.label}
+              s={s}
+            />
+          )}
+          {supportDrag.guides.z && (
+            <GuideLine
+              x1={0}
+              y1={supportDrag.guides.z.pos + supportDrag.guides.z.size / 2}
+              x2={plan.width}
+              y2={supportDrag.guides.z.pos + supportDrag.guides.z.size / 2}
+              label={supportDrag.guides.z.label}
+              s={s}
+            />
+          )}
 
           <EditableDimension
             x1={0}

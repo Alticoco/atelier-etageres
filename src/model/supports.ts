@@ -1,4 +1,5 @@
 import { fail, finish, type EditResult } from './edit'
+import { nearestGuide, supportXGuides, supportZGuides, type Guide } from './guides'
 import { profileSize } from './profile'
 import type { Plan, Support } from './types'
 
@@ -219,15 +220,29 @@ export function dragSupport(plan: Plan, id: string, raw: { x?: number; y?: numbe
   if (step !== null) {
     const front = frontDepth(plan)
     if (to.z !== undefined) {
-      if (Math.abs(to.z) <= SUPPORT_MAGNET_MM) to.z = 0
+      const zGuide = raw.z === undefined ? null : nearestGuide(supportZGuides(support, front), raw.z)
+      if (zGuide) to.z = Math.max(0, zGuide.pos)
+      else if (Math.abs(to.z) <= SUPPORT_MAGNET_MM) to.z = 0
       else if (Math.abs(to.z + support.depth - front) <= SUPPORT_MAGNET_MM) to.z = Math.max(0, front - support.depth)
     }
     if (to.y !== undefined && Math.abs(to.y + support.height) <= SUPPORT_MAGNET_MM) to.y = -support.height
     if (to.x !== undefined) {
-      if (Math.abs(to.x) <= SUPPORT_MAGNET_MM) to.x = 0
+      const xGuide = raw.x === undefined ? null : nearestGuide(supportXGuides(plan, id), raw.x)
+      if (xGuide) to.x = xGuide.pos
+      else if (Math.abs(to.x) <= SUPPORT_MAGNET_MM) to.x = 0
       else if (Math.abs(to.x + support.width - plan.width) <= SUPPORT_MAGNET_MM) to.x = plan.width - support.width
     }
   }
   const result = moveSupport(plan, id, to)
   return result.ok ? result.plan : plan
+}
+
+/** Repères sur lesquels le support est calé à sa position actuelle (pour les afficher pendant le glisser). */
+export function supportGuidesAt(plan: Plan, id: string): { x: Guide | null; z: Guide | null } {
+  const support = plan.supports?.find((s) => s.id === id)
+  if (!support) return { x: null, z: null }
+  return {
+    x: supportXGuides(plan, id).find((g) => g.pos === support.x) ?? null,
+    z: supportZGuides(support, frontDepth(plan)).find((g) => g.pos === support.z) ?? null,
+  }
 }

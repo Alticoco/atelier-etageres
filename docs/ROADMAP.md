@@ -50,6 +50,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] **Étape 17f — Modes de construction : encoches et bouts de tablettes** (demande d'Alexis) : par côté, montant « vissé » ou « à encoches » (mi-bois, les tablettes traversent et dépassent) ; bout qui dépasse droit, arrondi ou coupé en biais (angle au choix), des deux côtés. Modèle avec cadre ; choix par défaut à confirmer par l'auteur (voir DECISIONS).
 - [x] **Étape 17g — Nombre d'étages et variantes** (demande d'Alexis, 10 octobre 2026) : régler le nombre d'étages dans le panneau pour préconstruire l'étagère ; bouton « Dupliquer » pour créer une variante dans un nouvel onglet.
 - [x] **Étape 17h — Couleurs d'affichage** (demande d'Alexis, 10 octobre 2026) : couleurs par catégorie et par pièce (tons de bois, contrastes, décor), en 2D et en 3D.
+- [x] **Étape 17i — Repères d'aimantation** (demande d'Alexis, 10 octobre 2026) : milieu, écarts égaux (tiers, quarts), alignement entre étages, pour les cales et les supports.
 - [~] **Étape 18 — Supports (planches de soutien à part)** (demande d'Alexis, 10 octobre 2026) :
   - [x] 18a — Supports sous et autour de l'étagère : largeur, hauteur, profondeur, position, recul depuis le mur ; réglage au panneau et en tirant dans les vues de face, de profil et de dessous (nouvelle) ; liste de découpe à part.
   - [ ] 18b — Supports dans le PDF ; aimantation sur d'autres supports ; copie / symétrie d'un support.

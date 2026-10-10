@@ -278,3 +278,10 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Élément de décor (table, meuble voisin)** : un support avec sa propre couleur ; on choisit la pièce puis la couleur dans le panneau (« Couleur de la pièce choisie »).
 - **Où ça s'applique** : vues de face, de profil (pièces visibles seulement : les pièces cachées restent en pointillés), de dessous et 3D. **Pas le PDF** (noir et blanc, pour l'impression) ni les objets de simulation, qui gardent leur couleur par type.
 - **Sécurité** : seules les couleurs `#rrggbb` sont acceptées, à l'import comme à la saisie ; un identifiant « __proto__ » n'a aucun effet. Le sélecteur libre n'applique la couleur qu'à sa fermeture (un seul pas d'historique).
+
+## 2026-10-10 (repères d'aimantation invisibles)
+
+- **Repères « invisibles »** (`src/model/guides.ts`, fonctions pures testées) : quand on glisse une cale ou un support, il se cale sur des positions remarquables à moins de 12 mm ; **le repère n'apparaît (trait rose en pointillés avec son nom) qu'au moment où la pièce s'y cale**, et disparaît au relâchement. Ils l'emportent sur les aimants contre les bords (montant, cale voisine). Alt maintenu = ni arrondi ni repère.
+- **Cales** : le milieu de l'étage ; **écarts égaux** avec les autres cales de l'étage, avec le même écart entre elles et avec chaque montant (une seule cale : milieu ; deux : tiers ; trois : quarts, en tenant compte de leur épaisseur) ; l'**alignement avec une cale d'un autre étage** (trait sur toute la hauteur).
+- **Supports** : centre au milieu, au tiers (1/3, 2/3) ou au quart (1/4, 3/4) de la largeur ; écarts égaux entre les supports du dessous ; en profondeur, centré dans la profondeur de l'étagère. Affichés en vues de face, de profil et de dessous.
+- **Pas pour les objets de simulation** (ils ont déjà l'aimantation contre leurs voisins) ni pour les tablettes (leur hauteur suit l'aimantation par pas).

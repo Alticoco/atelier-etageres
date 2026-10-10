@@ -11,7 +11,9 @@ import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
 import { DIM_OFFSET_PX } from './Dimension'
+import type { Guide } from '../model/guides'
 import { fillStyle } from './colorStyle'
+import { GuideLine } from './GuideLine'
 import { EditableDimension } from './EditableDimension'
 import { useViewport } from './useViewport'
 import { ViewControls } from './ViewControls'
@@ -89,6 +91,8 @@ export function FrontView({
   const pendingRef = useRef<EditorAction | null>(null)
   // Plan « en cours de glisser » : affiché à la place du vrai plan jusqu'au relâchement.
   const [draft, setDraft] = useState<Plan | null>(null)
+  // Repère sur lequel la cale glissée est calée (milieu, écarts égaux, alignement), affiché pendant le geste.
+  const [wedgeGuide, setWedgeGuide] = useState<{ guide: Guide; shelfBelowId: string } | null>(null)
   const supportDrag = useSupportDrag({
     plan,
     scale,
@@ -179,6 +183,7 @@ export function FrontView({
         const moved = dragWedgeToStage(plan, g.pieceId, g.startValue + dx * g.scale, (g.startCenterY ?? 0) - dy * g.scale, step)
         if (moved) {
           setDraft(moved.plan)
+          setWedgeGuide(moved.guide ? { guide: moved.guide, shelfBelowId: moved.shelfBelowId } : null)
           pendingRef.current = { type: 'placeWedge', wedgeId: g.pieceId, shelfBelowId: moved.shelfBelowId, x: moved.x }
         }
       }
@@ -199,6 +204,7 @@ export function FrontView({
     const action = pendingRef.current
     pendingRef.current = null
     setDraft(null)
+    setWedgeGuide(null)
     if (!g || !e) return
 
     if (g.kind !== 'pan' && g.active) {
@@ -306,6 +312,27 @@ export function FrontView({
                 {marks[r.id]}
               </text>
             ))}
+
+          {wedgeGuide &&
+            (() => {
+              const stage = stages.find((st) => st.shelfBelowId === wedgeGuide.shelfBelowId)
+              if (!stage) return null
+              const cx = wedgeGuide.guide.pos + wedgeGuide.guide.size / 2
+              // Un alignement avec une autre cale traverse toute la hauteur ; les autres repères restent dans l'étage.
+              const top = wedgeGuide.guide.aligned ? 0 : H - (stage.y + stage.clearHeight)
+              const bottom = wedgeGuide.guide.aligned ? H : H - stage.y
+              return <GuideLine x1={cx} y1={top} x2={cx} y2={bottom} label={wedgeGuide.guide.label} s={s} />
+            })()}
+          {supportDrag.guides.x && (
+            <GuideLine
+              x1={supportDrag.guides.x.pos + supportDrag.guides.x.size / 2}
+              y1={0}
+              x2={supportDrag.guides.x.pos + supportDrag.guides.x.size / 2}
+              y2={H + overflow.below}
+              label={supportDrag.guides.x.label}
+              s={s}
+            />
+          )}
 
           <g className="handles">
             <rect className="handle handle-right" data-handle="right" x={W} y={0} width={hs} height={H}>
