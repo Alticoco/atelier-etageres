@@ -6,6 +6,7 @@ import { removePieces } from './tools'
 import {
   addSupport,
   alignSupportFront,
+  duplicateSupport,
   dragSupport,
   frontDepth,
   setSupportProperty,
@@ -115,5 +116,50 @@ describe('supports', () => {
     const bad = JSON.parse(JSON.stringify(plan))
     bad.supports[0].z = -5
     expect(parsePlan(bad).ok).toBe(false)
+  })
+
+  it('dupliquer : la copie se place à côté, avec 5 cm d’écart, mêmes dimensions', () => {
+    const { plan, id } = withSupport()
+    const r = duplicateSupport(plan, id, 'next')
+    if (!r.ok) throw new Error(r.error)
+    expect(r.plan.supports).toHaveLength(2)
+    expect(r.plan.supports![1]).toEqual({ ...plan.supports![0], id: 'support-2', x: 150 })
+    expect(r.id).toBe('support-2')
+  })
+
+  it('dupliquer le dernier support à droite : la copie passe à sa gauche', () => {
+    const { plan, id } = withSupport()
+    const moved = setSupportProperty(plan, id, 'x', 700)
+    if (!moved.ok) throw new Error(moved.error)
+    const r = duplicateSupport(moved.plan, id, 'next')
+    expect(r.ok && r.plan.supports![1].x).toBe(550)
+  })
+
+  it('copie symétrique : de l’autre côté de l’étagère ; refus si déjà au milieu', () => {
+    const { plan, id } = withSupport()
+    const r = duplicateSupport(plan, id, 'mirror')
+    expect(r.ok && r.plan.supports![1].x).toBe(700)
+    const centered = setSupportProperty(plan, id, 'x', 350)
+    if (!centered.ok) throw new Error(centered.error)
+    expect(duplicateSupport(centered.plan, id, 'mirror').ok).toBe(false)
+  })
+
+  it('planche de base sans support : sous toute l’étagère', () => {
+    const r = addSupport(base(), 'base')
+    if (!r.ok) throw new Error(r.error)
+    expect(r.plan.supports![0]).toEqual({ id: 'support-1', x: 0, y: -18, z: 0, width: 800, height: 18, depth: 250 })
+  })
+
+  it('planche de base : sous les supports du dessous, de leur plus à gauche à leur plus à droite', () => {
+    let plan = base()
+    for (let i = 0; i < 2; i++) {
+      const r = addSupport(plan, 'under')
+      if (!r.ok) throw new Error(r.error)
+      plan = r.plan
+    }
+    const r = addSupport(plan, 'base')
+    if (!r.ok) throw new Error(r.error)
+    // Supports en x = 0 et 700 (100 de large, 40 de haut, z = 150, profondeur 100).
+    expect(r.plan.supports![2]).toEqual({ id: 'support-3', x: 0, y: -58, z: 150, width: 800, height: 18, depth: 100 })
   })
 })

@@ -52,6 +52,13 @@ export function SupportsSection({ plan, selection, unit, dispatch }: SupportsSec
         <button type="button" onClick={() => dispatch({ type: 'addSupport', placement: 'right' })}>
           Ajouter à droite
         </button>
+        <button
+          type="button"
+          title="Une planche horizontale sous tous les supports du dessous, pour les relier et donner une base stable"
+          onClick={() => dispatch({ type: 'addSupport', placement: 'base' })}
+        >
+          Ajouter une planche de base
+        </button>
       </div>
 
       {supports.map((support, index) => {
@@ -94,6 +101,16 @@ export function SupportsSection({ plan, selection, unit, dispatch }: SupportsSec
                 <div className="tool-buttons">
                   <button type="button" onClick={() => dispatch({ type: 'alignSupportFront', id: support.id })}>
                     Coller à l’avant
+                  </button>
+                  <button type="button" onClick={() => dispatch({ type: 'duplicateSupport', id: support.id, mode: 'next' })}>
+                    Dupliquer
+                  </button>
+                  <button
+                    type="button"
+                    title="Copie placée de l’autre côté de l’étagère"
+                    onClick={() => dispatch({ type: 'duplicateSupport', id: support.id, mode: 'mirror' })}
+                  >
+                    Copie symétrique
                   </button>
                   <button type="button" className="danger" onClick={() => dispatch({ type: 'removePieces', ids: [support.id] })}>
                     Supprimer
