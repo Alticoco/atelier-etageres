@@ -9,7 +9,7 @@ import { stageLabel } from './stageLabel'
 import { SupportsSection } from './SupportsSection'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
 import { parseVerticalId, pieceLabel } from '../model/labels'
-import { computePieces, getStages, sortedShelves } from '../model/pieces'
+import { computePieces, fullUprightLength, getStages, sortedShelves } from '../model/pieces'
 import { radiusLimits } from '../model/rounding'
 import { isObjectId } from '../model/objects'
 import { isSupportId } from '../model/supports'
@@ -98,6 +98,22 @@ interface StageToolsProps {
   defaultStageId?: string
 }
 
+/** Valeur du menu « Contenu de l'étage » pour un étage. */
+function frontKey(plan: Plan, shelfBelowId: string): string {
+  const front = plan.fronts?.find((f) => f.shelfBelowId === shelfBelowId)
+  if (!front) return 'open'
+  if (front.type === 'drawer') return 'drawer'
+  return front.count === 2 ? 'doors-2' : `door-${front.hinge}`
+}
+
+function frontChoice(key: string): Extract<EditorAction, { type: 'setFront' }>['choice'] {
+  if (key === 'drawer') return { type: 'drawer' }
+  if (key === 'doors-2') return { type: 'doors', count: 2 }
+  if (key === 'door-left') return { type: 'doors', count: 1, hinge: 'left' }
+  if (key === 'door-right') return { type: 'doors', count: 1, hinge: 'right' }
+  return null
+}
+
 /** Outils qui agissent sur un étage ou sur toute l'étagère : ajouter, espacer. */
 function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
   const stages = getStages(plan)
@@ -135,6 +151,23 @@ function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
           Espacer les tablettes également
         </button>
       </div>
+      {plan.model === 'frame' && stageId && (
+        <div className="field">
+          <label>
+            Contenu de l’étage
+            <select
+              value={frontKey(plan, stageId)}
+              onChange={(e) => dispatch({ type: 'setFront', shelfBelowId: stageId, choice: frontChoice(e.target.value) })}
+            >
+              <option value="open">Ouvert</option>
+              <option value="door-left">Une porte, charnières à gauche</option>
+              <option value="door-right">Une porte, charnières à droite</option>
+              <option value="doors-2">Deux portes</option>
+              <option value="drawer">Un tiroir</option>
+            </select>
+          </label>
+        </div>
+      )}
       {stages.length > 1 && (
         <div className="copy-wedges">
           <div className="field">
@@ -307,6 +340,23 @@ function PieceCard({ plan, ids, unit, dispatch }: PieceCardProps) {
               <small className="field-hint">Sans montant, l’extrémité de l’étage se termine par la seule tablette.</small>
             </div>
           )}
+        </>
+      )}
+      {single?.kind === 'upright' && plan.model === 'frame' && (
+        <>
+          <LengthField
+            key={`ul-${single.id}-${single.length}-${unit}`}
+            label="Hauteur du montant (coupé)"
+            valueMm={single.length ?? 0}
+            unit={unit}
+            onCommit={(mm) => commitPiece('length', mm)}
+          />
+          {single.length !== undefined && single.length < fullUprightLength(plan) && (
+            <button type="button" className="link-button" onClick={() => commitPiece('length', fullUprightLength(plan))}>
+              Rétablir la hauteur complète ({formatLength(fullUprightLength(plan), unit)})
+            </button>
+          )}
+          <p className="panel-hint">Option : raccourcir ce montant pour avoir deux côtés de hauteurs différentes. Les tablettes ne changent pas.</p>
         </>
       )}
       {single?.kind === 'upright' && plan.model === 'frameless' && (

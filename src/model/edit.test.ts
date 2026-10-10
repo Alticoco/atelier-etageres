@@ -196,7 +196,7 @@ describe('readPiece', () => {
     const plan = planWithWedge()
     expect(readPiece(plan, 'shelf-2')).toMatchObject({ kind: 'shelf', thickness: 18, depth: 250, y: plan.shelves[1].y })
     expect(readPiece(plan, 'wedge-1')).toMatchObject({ kind: 'wedge', x: 300 })
-    expect(readPiece(plan, 'upright-left')).toEqual({ kind: 'upright', thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
+    expect(readPiece(plan, 'upright-left')).toEqual({ kind: 'upright', thickness: 18, depth: 250, length: plan.height, cornerRadius: 0, edgeRadius: 0 })
     expect(readPiece(plan, 'nope')).toBeNull()
   })
 })

@@ -1562,3 +1562,76 @@ button.tab {
   stroke: #fffdfa;
   stroke-width: 3px;
 }
+
+.export-items .export-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.export-items .export-option small {
+  display: block;
+  color: var(--ink-soft, inherit);
+  opacity: 0.75;
+}
+
+.front-view {
+  position: relative;
+}
+
+.context-menu {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 15rem;
+  padding: 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.context-menu button {
+  height: auto;
+  padding: 0.4rem 0.7rem;
+  text-align: left;
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-sm);
+}
+
+.context-menu button:hover {
+  background: var(--accent-soft, rgba(0, 0, 0, 0.06));
+}
+
+.context-menu button.danger {
+  color: var(--danger);
+}
+
+.context-menu-title {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.piece-front {
+  fill: #ecd9b4;
+  fill-opacity: 0.82;
+  stroke: var(--wood-dark);
+}
+.piece-front.selected {
+  stroke: var(--cote);
+  stroke-width: 3;
+}
+.front-handle {
+  fill: none;
+  stroke: var(--wood-dark);
+  stroke-width: 2;
+  pointer-events: none;
+}

@@ -296,3 +296,19 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Passer un côté à encoches ne déplace plus le montant** : ce sont les tablettes qui s'allongent vers l'extérieur de la longueur qui dépasse, donc la **largeur hors-tout augmente** (et diminue en repassant en vissé). Changer « Tablette qui dépasse » dans le panneau fait pareil. Les cales et les supports suivent le décalage de l'origine côté gauche.
 - **Le montant à encoches se glisse à la souris en vue de face** (comme une cale, aimantation et Alt comprises) : la largeur hors-tout reste alors fixe et c'est la longueur qui dépasse qui change (action `moveUpright`). L'arrondi du bout ne concerne que la partie qui dépasse (rayon ≤ longueur qui dépasse).
 
+## 2026-10-10 (étape 18b — supports dans le PDF)
+- **Option dans le menu « Exporter »** (case « Supports sur le plan PDF », cochée par défaut, visible seulement si le plan a des supports). Cochée : supports en **tireté sans remplissage** en vue de face et de profil, pastilles S1, S2…, lignes « Supports (à part de l'étagère, tireté) » sous la liste de découpe et une note. Décochée : le PDF est celui d'avant. Dans les deux cas le plan joint (ré-import) contient les supports.
+- L'échelle et le cadrage du PDF tiennent compte des supports qui dépassent de l'étagère ; les cotes hors-tout restent celles de l'étagère seule.
+
+## 2026-10-10 (17b et 19 — montant coupé, menu du clic droit)
+- **Montant coupé** : champ facultatif `leftUpright.length` / `rightUpright.length` (mm, absent = hauteur complète, ramené à la hauteur complète si trop grand). Modèle avec cadre seulement ; le montant garde son pied (bas) et perd le haut ; les tablettes ne changent pas. Longueur propre dans la liste de découpe, la vue de face, le profil, la 3D et le PDF (tout lit les mêmes rectangles).
+- **Menu au clic droit (vue de face)** : liste d'actions déjà existantes de l'éditeur, construite par une fonction pure (`src/model/contextMenu.ts`). Le clic gauche (sélection, glisser) est inchangé. Pas de menu au clic droit dans les autres vues pour l'instant.
+
+## 2026-10-10 (V3 — portes et tiroirs, première version)
+- **Un choix par étage** (`plan.fronts`, identifié par la tablette du dessous) : ouvert, une porte (charnières à gauche ou à droite), deux portes, un tiroir. Modèle avec cadre seulement. Un choix dont l'étage a disparu est ignoré (pas d'erreur).
+- **Portes encastrées** dans l'ouverture entre les montants, au ras de l'avant de l'étage, avec **2 mm de jeu** autour et entre deux portes ; épaisseur = celle de la première tablette. Les portes sont dessinées semi-transparentes à l'écran pour voir ce qu'elles cachent.
+- **Tiroir** (valeurs par défaut, **à confirmer par l'auteur**) : façade + caisse : 13 mm de jeu de coulisse de chaque côté, côtés et arrière en 12 mm, fond de 6 mm, 20 mm de jeu au fond, caisse 30 mm moins haute que la façade. Un étage trop petit pour la caisse refuse le tiroir (message).
+- **Liste de découpe à part** (repères P1, P2…), comme les supports, hors du total des pièces de l'étagère ; sur le PDF : portes dessinées avec le triangle de charnière, tiroirs avec une poignée, lignes sous la liste. **Pas de quincaillerie** (charnières, coulisses, poignées) dans la liste.
+- **Pas en vue de profil ni de dessous** (cachées par le montant). En 3D : plaques de façade et une caisse pleine pour le tiroir.
+- Réglage : menu « Contenu de l'étage » (onglet Étages) ou clic droit dans l'étage / sur la porte.
+

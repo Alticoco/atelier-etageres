@@ -39,6 +39,7 @@ const KIND_COLORS: Record<string, string> = {
   shelf: '#dcb985',
   wedge: '#ecd7b0',
   support: '#c9d6c1',
+  front: '#e8cf9f',
   wall: '#e4ddd0',
 }
 

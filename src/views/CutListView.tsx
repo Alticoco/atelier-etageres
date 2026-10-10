@@ -10,7 +10,7 @@ interface CutListViewProps {
 
 /** Liste de découpe : pièces regroupées par dimensions identiques, avec quantité et repère. */
 export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
-  const { groups, totalPieces, sawKerf, supports } = computeCutList(plan)
+  const { groups, totalPieces, sawKerf, supports, fronts } = computeCutList(plan)
   const hasJoinery = groups.some((g) => g.notches || g.endLeft || g.endRight)
 
   return (
@@ -62,6 +62,42 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
           )}
         </tfoot>
       </table>
+      {fronts.length > 0 && (
+        <table className="supports-table">
+          <caption>Portes et tiroirs</caption>
+          <thead>
+            <tr>
+              <th scope="col">Repère</th>
+              <th scope="col">Quantité</th>
+              <th scope="col">Longueur ({unit})</th>
+              <th scope="col">Largeur ({unit})</th>
+              <th scope="col">Épaisseur ({unit})</th>
+              <th scope="col">Pièces</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fronts.map((group) => (
+              <tr key={group.mark}>
+                <th scope="row" className="mark-cell">
+                  {group.mark}
+                </th>
+                <td>{group.quantity}</td>
+                <td>{formatNumber(group.length, unit)}</td>
+                <td>{formatNumber(group.width, unit)}</td>
+                <td>{formatNumber(group.thickness, unit)}</td>
+                <td className="cutlist-pieces">{group.labels.join(', ')}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Total</th>
+              <td>{fronts.reduce((sum, g) => sum + g.quantity, 0)}</td>
+              <td colSpan={4}>planches de portes et tiroirs à découper en plus (quincaillerie non comptée)</td>
+            </tr>
+          </tfoot>
+        </table>
+      )}
       {supports.length > 0 && (
         <table className="supports-table">
           <caption>Supports (à part de l’étagère)</caption>

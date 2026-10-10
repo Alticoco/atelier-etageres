@@ -41,7 +41,6 @@ export function computeFrontRects(plan: Plan): Rect[] {
   } else {
     const onTop = options.framePlacement === 'onTop'
     const uprightY = onTop ? (shelves[0]?.thickness ?? 0) : 0
-    const uprightHeight = uprightLength(plan)
     rects.push(
       {
         id: 'upright-left',
@@ -49,7 +48,7 @@ export function computeFrontRects(plan: Plan): Rect[] {
         x: bodyEdges(plan).left,
         y: uprightY,
         width: leftUpright.thickness,
-        height: uprightHeight,
+        height: uprightLength(plan, 'left'),
         depth: leftUpright.depth,
         cornerRadius: leftUpright.cornerRadius,
         edgeRadius: leftUpright.edgeRadius,
@@ -60,7 +59,7 @@ export function computeFrontRects(plan: Plan): Rect[] {
         x: bodyEdges(plan).right - rightUpright.thickness,
         y: uprightY,
         width: rightUpright.thickness,
-        height: uprightHeight,
+        height: uprightLength(plan, 'right'),
         depth: rightUpright.depth,
         cornerRadius: rightUpright.cornerRadius,
         edgeRadius: rightUpright.edgeRadius,

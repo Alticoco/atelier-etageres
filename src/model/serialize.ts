@@ -1,7 +1,7 @@
 import { checkPlan } from './edit'
 import { MAX_GAP, MAX_PLACED, MAX_ROW_COUNT, objectKind } from './objects'
 import { isColor } from './colors'
-import type { Joint, ObjectRow, PlacedObject, Plan, PlanColors, Support } from './types'
+import type { Joint, ObjectRow, PlacedObject, Plan, PlanColors, StageFront, Support } from './types'
 
 /**
  * Format de fichier d'un plan (`.etagere.json`) : { format, version, plan }.
@@ -73,6 +73,7 @@ function upright(value: unknown, where: string) {
   return {
     thickness: int(obj, 'thickness', where, 1),
     depth: int(obj, 'depth', where, 1),
+    ...(obj.length === undefined ? {} : { length: int(obj, 'length', where, 1) }),
     cornerRadius: optionalInt(obj, 'cornerRadius', where, 0, 0),
     edgeRadius: optionalInt(obj, 'edgeRadius', where, 0, 0),
   }
@@ -159,6 +160,18 @@ function readPlan(value: unknown): Plan {
     }
   })
 
+  const fronts: StageFront[] = root.fronts === undefined ? [] : list(root, 'fronts', 'Plan', 100).map((item, i) => {
+    const where = `Porte ou tiroir ${i + 1}`
+    const obj = record(item, where)
+    const type = obj.type
+    if (type !== 'doors' && type !== 'drawer') fail(`${where} : « type » doit valoir « doors » ou « drawer ».`)
+    const count = obj.count === undefined ? 1 : obj.count
+    if (count !== 1 && count !== 2) fail(`${where} : « count » doit valoir 1 ou 2.`)
+    const hinge = obj.hinge === undefined ? 'left' : obj.hinge
+    if (hinge !== 'left' && hinge !== 'right') fail(`${where} : « hinge » doit valoir « left » ou « right ».`)
+    return { shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), type, count, hinge }
+  })
+
   const joint = (value: unknown, where: string): Joint => {
     const obj = record(value, where)
     const type = obj.type
@@ -213,6 +226,7 @@ function readPlan(value: unknown): Plan {
     ...(rows.length > 0 ? { rows } : {}),
     ...(placedObjects.length > 0 ? { placedObjects } : {}),
     ...(supports.length > 0 ? { supports } : {}),
+    ...(fronts.length > 0 ? { fronts } : {}),
     ...(joints ? { joints } : {}),
     ...(colors ? { colors } : {}),
     options: {
