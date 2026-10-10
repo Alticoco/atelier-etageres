@@ -1,4 +1,5 @@
 import { computeCutList, describeJoinery, roundingCode } from '../model/cutlist'
+import { frontRects } from '../model/fronts'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
@@ -256,6 +257,31 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date(), support
   }
   for (const r of computeFrontRects(plan)) bubble(fx(r.x + r.width / 2), fy(r.y + r.height / 2), cutList.marks[r.id])
 
+  // Portes et tiroirs : pleins, avec le trait de charnière (triangle) ou la poignée.
+  const fronts = frontRects(plan)
+  const frontMarks: Record<string, string> = {}
+  for (const g of cutList.fronts) for (const id of g.ids) frontMarks[id] = g.mark
+  for (const f of fronts) {
+    const x1 = fx(f.x)
+    const x2 = fx(f.x + f.width)
+    const yTop = fy(f.y + f.height)
+    const yBottom = fy(f.y)
+    rect(x1, yTop, f.width / d, f.height / d, { fill: 0.97, strokeWidth: 0.25 })
+    if (f.type === 'door') {
+      // Convention des plans : les deux traits partent du côté libre et se rejoignent au milieu du côté des charnières.
+      const hingeX = f.hinge === 'left' ? x1 : x2
+      const freeX = f.hinge === 'left' ? x2 : x1
+      line(freeX, yTop, hingeX, (yTop + yBottom) / 2, 0.15, 0.4)
+      line(freeX, yBottom, hingeX, (yTop + yBottom) / 2, 0.15, 0.4)
+    } else {
+      const cx = (x1 + x2) / 2
+      line(cx - 3, (yTop + yBottom) / 2, cx + 3, (yTop + yBottom) / 2, 0.5)
+    }
+  }
+  for (const f of fronts) {
+    if (frontMarks[f.id]) bubble(fx(f.x + f.width / 2), fy(f.y + f.height * 0.75), frontMarks[f.id])
+  }
+
   // Supports : planches à part, en tireté et sans remplissage pour ne pas les confondre avec l'étagère.
   const supportMarks: Record<string, string> = {}
   for (const g of cutList.supports) for (const id of g.ids) supportMarks[id] = g.mark
@@ -370,7 +396,8 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date(), support
   const groups = cutList.groups
   const supportGroups = showSupports ? cutList.supports : []
   // Les supports (un titre et une ligne par lot) ont leur place réservée ; les lots de l'étagère se tronquent au besoin.
-  const supportRows = supportGroups.length > 0 ? supportGroups.length + 1 : 0
+  const frontGroupsShown = cutList.fronts
+  const supportRows = (supportGroups.length > 0 ? supportGroups.length + 1 : 0) + (frontGroupsShown.length > 0 ? frontGroupsShown.length + 1 : 0)
   const groupRows = Math.max(1, maxRows - supportRows)
   const shown = groups.length > groupRows ? groups.slice(0, groupRows - 1) : groups
   const totalRows = shown.length + (groups.length > shown.length ? 1 : 0) + supportRows
@@ -403,6 +430,14 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date(), support
     ])
   }
   if (groups.length > shown.length) row(['', '', `+ ${groups.length - shown.length} autres lots`, '', '', '', ''])
+  if (frontGroupsShown.length > 0) {
+    rect(listX, y, listW, rowH, { fill: 0.94, strokeWidth: 0.15 })
+    text(listX + 1.5, y + rowH * 0.7, 'Portes et tiroirs', 7, { bold: true })
+    y += rowH
+    for (const g of frontGroupsShown) {
+      row([g.mark, String(g.quantity), formatNumber(g.length, unit), formatNumber(g.width, unit), formatNumber(g.thickness, unit), '—', truncate(g.labels[0] ?? '', 14)])
+    }
+  }
   if (supportGroups.length > 0) {
     rect(listX, y, listW, rowH, { fill: 0.94, strokeWidth: 0.15 })
     text(listX + 1.5, y + rowH * 0.7, 'Supports (à part de l’étagère, tireté)', 7, { bold: true })

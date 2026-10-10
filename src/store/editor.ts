@@ -9,9 +9,10 @@ import {
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
 import { setCategoryColor, setPieceColors, type ColorCategory } from '../model/colors'
+import { setFront } from '../model/frontEdit'
 import { moveUpright, setJoint } from '../model/jointEdit'
 import type { Side } from '../model/joints'
-import type { Joint } from '../model/types'
+import type { Joint, StageFront } from '../model/types'
 import { addSupport, alignSupportFront, duplicateSupport, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
 import { addObjectRow, moveObject, objectIdExists, removeObjectRow, setObjectRowCount, setObjectRowGap } from '../model/objects'
 import { addShelf, addWedge, copyStageWedges, setStageCount, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
@@ -51,6 +52,7 @@ export type EditorAction =
   | { type: 'setPieceColors'; ids: string[]; color: string | null }
   | { type: 'setJoint'; side: Side; patch: Partial<Joint> }
   | { type: 'moveUpright'; side: Side; overhang: number }
+  | { type: 'setFront'; shelfBelowId: string; choice: (Pick<StageFront, 'type'> & Partial<StageFront>) | null }
   | { type: 'setStageCount'; count: number }
   | { type: 'setStageHeight'; shelfBelowId: string; mm: number }
   | { type: 'copyStageWedges'; fromId: string; toIds: string[] }
@@ -174,6 +176,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(setPieceColors(plan, action.ids, action.color))
     case 'setJoint':
       return withPlan(setJoint(plan, action.side, action.patch))
+    case 'setFront':
+      return withPlan(setFront(plan, action.shelfBelowId, action.choice))
     case 'moveUpright':
       return withPlan(moveUpright(plan, action.side, action.overhang))
     case 'setStageCount':

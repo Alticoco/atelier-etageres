@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
 import { isObjectId, layoutStage, objectKind } from '../model/objects'
+import { frontRects } from '../model/fronts'
 import { supportOverflow } from '../model/supports'
 import { useSupportDrag } from './useSupportDrag'
 import { dragObjectToStage, dragShelf, dragUpright, dragWedgeToStage, resizeFrame } from '../model/drag'
@@ -337,6 +338,26 @@ export function FrontView({
               )),
             )}
           </g>
+
+          {frontRects(shown).map((f) => (
+            <g key={f.id} className="front-door">
+              <rect
+                data-piece-id={f.id}
+                className={`piece piece-front${selection.includes(f.id) ? ' selected' : ''}`}
+                x={f.x}
+                y={H - f.y - f.height}
+                width={f.width}
+                height={f.height}
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Poignée : bouton côté opposé aux charnières pour une porte, barre centrée pour un tiroir. */}
+              {f.type === 'drawer' ? (
+                <line className="front-handle" x1={f.x + f.width / 2 - 40} x2={f.x + f.width / 2 + 40} y1={H - f.y - f.height / 2} y2={H - f.y - f.height / 2} vectorEffect="non-scaling-stroke" />
+              ) : (
+                <circle className="front-handle" cx={f.hinge === 'left' ? f.x + f.width - 25 : f.x + 25} cy={H - f.y - f.height / 2} r={8} vectorEffect="non-scaling-stroke" />
+              )}
+            </g>
+          ))}
 
           {showMarks &&
             rects.map((r) => (

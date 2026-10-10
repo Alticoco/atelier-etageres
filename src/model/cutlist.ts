@@ -1,4 +1,5 @@
 import { computePieces } from './pieces'
+import { frontGroups, type FrontGroup } from './fronts'
 import { supportGroups, type SupportGroup } from './supports'
 import { formatLength, formatNumber, type LengthUnit } from './units'
 import type { Notch, PieceEnd, Plan } from './types'
@@ -38,6 +39,8 @@ export interface CutList {
   totalPieces: number
   /** Supports (planches à part, hors étagère), listés séparément : repères S1, S2… */
   supports: SupportGroup[]
+  /** Portes et tiroirs, listés à part : repères P1, P2… */
+  fronts: FrontGroup[]
   /** Estimation de la perte due au trait de scie, ou null si l'option est désactivée. */
   sawKerf: SawKerfEstimate | null
 }
@@ -95,6 +98,7 @@ export function computeCutList(plan: Plan): CutList {
     marks,
     totalPieces,
     supports: supportGroups(plan),
+    fronts: frontGroups(plan),
     sawKerf: sawKerfEnabled ? { cuts: totalPieces, kerf: sawKerf, loss: totalPieces * sawKerf } : null,
   }
 }

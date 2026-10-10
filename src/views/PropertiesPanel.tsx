@@ -98,6 +98,22 @@ interface StageToolsProps {
   defaultStageId?: string
 }
 
+/** Valeur du menu « Contenu de l'étage » pour un étage. */
+function frontKey(plan: Plan, shelfBelowId: string): string {
+  const front = plan.fronts?.find((f) => f.shelfBelowId === shelfBelowId)
+  if (!front) return 'open'
+  if (front.type === 'drawer') return 'drawer'
+  return front.count === 2 ? 'doors-2' : `door-${front.hinge}`
+}
+
+function frontChoice(key: string): Extract<EditorAction, { type: 'setFront' }>['choice'] {
+  if (key === 'drawer') return { type: 'drawer' }
+  if (key === 'doors-2') return { type: 'doors', count: 2 }
+  if (key === 'door-left') return { type: 'doors', count: 1, hinge: 'left' }
+  if (key === 'door-right') return { type: 'doors', count: 1, hinge: 'right' }
+  return null
+}
+
 /** Outils qui agissent sur un étage ou sur toute l'étagère : ajouter, espacer. */
 function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
   const stages = getStages(plan)
@@ -135,6 +151,23 @@ function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
           Espacer les tablettes également
         </button>
       </div>
+      {plan.model === 'frame' && stageId && (
+        <div className="field">
+          <label>
+            Contenu de l’étage
+            <select
+              value={frontKey(plan, stageId)}
+              onChange={(e) => dispatch({ type: 'setFront', shelfBelowId: stageId, choice: frontChoice(e.target.value) })}
+            >
+              <option value="open">Ouvert</option>
+              <option value="door-left">Une porte, charnières à gauche</option>
+              <option value="door-right">Une porte, charnières à droite</option>
+              <option value="doors-2">Deux portes</option>
+              <option value="drawer">Un tiroir</option>
+            </select>
+          </label>
+        </div>
+      )}
       {stages.length > 1 && (
         <div className="copy-wedges">
           <div className="field">

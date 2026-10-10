@@ -170,6 +170,19 @@ export interface PlanOptions {
   sawKerf: number
 }
 
+/**
+ * Ce qu'il y a dans un étage (modèle `frame`) : une ou deux portes, ou un tiroir. Un étage sans choix est ouvert.
+ * Identifié par la tablette du dessous ; un choix dont l'étage a disparu est ignoré.
+ */
+export interface StageFront {
+  shelfBelowId: string
+  type: 'doors' | 'drawer'
+  /** Portes : une ou deux. */
+  count: 1 | 2
+  /** Une porte : côté des charnières. */
+  hinge: 'left' | 'right'
+}
+
 export interface Plan {
   /** Modèle de construction, choisi à la création. */
   model: PlanModel
@@ -188,6 +201,8 @@ export interface Plan {
   placedObjects?: PlacedObject[]
   /** Planches de soutien (à part de l'étagère), absentes s'il n'y en a pas. */
   supports?: Support[]
+  /** Portes et tiroirs par étage, absents s'il n'y en a pas. */
+  fronts?: StageFront[]
   /** Assemblage de chaque côté (modèle `frame`), absent = vissé des deux côtés. */
   joints?: { left: Joint; right: Joint }
   /** Couleurs d'affichage, absentes = couleurs par défaut. */

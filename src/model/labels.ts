@@ -25,6 +25,15 @@ export function pieceLabel(plan: Plan, id: string): string {
   const supportIndex = (plan.supports ?? []).findIndex((s) => s.id === id)
   if (supportIndex >= 0) return `Support ${supportIndex + 1}`
 
+  const door = /^door-(.+)-\d+$/.exec(id)
+  const drawer = /^drawer-(.+)$/.exec(id)
+  const front = door ?? drawer
+  if (front) {
+    const stage = sortedShelves(plan).findIndex((s) => s.id === front[1])
+    const what = drawer ? 'Tiroir' : 'Porte'
+    return stage >= 0 ? `${what}, étage ${stage + 1}` : what
+  }
+
   const wedgeIndex = plan.wedges.findIndex((w) => w.id === id)
   if (wedgeIndex >= 0) return `Cale ${wedgeIndex + 1}`
 

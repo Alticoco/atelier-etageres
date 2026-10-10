@@ -1,5 +1,7 @@
 import { effectiveColor } from './colors'
 import { computeFrontRects } from './layout'
+import { drawerBox, frontRects, DRAWER_REAR_GAP, SLIDE_GAP } from './fronts'
+import { innerSpan } from './geometry'
 import { layoutStage, objectKind } from './objects'
 import { getStages } from './pieces'
 import type { Plan } from './types'
@@ -11,7 +13,7 @@ import type { Plan } from './types'
  * Repère : x vers la droite (comme en vue de face), y vers le haut (depuis le dessous du cadre), z vers l'avant
  * (depuis le mur : le mur est en z = 0, les pièces vont de z = 0 vers z = profondeur).
  */
-export type Box3DKind = 'upright' | 'shelf' | 'wedge' | 'support' | 'object' | 'wall'
+export type Box3DKind = 'upright' | 'shelf' | 'wedge' | 'support' | 'object' | 'wall' | 'front'
 
 export interface Box3D {
   id: string
@@ -44,6 +46,9 @@ export interface Scene3D {
   max: [number, number, number]
 }
 
+const FRONT_COLOR = '#e8cf9f'
+const DRAWER_BOX_COLOR = '#d2b27a'
+
 /** Épaisseur dessinée du mur (mm). */
 export const WALL_THICKNESS = 100
 /** Le mur dépasse de l'ensemble d'au moins ça (mm) : 25 % de la plus grande dimension, plus ce minimum. */
@@ -55,6 +60,15 @@ export function buildScene3D(plan: Plan, options: { objects?: boolean; supports?
 
   for (const r of computeFrontRects(plan)) {
     boxes.push({ id: r.id, kind: r.kind, shape: 'box', x: r.x, y: r.y, z: 0, sx: r.width, sy: r.height, sz: r.depth, color: effectiveColor(plan, r.id, r.kind) })
+  }
+
+  // Portes et façades de tiroir au ras de l'avant de l'étage ; la caisse du tiroir (une boîte pleine) derrière.
+  for (const f of frontRects(plan)) {
+    boxes.push({ id: f.id, kind: 'front', shape: 'box', x: f.x, y: f.y, z: f.z, sx: f.width, sy: f.height, sz: f.thickness, color: FRONT_COLOR })
+    if (f.type !== 'drawer') continue
+    const box = drawerBox(plan, f.shelfBelowId)
+    if (!box) continue
+    boxes.push({ id: `${f.id}#box`, kind: 'front', shape: 'box', x: innerSpan(plan).left + SLIDE_GAP, y: f.y + 10, z: DRAWER_REAR_GAP, sx: box.width, sy: box.height, sz: box.depth, color: DRAWER_BOX_COLOR })
   }
 
   if (supports) {

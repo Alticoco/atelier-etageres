@@ -1619,3 +1619,19 @@ button.tab {
   font-weight: 600;
   opacity: 0.7;
 }
+
+.piece-front {
+  fill: #ecd9b4;
+  fill-opacity: 0.82;
+  stroke: var(--wood-dark);
+}
+.piece-front.selected {
+  stroke: var(--cote);
+  stroke-width: 3;
+}
+.front-handle {
+  fill: none;
+  stroke: var(--wood-dark);
+  stroke-width: 2;
+  pointer-events: none;
+}

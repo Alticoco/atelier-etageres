@@ -1,6 +1,7 @@
 import { nudgePiece } from './drag'
 import { formatLength, type LengthUnit } from './units'
 import { pieceLabel } from './labels'
+import { frontRects, isFrontId } from './fronts'
 import { isObjectId } from './objects'
 import { fullUprightLength, getStages, sortedShelves, uprightLength } from './pieces'
 import { isSupportId } from './supports'
@@ -60,11 +61,34 @@ export function contextMenuItems(plan: Plan, pieceId: string | null, at: { x: nu
     const stage = stageAt(at.y)
     items.push({ label: 'Dans le vide' })
     if (stage) addInStage(stage.shelfBelowId, 'dans cet étage')
+    if (stage && plan.model === 'frame') {
+      const id = stage.shelfBelowId
+      items.push({ label: 'Mettre une porte dans cet étage', action: { type: 'setFront', shelfBelowId: id, choice: { type: 'doors', count: 1 } } })
+      items.push({ label: 'Mettre deux portes dans cet étage', action: { type: 'setFront', shelfBelowId: id, choice: { type: 'doors', count: 2 } } })
+      items.push({ label: 'Mettre un tiroir dans cet étage', action: { type: 'setFront', shelfBelowId: id, choice: { type: 'drawer' } } })
+    }
     items.push({ label: 'Ajouter un support sous l’étagère', action: { type: 'addSupport', placement: 'under' } })
     return items
   }
 
   items.push({ label: pieceLabel(plan, pieceId) })
+  if (isFrontId(pieceId)) {
+    const stageId = frontRects(plan).find((r) => r.id === pieceId)?.shelfBelowId
+    const front = plan.fronts?.find((f) => f.shelfBelowId === stageId)
+    if (!front) return items
+    if (front.type === 'doors') {
+      if (front.count === 1) {
+        const other = front.hinge === 'left' ? 'right' : 'left'
+        items.push({ label: `Charnières à ${other === 'left' ? 'gauche' : 'droite'}`, action: { type: 'setFront', shelfBelowId: front.shelfBelowId, choice: { type: 'doors', count: 1, hinge: other } } })
+      }
+      items.push({ label: front.count === 1 ? 'Passer à deux portes' : 'Passer à une porte', action: { type: 'setFront', shelfBelowId: front.shelfBelowId, choice: { type: 'doors', count: front.count === 1 ? 2 : 1 } } })
+      items.push({ label: 'Remplacer par un tiroir', action: { type: 'setFront', shelfBelowId: front.shelfBelowId, choice: { type: 'drawer' } } })
+    } else {
+      items.push({ label: 'Remplacer par une porte', action: { type: 'setFront', shelfBelowId: front.shelfBelowId, choice: { type: 'doors', count: 1 } } })
+    }
+    items.push({ label: 'Retirer (étage ouvert)', action: { type: 'setFront', shelfBelowId: front.shelfBelowId, choice: null }, danger: true })
+    return items
+  }
   items.push({ label: 'Modifier les valeurs (panneau de droite)', action: { type: 'selectPiece', id: pieceId, additive: false } })
 
   if (pieceId === 'upright-left' || pieceId === 'upright-right') {
