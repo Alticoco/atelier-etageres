@@ -9,7 +9,7 @@ import {
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
 import { setCategoryColor, setPieceColors, type ColorCategory } from '../model/colors'
-import { setJoint } from '../model/jointEdit'
+import { moveUpright, setJoint } from '../model/jointEdit'
 import type { Side } from '../model/joints'
 import type { Joint } from '../model/types'
 import { addSupport, alignSupportFront, duplicateSupport, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
@@ -50,6 +50,7 @@ export type EditorAction =
   | { type: 'setCategoryColor'; category: ColorCategory; color: string | null }
   | { type: 'setPieceColors'; ids: string[]; color: string | null }
   | { type: 'setJoint'; side: Side; patch: Partial<Joint> }
+  | { type: 'moveUpright'; side: Side; overhang: number }
   | { type: 'setStageCount'; count: number }
   | { type: 'setStageHeight'; shelfBelowId: string; mm: number }
   | { type: 'copyStageWedges'; fromId: string; toIds: string[] }
@@ -173,6 +174,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(setPieceColors(plan, action.ids, action.color))
     case 'setJoint':
       return withPlan(setJoint(plan, action.side, action.patch))
+    case 'moveUpright':
+      return withPlan(moveUpright(plan, action.side, action.overhang))
     case 'setStageCount':
       return withPlan(setStageCount(plan, action.count))
     case 'setStageHeight':

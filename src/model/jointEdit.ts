@@ -1,12 +1,13 @@
 import { fail, finish, type EditResult } from './edit'
-import { DEFAULT_NOTCHED, SCREWED, type Side } from './joints'
+import { DEFAULT_NOTCHED, MAX_OVERHANG, SCREWED, jointOf, type Side } from './joints'
 import { propagateWidth } from './propagation'
 import type { Joint, Plan } from './types'
 
 /**
  * Change l'assemblage d'un côté (modèle avec cadre seulement). Passer un côté à encoches propose 10 cm qui dépassent ;
- * repasser en « vissé » remet les valeurs d'origine. Un changement de longueur qui dépasse déplace le corps de
- * l'étagère : avec la propagation, les cales gardent leur position proportionnelle.
+ * repasser en « vissé » remet les valeurs d'origine. Le montant ne bouge pas : ce sont les tablettes qui s'allongent
+ * (ou raccourcissent) à l'extérieur, donc la largeur hors-tout change. Les cales et les supports du côté gauche suivent
+ * le décalage de l'origine pour rester à la même place par rapport au montant.
  */
 export function setJoint(plan: Plan, side: Side, patch: Partial<Joint>): EditResult {
   if (plan.model !== 'frame') return fail('Les encoches concernent seulement le modèle avec cadre.')
@@ -30,6 +31,31 @@ export function setJoint(plan: Plan, side: Side, patch: Partial<Joint>): EditRes
   if (current.left.type === 'screwed' && current.right.type === 'screwed') delete next.joints
   else next.joints = current
 
+  const before = { left: jointOf(plan, 'left').overhang, right: jointOf(plan, 'right').overhang }
+  const after = { left: jointOf(next, 'left').overhang, right: jointOf(next, 'right').overhang }
+  const shiftLeft = after.left - before.left
+  next.width += shiftLeft + (after.right - before.right)
+  if (shiftLeft !== 0) {
+    for (const wedge of next.wedges) wedge.x += shiftLeft
+    for (const support of next.supports ?? []) support.x += shiftLeft
+  }
+  return finish(next)
+}
+
+/**
+ * Glisse le montant d'un côté à encoches : la largeur hors-tout ne change pas, c'est la longueur de tablette qui dépasse
+ * (`overhang`) qui devient la distance entre le bord et le montant. Avec la propagation, les cales gardent leur
+ * position proportionnelle entre les montants.
+ */
+export function moveUpright(plan: Plan, side: Side, overhang: number): EditResult {
+  if (plan.model !== 'frame' || jointOf(plan, side).type !== 'notched') {
+    return fail('Seul un montant à encoches peut glisser.')
+  }
+  if (!Number.isInteger(overhang) || overhang < 0 || overhang > MAX_OVERHANG) {
+    return fail(`La longueur qui dépasse va de 0 à ${MAX_OVERHANG / 10} cm.`)
+  }
+  const next = structuredClone(plan)
+  next.joints![side].overhang = overhang
   if (plan.options.propagation) propagateWidth(plan, next)
   return finish(next)
 }

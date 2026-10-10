@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { computeCutList, describeJoinery } from './cutlist'
 import { checkPlan } from './edit'
-import { setJoint } from './jointEdit'
+import { moveUpright, setJoint } from './jointEdit'
 import { bevelCut, shelfFootprintPath } from './joints'
 import { computeFrontRects } from './layout'
 import { computePieces } from './pieces'
@@ -29,14 +29,14 @@ describe('assemblage à encoches (modèle avec cadre)', () => {
     expect(rect(plan, 'shelf-2')).toMatchObject({ x: 18, width: 764 })
   })
 
-  it('côté gauche à encoches : le montant recule de 10 cm, les tablettes traversent jusqu’au bout', () => {
+  it('côté gauche à encoches : le montant ne bouge pas, les tablettes s’allongent de 10 cm vers l’extérieur', () => {
     const plan = notchedLeft()
     expect(plan.joints!.left).toEqual({ type: 'notched', overhang: 100, endStyle: 'straight', endSize: 0 })
+    expect(plan.width).toBe(900)
+    // Le montant garde sa place par rapport au reste (l'origine se décale de 10 cm).
     expect(rect(plan, 'upright-left').x).toBe(100)
-    // La tablette part du bout qui dépasse (x = 0) et va jusqu'au montant droit (vissé, face intérieure à 782).
-    expect(rect(plan, 'shelf-2')).toMatchObject({ x: 0, width: 782 })
-    // Le montant droit ne bouge pas.
-    expect(rect(plan, 'upright-right').x).toBe(782)
+    expect(rect(plan, 'shelf-2')).toMatchObject({ x: 0, width: 882 })
+    expect(rect(plan, 'upright-right').x).toBe(882)
     expect(checkPlan(plan)).toEqual([])
   })
 
@@ -45,9 +45,10 @@ describe('assemblage à encoches (modèle avec cadre)', () => {
     if (!left.ok) throw new Error(left.error)
     const both = setJoint(left.plan, 'right', { type: 'notched', overhang: 70 })
     if (!both.ok) throw new Error(both.error)
-    expect(rect(both.plan, 'shelf-2')).toMatchObject({ x: 0, width: 800 })
+    expect(both.plan.width).toBe(920)
+    expect(rect(both.plan, 'shelf-2')).toMatchObject({ x: 0, width: 920 })
     expect(rect(both.plan, 'upright-left').x).toBe(50)
-    expect(rect(both.plan, 'upright-right').x).toBe(800 - 70 - 18)
+    expect(rect(both.plan, 'upright-right').x).toBe(920 - 70 - 18)
   })
 
   it('encoches à mi-bois dans la liste des pièces : une par tablette dans le montant, une par côté dans chaque tablette', () => {
@@ -111,14 +112,21 @@ describe('assemblage à encoches (modèle avec cadre)', () => {
     }
   })
 
-  it('les cales gardent leur place relative quand le corps de l’étagère rétrécit', () => {
+  it('les cales restent à la même place par rapport aux montants quand les tablettes s’allongent', () => {
     const plan = base()
     plan.wedges.push({ id: 'wedge-1', shelfBelowId: 'shelf-1', x: 400, thickness: 18, depth: 250, cornerRadius: 0, edgeRadius: 0 })
     const r = setJoint(plan, 'left', { type: 'notched', overhang: 100 })
     if (!r.ok) throw new Error(r.error)
-    const w = r.plan.wedges[0]
-    expect(w.x).toBeGreaterThanOrEqual(118)
-    expect(w.x + w.thickness).toBeLessThanOrEqual(782)
+    expect(r.plan.wedges[0].x).toBe(500)
+  })
+
+  it('glisser un montant à encoches garde la largeur et change la longueur qui dépasse', () => {
+    const plan = notchedLeft()
+    const r = moveUpright(plan, 'left', 40)
+    if (!r.ok) throw new Error(r.error)
+    expect(r.plan.width).toBe(900)
+    expect(rect(r.plan, 'upright-left').x).toBe(40)
+    expect(moveUpright(base(), 'left', 40).ok).toBe(false)
   })
 
   it('repasser en vissé efface les réglages ; sans cadre, la fonction est refusée', () => {
