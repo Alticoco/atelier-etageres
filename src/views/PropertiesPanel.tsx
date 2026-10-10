@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { JointsSection } from './JointsSection'
 import { LengthField } from './LengthField'
+import { PanelSection } from './PanelSection'
 import { ColorSection } from './ColorSection'
 import { ObjectsSection } from './ObjectsSection'
 import { INITIAL_OBJECTS_FORM } from './objectsForm'
@@ -10,6 +11,8 @@ import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type 
 import { parseVerticalId, pieceLabel } from '../model/labels'
 import { computePieces, getStages, sortedShelves } from '../model/pieces'
 import { radiusLimits } from '../model/rounding'
+import { isObjectId } from '../model/objects'
+import { isSupportId } from '../model/supports'
 import { MAX_STAGES, setStageCount } from '../model/tools'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
@@ -108,8 +111,7 @@ function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
   const sourceWedges = plan.wedges.filter((w) => w.shelfBelowId === stageId).length
 
   return (
-    <fieldset className="panel-section tools">
-      <legend>Outils</legend>
+    <PanelSection title="Outils" className="tools">
       <div className="field">
         <label>
           Étage
@@ -168,7 +170,7 @@ function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
           </p>
         </div>
       )}
-    </fieldset>
+    </PanelSection>
   )
 }
 
@@ -179,178 +181,40 @@ interface PropertiesPanelProps {
   dispatch: (action: EditorAction) => void
 }
 
-/** Panneau de droite : cotes de l'étagère, ou des pièces sélectionnées. */
-export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesPanelProps) {
-  const ids = selection.filter((id) => readPiece(plan, id) !== null)
-  // Réglages de la simulation de rangement : gardés ici pour ne pas être perdus quand le panneau change (clic sur une pièce).
-  const [objectsForm, setObjectsForm] = useState(INITIAL_OBJECTS_FORM)
+type TabId = 'plan' | 'stages' | 'objects' | 'supports' | 'colors'
 
-  const commitPlan = (change: PlanChange): string | null => {
-    const result = setPlanProperty(plan, change)
-    if (!result.ok) return result.error
-    dispatch({ type: 'setPlanProperty', change })
-    return null
-  }
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'plan', label: 'Étagère' },
+  { id: 'stages', label: 'Étages' },
+  { id: 'objects', label: 'Rangement' },
+  { id: 'supports', label: 'Supports' },
+  { id: 'colors', label: 'Couleurs' },
+]
 
+/** Onglet à ouvrir quand on choisit un support ou un objet dans le dessin (null = on reste où on est). */
+function tabForSelection(selection: string[]): TabId | null {
+  const last = selection.at(-1)
+  if (!last) return null
+  if (isSupportId(last)) return 'supports'
+  if (isObjectId(last)) return 'objects'
+  return null
+}
+
+interface PieceCardProps {
+  plan: Plan
+  ids: string[]
+  unit: LengthUnit
+  dispatch: (action: EditorAction) => void
+}
+
+/** Carte de la ou des pièces choisies : épaisseur, profondeur, position, arrondis… et suppression. */
+function PieceCard({ plan, ids, unit, dispatch }: PieceCardProps) {
   const commitPiece = (property: PieceProperty, mm: number): string | null => {
     const result = setPieceProperty(plan, ids, property, mm)
     if (!result.ok) return result.error
     dispatch({ type: 'setPieceProperty', ids, property, mm })
     return null
   }
-
-  if (ids.length === 0) {
-    const depths = [plan.leftUpright, plan.rightUpright, ...plan.shelves, ...plan.wedges].map((p) => p.depth)
-    return (
-      <aside className="properties" aria-label="Propriétés">
-        <h2>Étagère</h2>
-        <div className="field">
-          <label>
-            Nom
-            <input
-              key={plan.name}
-              type="text"
-              defaultValue={plan.name}
-              onBlur={(e) => commitPlan({ property: 'name', value: e.target.value })}
-              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-            />
-          </label>
-        </div>
-
-        <p className="panel-hint">
-          Modèle : {plan.model === 'frame' ? 'avec cadre' : 'sans cadre (planches apparentes)'}, choisi à la création.
-        </p>
-
-        <fieldset className="panel-section">
-          <legend>Dimensions hors-tout</legend>
-          <LengthField
-            key={`w-${plan.width}-${unit}`}
-            label="Largeur"
-            valueMm={plan.width}
-            unit={unit}
-            onCommit={(mm) => commitPlan({ property: 'width', mm })}
-          />
-          <LengthField
-            key={`h-${plan.height}-${unit}`}
-            label="Hauteur"
-            valueMm={plan.height}
-            unit={unit}
-            onCommit={(mm) => commitPlan({ property: 'height', mm })}
-          />
-          <LengthField
-            key={`d-${depths.join(',')}-${unit}`}
-            label="Profondeur"
-            valueMm={commonValue(depths)}
-            unit={unit}
-            onCommit={(mm) => commitPlan({ property: 'depth', mm })}
-          />
-          {commonValue(depths) === null && (
-            <p className="panel-hint">Les pièces n’ont pas toutes la même profondeur ; saisir une valeur les uniformise.</p>
-          )}
-        </fieldset>
-
-        <fieldset className="panel-section">
-          <legend>Étages</legend>
-          <StageCountField key={getStages(plan).length} plan={plan} dispatch={dispatch} />
-        </fieldset>
-
-        <JointsSection plan={plan} unit={unit} dispatch={dispatch} />
-
-        <fieldset className="panel-section">
-          <legend>Montage</legend>
-          {plan.model === 'frame' && (
-          <div className="field">
-            <label>
-              Tablettes du haut et du bas
-              <select
-                value={plan.options.framePlacement}
-                onChange={(e) =>
-                  commitPlan({ property: 'framePlacement', value: e.target.value as Plan['options']['framePlacement'] })
-                }
-              >
-                <option value="between">Entre les montants</option>
-                <option value="onTop">Posées sur / sous les montants</option>
-              </select>
-            </label>
-          </div>
-          )}
-          <div className="field field-check">
-            <label>
-              <input
-                type="checkbox"
-                checked={plan.options.propagation}
-                onChange={(e) => commitPlan({ property: 'propagation', value: e.target.checked })}
-              />
-              Propagation intelligente
-            </label>
-            <small className="field-hint">
-              Quand on change la largeur ou la hauteur, les cales et les tablettes gardent leur position proportionnelle.
-            </small>
-          </div>
-          <div className="field field-check">
-            <label>
-              <input
-                type="checkbox"
-                checked={plan.options.wallMount}
-                onChange={(e) => commitPlan({ property: 'wallMount', value: e.target.checked })}
-              />
-              Fixation murale
-            </label>
-            <small className="field-hint">Ajoute une note et un repère « F » sur le plan PDF.</small>
-          </div>
-        </fieldset>
-
-        <fieldset className="panel-section">
-          <legend>Cales</legend>
-          <LengthField
-            key={`c-${plan.options.wedgeClearance}-${unit}`}
-            label="Jeu sous la tablette"
-            valueMm={plan.options.wedgeClearance}
-            unit={unit}
-            onCommit={(mm) => commitPlan({ property: 'wedgeClearance', mm })}
-          />
-          <LengthField
-            key={`t-${plan.options.defaultWedgeThickness}-${unit}`}
-            label="Épaisseur des nouvelles cales"
-            valueMm={plan.options.defaultWedgeThickness}
-            unit={unit}
-            onCommit={(mm) => commitPlan({ property: 'defaultWedgeThickness', mm })}
-          />
-        </fieldset>
-
-        <fieldset className="panel-section">
-          <legend>Découpe</legend>
-          <div className="field field-check">
-            <label>
-              <input
-                type="checkbox"
-                checked={plan.options.sawKerfEnabled}
-                onChange={(e) => commitPlan({ property: 'sawKerfEnabled', value: e.target.checked })}
-              />
-              Trait de scie
-            </label>
-            <small className="field-hint">Ajoute une estimation de la perte de bois à la liste de découpe.</small>
-          </div>
-          {plan.options.sawKerfEnabled && (
-            <LengthField
-              key={`k-${plan.options.sawKerf}-${unit}`}
-              label="Épaisseur du trait de scie"
-              valueMm={plan.options.sawKerf}
-              unit={unit}
-              onCommit={(mm) => commitPlan({ property: 'sawKerf', mm })}
-            />
-          )}
-        </fieldset>
-
-        <StageTools plan={plan} unit={unit} dispatch={dispatch} />
-        <ObjectsSection plan={plan} form={objectsForm} onForm={setObjectsForm} selection={selection} unit={unit} dispatch={dispatch} />
-        <SupportsSection plan={plan} selection={selection} unit={unit} dispatch={dispatch} />
-        <ColorSection plan={plan} selection={selection} dispatch={dispatch} />
-        <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
-      </aside>
-    )
-  }
-
   const pieces = ids.map((id) => ({ id, ...readPiece(plan, id)! }))
   const single = pieces.length === 1 ? pieces[0] : null
   const computed = single ? computePieces(plan).find((p) => p.id === single.id) : undefined
@@ -362,19 +226,16 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
       ? `Maximum : coins ${formatLength(Math.min(...limits.map((l) => l.corner)), unit)}, arêtes ${formatLength(Math.min(...limits.map((l) => l.edge)), unit)}.`
       : ''
   const hasStageAbove = shelf ? sortedShelves(plan).at(-1)?.id !== shelf.id : false
-
-  // Étage de la pièce sélectionnée : celui de la cale, ou celui juste au-dessus de la tablette.
-  let defaultStageId: string | undefined
-  if (single?.kind === 'wedge') defaultStageId = plan.wedges.find((w) => w.id === single.id)?.shelfBelowId
-  if (single?.kind === 'shelf') defaultStageId = single.id
-  if (single?.kind === 'upright') defaultStageId = parseVerticalId(single.id)?.shelfBelowId
-
-  let title: ReactNode = `${pieces.length} pièces sélectionnées`
-  if (single) title = pieceLabel(plan, single.id)
+  const title: ReactNode = single ? pieceLabel(plan, single.id) : `${pieces.length} pièces choisies`
 
   return (
-    <aside className="properties" aria-label="Propriétés">
-      <h2>{title}</h2>
+    <section className="selection-card" aria-label="Pièce choisie">
+      <header className="selection-card-header">
+        <h2>{title}</h2>
+        <button type="button" className="link-button" onClick={() => dispatch({ type: 'clearSelection' })}>
+          Désélectionner
+        </button>
+      </header>
       {!single && <p className="panel-hint">{pieces.map((p) => pieceLabel(plan, p.id)).join(', ')}</p>}
 
       <LengthField
@@ -400,21 +261,15 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
           onCommit={(mm) => commitPiece('y', mm)}
         />
       )}
-      <LengthField
-        key={`cr-${sameKey}-${commonValue(pieces.map((p) => p.cornerRadius))}-${unit}`}
-        label="Rayon des coins (vue de face)"
-        valueMm={commonValue(pieces.map((p) => p.cornerRadius))}
-        unit={unit}
-        onCommit={(mm) => commitPiece('cornerRadius', mm)}
-      />
-      <LengthField
-        key={`er-${sameKey}-${commonValue(pieces.map((p) => p.edgeRadius))}-${unit}`}
-        label="Rayon des arêtes (vue de profil)"
-        valueMm={commonValue(pieces.map((p) => p.edgeRadius))}
-        unit={unit}
-        onCommit={(mm) => commitPiece('edgeRadius', mm)}
-      />
-      {maxText && <p className="panel-hint">0 = angle droit. {maxText}</p>}
+      {single?.kind === 'wedge' && (
+        <LengthField
+          key={`x-${single.id}-${single.x}-${unit}`}
+          label="Position depuis la gauche"
+          valueMm={single.x ?? 0}
+          unit={unit}
+          onCommit={(mm) => commitPiece('x', mm)}
+        />
+      )}
       {single?.kind === 'shelf' && plan.model === 'frameless' && shelf && (
         <>
           <LengthField
@@ -457,27 +312,243 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
       {single?.kind === 'upright' && plan.model === 'frameless' && (
         <p className="panel-hint">L’épaisseur et la profondeur s’appliquent à tous les montants de ce côté.</p>
       )}
-      {single?.kind === 'wedge' && (
+
+      <details className="card-more">
+        <summary>Arrondis</summary>
         <LengthField
-          key={`x-${single.id}-${single.x}-${unit}`}
-          label="Position depuis la gauche"
-          valueMm={single.x ?? 0}
+          key={`cr-${sameKey}-${commonValue(pieces.map((p) => p.cornerRadius))}-${unit}`}
+          label="Rayon des coins (vue de face)"
+          valueMm={commonValue(pieces.map((p) => p.cornerRadius))}
           unit={unit}
-          onCommit={(mm) => commitPiece('x', mm)}
+          onCommit={(mm) => commitPiece('cornerRadius', mm)}
         />
-      )}
-      {computed && (
-        <p className="panel-hint">
-          Longueur (calculée) : {formatLength(computed.length, unit)}
-        </p>
-      )}
+        <LengthField
+          key={`er-${sameKey}-${commonValue(pieces.map((p) => p.edgeRadius))}-${unit}`}
+          label="Rayon des arêtes (vue de profil)"
+          valueMm={commonValue(pieces.map((p) => p.edgeRadius))}
+          unit={unit}
+          onCommit={(mm) => commitPiece('edgeRadius', mm)}
+        />
+        {maxText && <p className="panel-hint">0 = angle droit. {maxText}</p>}
+      </details>
+
+      {computed && <p className="panel-hint">Longueur (calculée) : {formatLength(computed.length, unit)}</p>}
       <button type="button" className="danger" onClick={() => dispatch({ type: 'removePieces', ids })}>
         {single ? 'Supprimer cette pièce' : `Supprimer ces ${pieces.length} pièces`}
       </button>
-      <StageTools key={sameKey} plan={plan} unit={unit} dispatch={dispatch} defaultStageId={defaultStageId} />
-      <ObjectsSection plan={plan} form={objectsForm} onForm={setObjectsForm} selection={selection} unit={unit} dispatch={dispatch} />
-        <SupportsSection plan={plan} selection={selection} unit={unit} dispatch={dispatch} />
-        <ColorSection plan={plan} selection={selection} dispatch={dispatch} />
+    </section>
+  )
+}
+
+/**
+ * Panneau de droite, en cinq onglets : l'étagère (nom, dimensions, assemblage, montage, découpe), les étages et les
+ * cales, la simulation de rangement, les supports, les couleurs. La pièce choisie dans le dessin s'affiche dans une
+ * carte en haut, quel que soit l'onglet ; choisir un support ou un objet ouvre l'onglet qui lui correspond.
+ */
+export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesPanelProps) {
+  const ids = selection.filter((id) => readPiece(plan, id) !== null)
+  // Réglages de la simulation de rangement : gardés ici pour ne pas être perdus quand le panneau change (clic sur une pièce).
+  const [objectsForm, setObjectsForm] = useState(INITIAL_OBJECTS_FORM)
+  const [tab, setTab] = useState<TabId>('plan')
+  // Onglet imposé par un nouveau choix dans le dessin (support, objet) : ajusté pendant l'affichage, pas dans un effet.
+  const [seenSelection, setSeenSelection] = useState('')
+  const selectionKey = selection.join('|')
+  if (selectionKey !== seenSelection) {
+    setSeenSelection(selectionKey)
+    const target = tabForSelection(selection)
+    if (target) setTab(target)
+  }
+
+  const commitPlan = (change: PlanChange): string | null => {
+    const result = setPlanProperty(plan, change)
+    if (!result.ok) return result.error
+    dispatch({ type: 'setPlanProperty', change })
+    return null
+  }
+
+  const depths = [plan.leftUpright, plan.rightUpright, ...plan.shelves, ...plan.wedges].map((p) => p.depth)
+
+  // Étage de la pièce choisie : celui de la cale, ou celui juste au-dessus de la tablette.
+  const single = ids.length === 1 ? { id: ids[0], ...readPiece(plan, ids[0])! } : null
+  let defaultStageId: string | undefined
+  if (single?.kind === 'wedge') defaultStageId = plan.wedges.find((w) => w.id === single.id)?.shelfBelowId
+  if (single?.kind === 'shelf') defaultStageId = single.id
+  if (single?.kind === 'upright') defaultStageId = parseVerticalId(single.id)?.shelfBelowId
+
+  return (
+    <aside className="properties" aria-label="Propriétés">
+      <div className="panel-tabs" role="tablist" aria-label="Réglages">
+        {TABS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`tab-${id}`}
+            aria-selected={tab === id}
+            aria-controls="panel-content"
+            className={tab === id ? 'active' : undefined}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="panel-content" id="panel-content" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+        {ids.length > 0 && <PieceCard plan={plan} ids={ids} unit={unit} dispatch={dispatch} />}
+
+        {tab === 'plan' && (
+          <>
+            <div className="field">
+              <label>
+                Nom
+                <input
+                  key={plan.name}
+                  type="text"
+                  defaultValue={plan.name}
+                  onBlur={(e) => commitPlan({ property: 'name', value: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                />
+              </label>
+            </div>
+            <p className="panel-hint">
+              Modèle : {plan.model === 'frame' ? 'avec cadre' : 'sans cadre (planches apparentes)'}, choisi à la création.
+            </p>
+
+            <PanelSection title="Dimensions hors-tout">
+              <LengthField
+                key={`w-${plan.width}-${unit}`}
+                label="Largeur"
+                valueMm={plan.width}
+                unit={unit}
+                onCommit={(mm) => commitPlan({ property: 'width', mm })}
+              />
+              <LengthField
+                key={`h-${plan.height}-${unit}`}
+                label="Hauteur"
+                valueMm={plan.height}
+                unit={unit}
+                onCommit={(mm) => commitPlan({ property: 'height', mm })}
+              />
+              <LengthField
+                key={`d-${depths.join(',')}-${unit}`}
+                label="Profondeur"
+                valueMm={commonValue(depths)}
+                unit={unit}
+                onCommit={(mm) => commitPlan({ property: 'depth', mm })}
+              />
+              {commonValue(depths) === null && (
+                <p className="panel-hint">Les pièces n’ont pas toutes la même profondeur ; saisir une valeur les uniformise.</p>
+              )}
+            </PanelSection>
+
+            <JointsSection plan={plan} unit={unit} dispatch={dispatch} />
+
+            <PanelSection title="Montage" defaultOpen={false}>
+              {plan.model === 'frame' && (
+                <div className="field">
+                  <label>
+                    Tablettes du haut et du bas
+                    <select
+                      value={plan.options.framePlacement}
+                      onChange={(e) =>
+                        commitPlan({ property: 'framePlacement', value: e.target.value as Plan['options']['framePlacement'] })
+                      }
+                    >
+                      <option value="between">Entre les montants</option>
+                      <option value="onTop">Posées sur / sous les montants</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+              <div className="field field-check">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={plan.options.propagation}
+                    onChange={(e) => commitPlan({ property: 'propagation', value: e.target.checked })}
+                  />
+                  Propagation intelligente
+                </label>
+                <small className="field-hint">
+                  Quand on change la largeur ou la hauteur, les cales et les tablettes gardent leur position proportionnelle.
+                </small>
+              </div>
+              <div className="field field-check">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={plan.options.wallMount}
+                    onChange={(e) => commitPlan({ property: 'wallMount', value: e.target.checked })}
+                  />
+                  Fixation murale
+                </label>
+                <small className="field-hint">Ajoute une note et un repère « F » sur le plan PDF.</small>
+              </div>
+            </PanelSection>
+
+            <PanelSection title="Découpe" defaultOpen={false}>
+              <div className="field field-check">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={plan.options.sawKerfEnabled}
+                    onChange={(e) => commitPlan({ property: 'sawKerfEnabled', value: e.target.checked })}
+                  />
+                  Trait de scie
+                </label>
+                <small className="field-hint">Ajoute une estimation de la perte de bois à la liste de découpe.</small>
+              </div>
+              {plan.options.sawKerfEnabled && (
+                <LengthField
+                  key={`k-${plan.options.sawKerf}-${unit}`}
+                  label="Épaisseur du trait de scie"
+                  valueMm={plan.options.sawKerf}
+                  unit={unit}
+                  onCommit={(mm) => commitPlan({ property: 'sawKerf', mm })}
+                />
+              )}
+            </PanelSection>
+
+            {ids.length === 0 && (
+              <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
+            )}
+          </>
+        )}
+
+        {tab === 'stages' && (
+          <>
+            <PanelSection title="Nombre d’étages">
+              <StageCountField key={getStages(plan).length} plan={plan} dispatch={dispatch} />
+            </PanelSection>
+
+            <PanelSection title="Cales">
+              <LengthField
+                key={`c-${plan.options.wedgeClearance}-${unit}`}
+                label="Jeu sous la tablette"
+                valueMm={plan.options.wedgeClearance}
+                unit={unit}
+                onCommit={(mm) => commitPlan({ property: 'wedgeClearance', mm })}
+              />
+              <LengthField
+                key={`t-${plan.options.defaultWedgeThickness}-${unit}`}
+                label="Épaisseur des nouvelles cales"
+                valueMm={plan.options.defaultWedgeThickness}
+                unit={unit}
+                onCommit={(mm) => commitPlan({ property: 'defaultWedgeThickness', mm })}
+              />
+            </PanelSection>
+
+            <StageTools key={ids.join('|')} plan={plan} unit={unit} dispatch={dispatch} defaultStageId={defaultStageId} />
+          </>
+        )}
+
+        {tab === 'objects' && (
+          <ObjectsSection plan={plan} form={objectsForm} onForm={setObjectsForm} selection={selection} unit={unit} dispatch={dispatch} />
+        )}
+        {tab === 'supports' && <SupportsSection plan={plan} selection={selection} unit={unit} dispatch={dispatch} />}
+        {tab === 'colors' && <ColorSection plan={plan} selection={selection} dispatch={dispatch} />}
+      </div>
     </aside>
   )
 }

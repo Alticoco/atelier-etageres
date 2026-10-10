@@ -110,6 +110,7 @@ function Pane({ tab, split, focused, view, unit, snapStep, showMarks, choices, o
           </label>
         )}
       </div>
+      <div className="canvas-body">
       {view === 'cut' ? (
         <CutListView plan={plan} unit={unit} />
       ) : view === 'front' ? (
@@ -151,6 +152,7 @@ function Pane({ tab, split, focused, view, unit, snapStep, showMarks, choices, o
           onClearSelection={clear}
         />
       )}
+      </div>
     </div>
   )
 }

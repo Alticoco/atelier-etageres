@@ -9,6 +9,7 @@ import {
 } from '../model/colors'
 import type { Plan } from '../model/types'
 import type { EditorAction } from '../store/editor'
+import { PanelSection } from './PanelSection'
 
 interface ColorGridProps {
   /** Couleur actuelle (`#rrggbb`), ou undefined = couleur par défaut. */
@@ -87,8 +88,7 @@ export function ColorSection({ plan, selection, dispatch }: ColorSectionProps) {
   const sameColor = ids.every((id) => plan.colors?.pieces?.[id] === selectionColor)
 
   return (
-    <fieldset className="panel-section colors">
-      <legend>Couleurs</legend>
+    <PanelSection title="Couleurs" className="colors">
       <p className="panel-hint">Pour se faire une idée de l’aspect final. Cela ne change ni les dimensions ni la liste de découpe.</p>
 
       {ids.length > 0 && (
@@ -121,6 +121,6 @@ export function ColorSection({ plan, selection, dispatch }: ColorSectionProps) {
           </details>
         )
       })}
-    </fieldset>
+    </PanelSection>
   )
 }

@@ -236,7 +236,7 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
   const depth = scene3d.max[2] - scene3d.min[2]
 
   return (
-    <div className="three-view" ref={containerRef}>
+    <div className="three-view">
       <div className="three-tools">
         <div className="view-switch" role="radiogroup" aria-label="Mur">
           {WALL_MODES.map(({ mode, label }) => (
@@ -254,19 +254,22 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
           <input type="checkbox" checked={showSupports} onChange={(e) => setShowSupports(e.target.checked)} />
           Supports
         </label>
-        <div className="three-presets">
+        <div className="three-presets" role="group" aria-label="Angle de la caméra">
+          <span className="three-presets-label" aria-hidden="true">Caméra :</span>
           <button type="button" onClick={() => placeCamera([0.55, 0.35, 0.85])}>3/4</button>
-          <button type="button" onClick={() => placeCamera([0, 0, 1])}>Face</button>
-          <button type="button" onClick={() => placeCamera([1, 0, 0])}>Côté</button>
-          <button type="button" onClick={() => placeCamera([0, 1, 0.001])}>Dessus</button>
-          <button type="button" onClick={() => placeCamera([0, -1, 0.001])}>Dessous</button>
+          <button type="button" onClick={() => placeCamera([0, 0, 1])}>De face</button>
+          <button type="button" onClick={() => placeCamera([1, 0, 0])}>De côté</button>
+          <button type="button" onClick={() => placeCamera([0, 1, 0.001])}>Du dessus</button>
+          <button type="button" onClick={() => placeCamera([0, -1, 0.001])}>Du dessous</button>
         </div>
       </div>
+      <div className="three-stage" ref={containerRef}>
       {!webgl && <p className="three-error">Votre navigateur ne permet pas d’afficher la 3D (WebGL indisponible).</p>}
       <p className="view-hint">
         Glisser : tourner · Molette : zoom · Clic droit ou Maj + glisser : déplacer. Encombrement : {formatLength(width, unit)} de
         large, {formatLength(height, unit)} de haut, {formatLength(depth, unit)} de profondeur.
       </p>
+      </div>
     </div>
   )
 }

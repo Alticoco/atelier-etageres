@@ -4,6 +4,7 @@ import { getStages } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 import { LengthField } from './LengthField'
+import { PanelSection } from './PanelSection'
 import type { ObjectsForm } from './objectsForm'
 import { stageLabel } from './stageLabel'
 import type { EditorAction } from '../store/editor'
@@ -78,8 +79,7 @@ export function ObjectsSection({ plan, form, onForm, selection = [], unit, dispa
   }
 
   return (
-    <fieldset className="panel-section objects">
-      <legend>Simulation de rangement</legend>
+    <PanelSection title="Simulation de rangement" className="objects">
       <p className="panel-hint">Pose des objets dans un étage pour voir ce qui rentre. Ils ne changent pas la liste de découpe.</p>
       <div className="field">
         <label>
@@ -199,6 +199,6 @@ export function ObjectsSection({ plan, form, onForm, selection = [], unit, dispa
           })}
         </ul>
       )}
-    </fieldset>
+    </PanelSection>
   )
 }
