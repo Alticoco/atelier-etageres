@@ -127,6 +127,21 @@ describe('setPieceProperty', () => {
   })
 })
 
+describe('setPlanProperty — profondeur', () => {
+  it('donne la même profondeur à toutes les pièces', () => {
+    const plan = planWithWedge()
+    plan.shelves[0].depth = 200
+    const next = okPlan(setPlanProperty(plan, { property: 'depth', mm: 300 }))
+    const depths = [next.leftUpright, next.rightUpright, ...next.shelves, ...next.wedges].map((p) => p.depth)
+    expect(new Set(depths)).toEqual(new Set([300]))
+    expect(plan.shelves[0].depth).toBe(200)
+  })
+
+  it('refuse une profondeur nulle', () => {
+    expect(setPlanProperty(createPlan(base), { property: 'depth', mm: 0 }).ok).toBe(false)
+  })
+})
+
 describe('setPlanProperty', () => {
   it('changer la largeur : les tablettes suivent', () => {
     const result = setPlanProperty(createPlan(base), { property: 'width', mm: 1000 })

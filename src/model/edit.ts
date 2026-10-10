@@ -14,7 +14,7 @@ export type EditResult = { ok: true; plan: Plan } | { ok: false; error: string }
 export type PieceProperty = 'thickness' | 'depth' | 'y' | 'x' | 'overhangLeft' | 'overhangRight' | 'cornerRadius' | 'edgeRadius'
 
 export type PlanChange =
-  | { property: 'width' | 'height' | 'wedgeClearance' | 'defaultWedgeThickness' | 'sawKerf'; mm: number }
+  | { property: 'width' | 'height' | 'depth' | 'wedgeClearance' | 'defaultWedgeThickness' | 'sawKerf'; mm: number }
   | { property: 'name'; value: string }
   | { property: 'framePlacement'; value: FramePlacement }
   | { property: 'propagation'; value: boolean }
@@ -251,6 +251,10 @@ export function setPlanProperty(plan: Plan, change: PlanChange): EditResult {
       return setPlanSize(plan, { width: mm })
     case 'height':
       return setPlanSize(plan, { height: mm })
+    case 'depth':
+      // Profondeur hors-tout : toutes les pièces prennent la même profondeur.
+      for (const piece of [next.leftUpright, next.rightUpright, ...next.shelves, ...next.wedges]) piece.depth = mm
+      break
     case 'wedgeClearance':
       next.options.wedgeClearance = mm
       break
