@@ -3,6 +3,7 @@ import type { Plan, Support } from '../model/types'
 import type { LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { LengthField } from './LengthField'
+import { PanelSection } from './PanelSection'
 
 interface SupportsSectionProps {
   plan: Plan
@@ -36,8 +37,7 @@ export function SupportsSection({ plan, selection, unit, dispatch }: SupportsSec
   }
 
   return (
-    <fieldset className="panel-section supports">
-      <legend>Supports</legend>
+    <PanelSection title="Supports" className="supports">
       <p className="panel-hint">
         Planches à part qui portent l’étagère ou la calent contre son environnement. Placez-les en vue de face, de profil ou de
         dessous.
@@ -121,6 +121,6 @@ export function SupportsSection({ plan, selection, unit, dispatch }: SupportsSec
           </div>
         )
       })}
-    </fieldset>
+    </PanelSection>
   )
 }

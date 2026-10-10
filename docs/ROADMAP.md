@@ -54,7 +54,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [~] **Étape 18 — Supports (planches de soutien à part)** (demande d'Alexis, 10 octobre 2026) :
   - [x] 18a — Supports sous et autour de l'étagère : largeur, hauteur, profondeur, position, recul depuis le mur ; réglage au panneau et en tirant dans les vues de face, de profil et de dessous (nouvelle) ; liste de découpe à part.
   - [ ] 18b — Supports dans le PDF ; aimantation sur d'autres supports ; copie / symétrie d'un support.
-- [ ] **Étape 19 — Panneau de droite repensé, nombre d'étages modifiable, menu au clic sur le dessin** (à concevoir avec Alexis).
+- [~] **Étape 19 — Panneau de droite repensé, nombre d'étages modifiable, menu au clic sur le dessin** : panneau en onglets fait, nombre d'étages fait ; reste le menu au clic sur le dessin (à concevoir avec Alexis).
 - [ ] **Étape 20 — Optimisation des découpes** (à confirmer : peut-être inutile).
 
 

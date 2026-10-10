@@ -6,6 +6,7 @@ import type { EndStyle, Joint, JointType, Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { LengthField } from './LengthField'
+import { PanelSection } from './PanelSection'
 
 interface JointsSectionProps {
   plan: Plan
@@ -75,10 +76,9 @@ const SIDES: { side: Side; label: string }[] = [
 export function JointsSection({ plan, unit, dispatch }: JointsSectionProps) {
   if (plan.model !== 'frame') {
     return (
-      <fieldset className="panel-section">
-        <legend>Assemblage des montants</legend>
+      <PanelSection title="Assemblage des montants" defaultOpen={false}>
         <p className="panel-hint">Les encoches concernent le modèle avec cadre. Le modèle sans cadre a déjà ses débords réglables.</p>
-      </fieldset>
+      </PanelSection>
     )
   }
 
@@ -91,8 +91,7 @@ export function JointsSection({ plan, unit, dispatch }: JointsSectionProps) {
   const shelf = sortedShelves(plan)[1] ?? sortedShelves(plan)[0]
 
   return (
-    <fieldset className="panel-section joints">
-      <legend>Assemblage des montants</legend>
+    <PanelSection title="Assemblage des montants" className="joints" defaultOpen={false}>
       {SIDES.map(({ side, label }) => {
         const joint = jointOf(plan, side)
         const upright = side === 'left' ? plan.leftUpright : plan.rightUpright
@@ -164,6 +163,6 @@ export function JointsSection({ plan, unit, dispatch }: JointsSectionProps) {
           </div>
         )
       })}
-    </fieldset>
+    </PanelSection>
   )
 }
