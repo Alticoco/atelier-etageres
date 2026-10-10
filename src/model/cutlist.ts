@@ -1,7 +1,7 @@
 import { computePieces } from './pieces'
 import { supportGroups, type SupportGroup } from './supports'
 import { formatLength, formatNumber, type LengthUnit } from './units'
-import type { Plan } from './types'
+import type { Notch, PieceEnd, Plan } from './types'
 
 /** Un lot de pièces identiques (mêmes longueur, largeur et épaisseur), repéré par une lettre. */
 export interface CutGroup {
@@ -13,6 +13,10 @@ export interface CutGroup {
   /** Arrondis des pièces du lot (mm, 0 = angle droit). Deux pièces d'arrondis différents ne sont jamais dans le même lot. */
   cornerRadius: number
   edgeRadius: number
+  /** Encoches et bouts de tablette (assemblage à encoches) : absents pour une pièce simple. */
+  notches?: Notch[]
+  endLeft?: PieceEnd
+  endRight?: PieceEnd
   quantity: number
   /** Identifiants des pièces du lot (montants, tablettes, cales). */
   pieceIds: string[]
@@ -60,7 +64,7 @@ export function computeCutList(plan: Plan): CutList {
   const marks: Record<string, string> = {}
 
   for (const piece of computePieces(plan)) {
-    const key = `${piece.length}x${piece.width}x${piece.thickness}:${piece.cornerRadius}:${piece.edgeRadius}`
+    const key = `${piece.length}x${piece.width}x${piece.thickness}:${piece.cornerRadius}:${piece.edgeRadius}:${JSON.stringify([piece.notches, piece.endLeft, piece.endRight])}`
     let group = byDimensions.get(key)
     if (!group) {
       group = {
@@ -70,6 +74,9 @@ export function computeCutList(plan: Plan): CutList {
         thickness: piece.thickness,
         cornerRadius: piece.cornerRadius,
         edgeRadius: piece.edgeRadius,
+        ...(piece.notches ? { notches: piece.notches } : {}),
+        ...(piece.endLeft ? { endLeft: piece.endLeft } : {}),
+        ...(piece.endRight ? { endRight: piece.endRight } : {}),
         quantity: 0,
         pieceIds: [],
       }
@@ -90,6 +97,26 @@ export function computeCutList(plan: Plan): CutList {
     supports: supportGroups(plan),
     sawKerf: sawKerfEnabled ? { cuts: totalPieces, kerf: sawKerf, loss: totalPieces * sawKerf } : null,
   }
+}
+
+/** Encoches et bouts d'un lot en toutes lettres (« 3 enc. 1,8 × 5,5 cm · bout gauche arrondi R 3 cm »), ou « — ». */
+export function describeJoinery(
+  group: { notches?: Notch[]; endLeft?: PieceEnd; endRight?: PieceEnd },
+  unit: LengthUnit = 'cm',
+): string {
+  const parts: string[] = []
+  for (const n of group.notches ?? []) {
+    parts.push(`${n.count} enc. ${formatNumber(n.width, unit)} × ${formatNumber(n.depth, unit)} ${unit}`)
+  }
+  const end = (e: PieceEnd, side: string) =>
+    e.style === 'round' ? `bout ${side} arrondi R ${formatLength(e.size, unit)}` : `bout ${side} en biais ${e.size}°`
+  if (group.endLeft && group.endRight && group.endLeft.style === group.endRight.style && group.endLeft.size === group.endRight.size) {
+    parts.push(end(group.endLeft, 'des deux côtés').replace('bout des deux côtés', 'bouts'))
+  } else {
+    if (group.endLeft) parts.push(end(group.endLeft, 'gauche'))
+    if (group.endRight) parts.push(end(group.endRight, 'droit'))
+  }
+  return parts.length > 0 ? parts.join(' · ') : '—'
 }
 
 /** Arrondi d'un lot en toutes lettres (« coins R 0,9 cm · arêtes R 0,5 cm »), ou « — » s'il n'y en a pas. */

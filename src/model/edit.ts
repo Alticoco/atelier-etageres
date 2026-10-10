@@ -3,6 +3,7 @@ import { parseVerticalId } from './labels'
 import { getStages, sortedShelves } from './pieces'
 import { propagateHeight, propagateWidth } from './propagation'
 import { roundingProblems } from './rounding'
+import { jointProblems } from './joints'
 import { supportProblems } from './supportCheck'
 import type { FramePlacement, Plan, Shelf, Upright, Wedge } from './types'
 
@@ -133,6 +134,7 @@ export function checkPlan(plan: Plan): string[] {
   }
 
   problems.push(...supportProblems(plan))
+  problems.push(...jointProblems(plan))
 
   // Les rayons d'arrondi se vérifient une fois les dimensions saines (ils en dépendent).
   if (problems.length === 0) problems.push(...roundingProblems(plan))

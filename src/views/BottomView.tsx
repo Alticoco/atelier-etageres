@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { shelfEnd, shelfFootprintPath } from '../model/joints'
 import { computeFrontRects } from '../model/layout'
 import { profileSize } from '../model/profile'
 import { supportOverflow } from '../model/supports'
@@ -111,7 +112,11 @@ export function BottomView({ plan, unit = 'cm', selection = [], snapStep = 10, o
             <rect key={r.id} className="piece piece-upright piece-hidden" x={r.x} y={0} width={r.width} height={r.depth} vectorEffect="non-scaling-stroke" />
           ))}
           {lowestShelf && (
-            <rect className="piece piece-shelf" x={lowestShelf.x} y={0} width={lowestShelf.width} height={lowestShelf.depth} vectorEffect="non-scaling-stroke" />
+            <path
+              className="piece piece-shelf"
+              d={shelfFootprintPath(lowestShelf.x, lowestShelf.width, lowestShelf.depth, shelfEnd(shown, 'left'), shelfEnd(shown, 'right'))}
+              vectorEffect="non-scaling-stroke"
+            />
           )}
 
           {supports.map((sp) => (

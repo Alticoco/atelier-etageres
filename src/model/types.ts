@@ -94,6 +94,26 @@ export interface PlacedObject {
 }
 
 /**
+ * Assemblage d'un côté de l'étagère (modèle `frame`).
+ * - `screwed` : le montant est plein, les tablettes sont vissées entre les montants (défaut).
+ * - `notched` : le montant et les tablettes sont entaillés à mi-bois ; les tablettes traversent le montant et
+ *   dépassent de `overhang` à l'extérieur.
+ */
+export type JointType = 'screwed' | 'notched'
+
+/** Forme du bout de tablette qui dépasse : droit, arrondi (rayon en mm) ou coupé en biais (angle en degrés). */
+export type EndStyle = 'straight' | 'round' | 'bevel'
+
+export interface Joint {
+  type: JointType
+  /** Longueur de tablette qui dépasse à l'extérieur du montant (mm), si `notched`. */
+  overhang: number
+  endStyle: EndStyle
+  /** Rayon (mm) pour `round`, angle (degrés) pour `bevel` ; sans effet pour `straight`. */
+  endSize: number
+}
+
+/**
  * Planche de soutien posée sous ou autour de l'étagère (pieds, tasseaux, fixation latérale). Elle ne fait pas partie
  * de l'étagère : elle sert à porter son poids ou à la caler dans son environnement. Une simple boîte.
  */
@@ -149,6 +169,8 @@ export interface Plan {
   placedObjects?: PlacedObject[]
   /** Planches de soutien (à part de l'étagère), absentes s'il n'y en a pas. */
   supports?: Support[]
+  /** Assemblage de chaque côté (modèle `frame`), absent = vissé des deux côtés. */
+  joints?: { left: Joint; right: Joint }
   options: PlanOptions
 }
 
@@ -163,6 +185,23 @@ export interface Piece {
   thickness: number
   cornerRadius: number
   edgeRadius: number
+  /** Encoches (assemblage à mi-bois) : absentes si la pièce n'en a pas. */
+  notches?: Notch[]
+  /** Forme des bouts de tablette qui dépassent (absent = droit). */
+  endLeft?: PieceEnd
+  endRight?: PieceEnd
+}
+
+/** Lot d'encoches identiques : `width` = hauteur de l'entaille, `depth` = sa profondeur dans la pièce. */
+export interface Notch {
+  width: number
+  depth: number
+  count: number
+}
+
+export interface PieceEnd {
+  style: 'round' | 'bevel'
+  size: number
 }
 
 /** Espace entre deux tablettes consécutives. */

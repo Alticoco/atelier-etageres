@@ -1,4 +1,4 @@
-import { computeCutList, describeRounding } from '../model/cutlist'
+import { computeCutList, describeJoinery, describeRounding } from '../model/cutlist'
 import { pieceLabel } from '../model/labels'
 import type { Plan } from '../model/types'
 import { formatLength, formatNumber, type LengthUnit } from '../model/units'
@@ -11,6 +11,7 @@ interface CutListViewProps {
 /** Liste de découpe : pièces regroupées par dimensions identiques, avec quantité et repère. */
 export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
   const { groups, totalPieces, sawKerf, supports } = computeCutList(plan)
+  const hasJoinery = groups.some((g) => g.notches || g.endLeft || g.endRight)
 
   return (
     <div className="cutlist">
@@ -24,6 +25,7 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
             <th scope="col">Largeur ({unit})</th>
             <th scope="col">Épaisseur ({unit})</th>
             <th scope="col">Arrondi</th>
+            {hasJoinery && <th scope="col">Encoches et bouts</th>}
             <th scope="col">Pièces</th>
           </tr>
         </thead>
@@ -38,6 +40,7 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
               <td>{formatNumber(group.width, unit)}</td>
               <td>{formatNumber(group.thickness, unit)}</td>
               <td className="cutlist-rounding">{describeRounding(group.cornerRadius, group.edgeRadius, unit)}</td>
+              {hasJoinery && <td className="cutlist-rounding">{describeJoinery(group, unit)}</td>}
               <td className="cutlist-pieces">{group.pieceIds.map((id) => pieceLabel(plan, id)).join(', ')}</td>
             </tr>
           ))}
@@ -46,12 +49,12 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
           <tr>
             <th scope="row">Total</th>
             <td>{totalPieces}</td>
-            <td colSpan={5}>pièces à découper</td>
+            <td colSpan={hasJoinery ? 6 : 5}>pièces à découper</td>
           </tr>
           {sawKerf && (
             <tr>
               <th scope="row">Perte</th>
-              <td colSpan={6}>
+              <td colSpan={hasJoinery ? 7 : 6}>
                 Trait de scie (estimation) : {sawKerf.cuts} coupes × {formatLength(sawKerf.kerf, unit)} ={' '}
                 <strong>{formatLength(sawKerf.loss, unit)}</strong> de bois perdu
               </td>

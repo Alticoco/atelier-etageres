@@ -1,4 +1,4 @@
-import { computeCutList, roundingCode } from '../model/cutlist'
+import { computeCutList, describeJoinery, roundingCode } from '../model/cutlist'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
@@ -398,6 +398,17 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date() }: Scene
       7,
     ),
   )
+  const joinery = groups.filter((g) => g.notches || g.endLeft || g.endRight)
+  if (joinery.length > 0) {
+    writeLines(
+      wrapText(
+        'Assemblage à encoches (à mi-bois) : encoche du montant côté avant, encoche de la tablette côté arrière ; les tablettes traversent le montant et dépassent.',
+        listW,
+        7,
+      ),
+    )
+    for (const g of joinery.slice(0, 5)) writeLines(wrapText(`${g.mark} : ${describeJoinery(g, unit)}`, listW, 7))
+  }
   if (plan.wedges.length > 0) {
     writeLines(
       wrapText(`Cales non fixées : hauteur de l’étage moins ${formatLength(plan.options.wedgeClearance, unit)} de jeu.`, listW, 7),

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { JointsSection } from './JointsSection'
 import { LengthField } from './LengthField'
 import { ObjectsSection } from './ObjectsSection'
 import { SupportsSection } from './SupportsSection'
@@ -247,6 +248,8 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
           <legend>Étages</legend>
           <StageCountField key={getStages(plan).length} plan={plan} dispatch={dispatch} />
         </fieldset>
+
+        <JointsSection plan={plan} unit={unit} dispatch={dispatch} />
 
         <fieldset className="panel-section">
           <legend>Montage</legend>

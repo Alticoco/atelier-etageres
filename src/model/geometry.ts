@@ -1,3 +1,4 @@
+import { jointOf } from './joints'
 import type { Plan } from './types'
 
 /**
@@ -10,7 +11,8 @@ import type { Plan } from './types'
 
 /** Plus grands débords à gauche et à droite (toujours 0 pour le modèle `frame`). */
 export function overhangs(plan: Plan): { left: number; right: number } {
-  if (plan.model !== 'frameless') return { left: 0, right: 0 }
+  // Modèle avec cadre : un côté à encoches laisse dépasser les tablettes de la longueur choisie.
+  if (plan.model !== 'frameless') return { left: jointOf(plan, 'left').overhang, right: jointOf(plan, 'right').overhang }
   return {
     left: Math.max(0, ...plan.shelves.map((s) => s.overhangLeft)),
     right: Math.max(0, ...plan.shelves.map((s) => s.overhangRight)),
