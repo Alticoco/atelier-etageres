@@ -179,6 +179,7 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
     }
     const merged = shelves[index - 1].id
     for (const wedge of next.wedges) if (wedge.shelfBelowId === id) wedge.shelfBelowId = merged
+    for (const row of next.rows ?? []) if (row.shelfBelowId === id) row.shelfBelowId = merged
     next.shelves = next.shelves.filter((s) => s.id !== id)
   }
 

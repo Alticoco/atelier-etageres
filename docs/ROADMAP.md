@@ -45,6 +45,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [~] **Étape 17 — Déplacer les cales entre étages et segmenter les planches** (demande d'Alexis, 10 octobre 2026) :
   - [x] 17a — Glisser une cale d'un étage à l'autre : elle prend la hauteur de l'étage et s'aimante contre les montants et les cales voisines.
   - [ ] 17b — « Couper ici » : segmenter une planche (montant ou tablette) pour avoir des hauteurs / longueurs différentes (ex. un côté à 1 m, l'autre à 70 cm ; un étage plus court). Conception à valider avec l'auteur avant de coder.
+- [x] **Étape 17c — Simulation de rangement** (idée de la spec « plus tard », demandée par Alexis le 10 octobre 2026) : poser des mangas, livres, grands livres, bocaux d'épices dans un étage, avec capacité.
 - [ ] **Étape 18 — Optimisation des découpes** (à confirmer : peut-être inutile).
 
 ## V3
@@ -55,7 +56,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 
 ## Boîte à idées (plus tard)
 
-- Simulation d'objets rangés et estimation de capacité
+- Simulation d'objets rangés : objets de dimensions personnalisées, rangées couchées / empilées, vue de profil et PDF
 - Alerte de flexion
 - Estimation du prix
 - Version téléphone

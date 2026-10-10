@@ -1143,3 +1143,37 @@ button.tab {
 .pane .canvas-tools {
   top: 52px;
 }
+
+/* Simulation de rangement */
+.object {
+  fill: #7fa6c9;
+  stroke: #3d6a94;
+  stroke-width: 1;
+  opacity: 0.85;
+}
+.object-manga { fill: #d98c8c; stroke: #a14d4d; }
+.object-pocket { fill: #e3c46f; stroke: #a8892e; }
+.object-novel { fill: #8fbf9a; stroke: #4f8a5c; }
+.object-album { fill: #8d8fcf; stroke: #5557a3; }
+.object-jar { fill: #e6a457; stroke: #a8691a; }
+.object-bad { stroke: #c0392b; stroke-width: 2; stroke-dasharray: 4 2; }
+
+.object-rows {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.object-rows li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.object-rows li > span {
+  flex: 1;
+  min-width: 0;
+}
+.object-rows li button {
+  padding: 0.15rem 0.5rem;
+}

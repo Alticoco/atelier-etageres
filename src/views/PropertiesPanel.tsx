@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { ObjectsSection } from './ObjectsSection'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
 import { parseVerticalId, pieceLabel } from '../model/labels'
 import { computePieces, getStages, sortedShelves } from '../model/pieces'
@@ -282,6 +283,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
         </fieldset>
 
         <StageTools plan={plan} unit={unit} dispatch={dispatch} />
+        <ObjectsSection plan={plan} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>
     )
@@ -411,6 +413,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
         {single ? 'Supprimer cette pièce' : `Supprimer ces ${pieces.length} pièces`}
       </button>
       <StageTools key={sameKey} plan={plan} unit={unit} dispatch={dispatch} defaultStageId={defaultStageId} />
+      <ObjectsSection plan={plan} dispatch={dispatch} />
     </aside>
   )
 }

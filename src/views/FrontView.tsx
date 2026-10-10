@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
+import { layoutStage, objectKind } from '../model/objects'
 import { dragShelf, dragWedgeToStage, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
@@ -215,6 +216,23 @@ export function FrontView({
               vectorEffect="non-scaling-stroke"
             />
           ))}
+
+          <g className="objects" pointerEvents="none">
+            {stages.flatMap((stage) =>
+              layoutStage(shown, stage).objects.map((o, i) => (
+                <rect
+                  key={`${o.rowId}-${stage.shelfBelowId}-${i}`}
+                  className={`object object-${o.kindId}${o.tooTall || o.tooDeep ? ' object-bad' : ''}`}
+                  x={o.x}
+                  y={H - o.y - o.height}
+                  width={o.width}
+                  height={o.height}
+                  rx={objectKind(o.kindId)?.round ? o.width / 3 : 0}
+                  vectorEffect="non-scaling-stroke"
+                />
+              )),
+            )}
+          </g>
 
           {showMarks &&
             rects.map((r) => (

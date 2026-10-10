@@ -1,5 +1,6 @@
 import { checkPlan } from './edit'
-import type { Plan } from './types'
+import { MAX_ROW_COUNT, objectKind } from './objects'
+import type { ObjectRow, Plan } from './types'
 
 /**
  * Format de fichier d'un plan (`.etagere.json`) : { format, version, plan }.
@@ -123,6 +124,16 @@ function readPlan(value: unknown): Plan {
     }
   })
 
+  const rows: ObjectRow[] = root.rows === undefined ? [] : list(root, 'rows', 'Plan', 200).map((item, i) => {
+    const where = `Rangée d’objets ${i + 1}`
+    const obj = record(item, where)
+    const kind = text(obj, 'kind', where, MAX_ID)
+    if (!objectKind(kind)) fail(`${where} : type d’objet inconnu.`)
+    const count = int(obj, 'count', where, 1)
+    if (count > MAX_ROW_COUNT) fail(`${where} : trop d’objets.`)
+    return { id: uniqueId(text(obj, 'id', where, MAX_ID), where), shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), kind, count }
+  })
+
   // On reconstruit le plan champ par champ : rien d'inattendu du fichier n'est conservé.
   const model = root.model === undefined ? 'frame' : root.model
   if (model !== 'frame' && model !== 'frameless') fail('Plan : « model » doit valoir « frame » ou « frameless ».')
@@ -136,6 +147,7 @@ function readPlan(value: unknown): Plan {
     rightUpright: upright(root.rightUpright, 'Montant droit'),
     shelves,
     wedges,
+    ...(rows.length > 0 ? { rows } : {}),
     options: {
       propagation: bool(options, 'propagation', 'Options'),
       wallMount: optionalBool(options, 'wallMount', 'Options', false),

@@ -8,6 +8,7 @@ import {
 } from '../model/edit'
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
+import { addObjectRow, removeObjectRow, setObjectRowCount } from '../model/objects'
 import { addShelf, addWedge, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
@@ -41,6 +42,9 @@ export type EditorAction =
   | { type: 'setPlanSize'; width?: number; height?: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
+  | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number }
+  | { type: 'setObjectRowCount'; rowId: string; count: number }
+  | { type: 'removeObjectRow'; rowId: string }
   | { type: 'placeWedge'; wedgeId: string; shelfBelowId: string; x: number }
   | { type: 'removePieces'; ids: string[] }
   | { type: 'distributeShelves' }
@@ -145,6 +149,14 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     }
     case 'addShelf':
       return withAdded(addShelf(plan, action.shelfBelowId))
+    case 'addObjectRow': {
+      const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count)
+      return result.ok ? commit(result.plan) : refused(result.error)
+    }
+    case 'setObjectRowCount':
+      return withPlan(setObjectRowCount(plan, action.rowId, action.count))
+    case 'removeObjectRow':
+      return withPlan(removeObjectRow(plan, action.rowId))
     case 'placeWedge':
       return withPlan(moveWedge(plan, action.wedgeId, action.shelfBelowId, action.x, null))
     case 'addWedge':
