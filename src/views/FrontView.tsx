@@ -340,7 +340,7 @@ export function FrontView({
             side={1}
             onCommit={(mm) => onChange?.({ type: 'setPlanProperty', change: { property: 'height', mm } })}
           />
-          {stages.map((stage) => {
+          {stages.map((stage, stageIndex) => {
             const top = H - (stage.y + stage.clearHeight)
             const bottom = H - stage.y
             return (
@@ -348,6 +348,13 @@ export function FrontView({
                 <g className="dim dim-extension">
                   <line x1={0} y1={top} x2={-dimOffset - 5 * s} y2={top} vectorEffect="non-scaling-stroke" />
                   <line x1={0} y1={bottom} x2={-dimOffset - 5 * s} y2={bottom} vectorEffect="non-scaling-stroke" />
+                </g>
+                <g className="stage-badge" pointerEvents="none">
+                  <circle cx={-dimOffset - 26 * s} cy={(top + bottom) / 2} r={10 * s} vectorEffect="non-scaling-stroke" />
+                  <text x={-dimOffset - 26 * s} y={(top + bottom) / 2} fontSize={12 * s} textAnchor="middle" dominantBaseline="central">
+                    {stageIndex + 1}
+                  </text>
+                  <title>{`Étage ${stageIndex + 1}`}</title>
                 </g>
                 <EditableDimension
                   x1={-dimOffset}

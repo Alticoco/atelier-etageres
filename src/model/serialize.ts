@@ -1,6 +1,6 @@
 import { checkPlan } from './edit'
 import { MAX_GAP, MAX_PLACED, MAX_ROW_COUNT, objectKind } from './objects'
-import type { ObjectRow, PlacedObject, Plan, Support } from './types'
+import type { Joint, ObjectRow, PlacedObject, Plan, Support } from './types'
 
 /**
  * Format de fichier d'un plan (`.etagere.json`) : { format, version, plan }.
@@ -158,6 +158,19 @@ function readPlan(value: unknown): Plan {
     }
   })
 
+  const joint = (value: unknown, where: string): Joint => {
+    const obj = record(value, where)
+    const type = obj.type
+    if (type !== 'screwed' && type !== 'notched') fail(`${where} : « type » doit valoir « screwed » ou « notched ».`)
+    const endStyle = obj.endStyle === undefined ? 'straight' : obj.endStyle
+    if (endStyle !== 'straight' && endStyle !== 'round' && endStyle !== 'bevel') fail(`${where} : « endStyle » inconnu.`)
+    return { type, overhang: optionalInt(obj, 'overhang', where, 0, 0), endStyle, endSize: optionalInt(obj, 'endSize', where, 0, 0) }
+  }
+  const joints = root.joints === undefined ? undefined : (() => {
+    const obj = record(root.joints, 'Assemblages')
+    return { left: joint(obj.left, 'Assemblage gauche'), right: joint(obj.right, 'Assemblage droit') }
+  })()
+
   // On reconstruit le plan champ par champ : rien d'inattendu du fichier n'est conservé.
   const model = root.model === undefined ? 'frame' : root.model
   if (model !== 'frame' && model !== 'frameless') fail('Plan : « model » doit valoir « frame » ou « frameless ».')
@@ -174,6 +187,7 @@ function readPlan(value: unknown): Plan {
     ...(rows.length > 0 ? { rows } : {}),
     ...(placedObjects.length > 0 ? { placedObjects } : {}),
     ...(supports.length > 0 ? { supports } : {}),
+    ...(joints ? { joints } : {}),
     options: {
       propagation: bool(options, 'propagation', 'Options'),
       wallMount: optionalBool(options, 'wallMount', 'Options', false),

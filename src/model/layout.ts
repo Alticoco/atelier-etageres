@@ -1,3 +1,4 @@
+import { bodyEdges } from './geometry'
 import { shelfLength, shelfX, sortedShelves, stageVerticals, uprightLength, wedgeLength } from './pieces'
 import type { PieceKind, Plan } from './types'
 
@@ -45,7 +46,7 @@ export function computeFrontRects(plan: Plan): Rect[] {
       {
         id: 'upright-left',
         kind: 'upright',
-        x: 0,
+        x: bodyEdges(plan).left,
         y: uprightY,
         width: leftUpright.thickness,
         height: uprightHeight,
@@ -56,7 +57,7 @@ export function computeFrontRects(plan: Plan): Rect[] {
       {
         id: 'upright-right',
         kind: 'upright',
-        x: plan.width - rightUpright.thickness,
+        x: bodyEdges(plan).right - rightUpright.thickness,
         y: uprightY,
         width: rightUpright.thickness,
         height: uprightHeight,

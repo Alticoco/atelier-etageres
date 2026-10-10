@@ -4,10 +4,14 @@ import { getStages } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 import { LengthField } from './LengthField'
+import type { ObjectsForm } from './objectsForm'
+import { stageLabel } from './stageLabel'
 import type { EditorAction } from '../store/editor'
 
 interface ObjectsSectionProps {
   plan: Plan
+  form: ObjectsForm
+  onForm: (form: ObjectsForm) => void
   selection?: string[]
   unit: LengthUnit
   dispatch: (action: EditorAction) => void
@@ -48,17 +52,19 @@ function InfoCard({ kindId, unit }: { kindId: string; unit: LengthUnit }) {
 }
 
 /** Simulation : poser des mangas, des livres, des bocaux… pour se faire une idée de ce qui rentre. */
-export function ObjectsSection({ plan, selection = [], unit, dispatch }: ObjectsSectionProps) {
+export function ObjectsSection({ plan, form, onForm, selection = [], unit, dispatch }: ObjectsSectionProps) {
   const stages = getStages(plan)
-  const [stageChoice, setStageChoice] = useState('')
-  const [kindId, setKindId] = useState(OBJECT_KINDS[0].id)
-  const [countText, setCountText] = useState('')
-  const [gapMm, setGapMm] = useState(0)
+  const kindId = form.kind
+  const countText = form.count
+  const gapMm = form.gap
+  const setStageChoice = (stage: string) => onForm({ ...form, stage })
+  const setKindId = (kind: string) => onForm({ ...form, kind })
+  const setCountText = (count: string) => onForm({ ...form, count })
   const selectedObjects = selection.filter((id) => isObjectId(id) && objectLabel(plan, id) !== null)
   // Fiche ouverte : le type d'objet affiché (null = fermée).
   const [infoKind, setInfoKind] = useState<string | null>(null)
   const toggleInfo = (id: string) => setInfoKind((current) => (current === id ? null : id))
-  const stageId = stages.some((s) => s.shelfBelowId === stageChoice) ? stageChoice : stages[0]?.shelfBelowId
+  const stageId = stages.some((s) => s.shelfBelowId === form.stage) ? form.stage : stages[0]?.shelfBelowId
   const kind = objectKind(kindId)
   const room = stageId ? remainingCapacity(plan, stageId, kindId, gapMm) : 0
   const layouts = new Map(stages.map((s, i) => [s.shelfBelowId, { index: i + 1, layout: layoutStage(plan, s) }]))
@@ -68,7 +74,7 @@ export function ObjectsSection({ plan, selection = [], unit, dispatch }: Objects
     if (!stageId) return
     const n = countText.trim() === '' ? undefined : Number(countText.replace(',', '.'))
     dispatch({ type: 'addObjectRow', shelfBelowId: stageId, kind: kindId, count: n, gap: gapMm })
-    setCountText('')
+    onForm({ ...form, count: '' })
   }
 
   return (
@@ -80,7 +86,9 @@ export function ObjectsSection({ plan, selection = [], unit, dispatch }: Objects
           Étage
           <select value={stageId} onChange={(e) => setStageChoice(e.target.value)}>
             {stages.map((stage, i) => (
-              <option key={stage.shelfBelowId} value={stage.shelfBelowId}>{`Étage ${i + 1}`}</option>
+              <option key={stage.shelfBelowId} value={stage.shelfBelowId}>
+                {stageLabel(i, stages.length, stage.clearHeight, unit)}
+              </option>
             ))}
           </select>
         </label>
@@ -120,7 +128,7 @@ export function ObjectsSection({ plan, selection = [], unit, dispatch }: Objects
         unit={unit}
         onCommit={(mm) => {
           if (mm > 500) return 'Au plus 50 cm.'
-          setGapMm(mm)
+          onForm({ ...form, gap: mm })
           return null
         }}
       />

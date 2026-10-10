@@ -1,4 +1,5 @@
 import { bodyEdges } from './geometry'
+import { isNotched, shelfEnd, shelfNotches, uprightNotches } from './joints'
 import type { Piece, Plan, Shelf, Stage, Wedge } from './types'
 
 /** Tablettes triées de bas en haut. */
@@ -34,13 +35,17 @@ export function shelfLength(plan: Plan, shelf: Shelf, isOuter: boolean): number 
     return body.right - body.left + shelf.overhangLeft + shelf.overhangRight
   }
   if (isOuter && plan.options.framePlacement === 'onTop') return plan.width
-  return plan.width - plan.leftUpright.thickness - plan.rightUpright.thickness
+  // Un côté à encoches : la tablette traverse le montant et va jusqu'au bout qui dépasse.
+  const start = isNotched(plan, 'left') ? 0 : plan.leftUpright.thickness
+  const end = isNotched(plan, 'right') ? plan.width : plan.width - plan.rightUpright.thickness
+  return end - start
 }
 
 /** Position du bord gauche d'une tablette (mm depuis le bord gauche hors-tout). */
 export function shelfX(plan: Plan, shelf: Shelf, isOuter: boolean): number {
   if (plan.model === 'frameless') return bodyEdges(plan).left - shelf.overhangLeft
-  return isOuter && plan.options.framePlacement === 'onTop' ? 0 : plan.leftUpright.thickness
+  if (isOuter && plan.options.framePlacement === 'onTop') return 0
+  return isNotched(plan, 'left') ? 0 : plan.leftUpright.thickness
 }
 
 /** Hauteur d'un montant (modèle `frame`) : raccourcie des tablettes extrêmes si elles sont posées dessus/dessous. */
@@ -129,6 +134,11 @@ export function wedgeLength(plan: Plan, wedge: Wedge): number {
   return stage.clearHeight - plan.options.wedgeClearance
 }
 
+/** `{ [key]: value }` si la valeur existe, sinon rien : évite d'ajouter des champs « undefined » aux pièces. */
+function optional<K extends string, V>(key: K, value: V | undefined): { [P in K]?: V } {
+  return value === undefined ? {} : ({ [key]: value } as { [P in K]?: V })
+}
+
 /** Toutes les pièces à découper : les montants, les tablettes, les cales. */
 export function computePieces(plan: Plan): Piece[] {
   const shelves = sortedShelves(plan)
@@ -157,6 +167,7 @@ export function computePieces(plan: Plan): Piece[] {
         thickness: plan.leftUpright.thickness,
         cornerRadius: plan.leftUpright.cornerRadius,
         edgeRadius: plan.leftUpright.edgeRadius,
+        ...optional('notches', uprightNotches(plan, 'left', shelves)),
       },
       {
         id: 'upright-right',
@@ -166,6 +177,7 @@ export function computePieces(plan: Plan): Piece[] {
         thickness: plan.rightUpright.thickness,
         cornerRadius: plan.rightUpright.cornerRadius,
         edgeRadius: plan.rightUpright.edgeRadius,
+        ...optional('notches', uprightNotches(plan, 'right', shelves)),
       },
     )
   }
@@ -179,6 +191,9 @@ export function computePieces(plan: Plan): Piece[] {
       thickness: shelf.thickness,
       cornerRadius: shelf.cornerRadius,
       edgeRadius: shelf.edgeRadius,
+      ...optional('notches', shelfNotches(plan, shelf, i === 0 || i === lastIndex)),
+      ...optional('endLeft', shelfEnd(plan, 'left')),
+      ...optional('endRight', shelfEnd(plan, 'right')),
     })
   })
 

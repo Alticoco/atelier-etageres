@@ -1342,3 +1342,14 @@ button.tab {
 .stepper button {
   width: 2.2rem;
 }
+
+/* Numéro d'étage sur le dessin */
+.stage-badge circle {
+  fill: #fffdfa;
+  stroke: var(--accent, #8a5a2b);
+  stroke-width: 1.5;
+}
+.stage-badge text {
+  fill: var(--accent, #8a5a2b);
+  font-weight: 700;
+}

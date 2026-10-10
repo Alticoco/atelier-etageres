@@ -8,7 +8,10 @@ import {
 } from '../model/edit'
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
-import { addSupport, alignSupportFront, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
+import { setJoint } from '../model/jointEdit'
+import type { Side } from '../model/joints'
+import type { Joint } from '../model/types'
+import { addSupport, alignSupportFront, duplicateSupport, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
 import { addObjectRow, moveObject, objectIdExists, removeObjectRow, setObjectRowCount, setObjectRowGap } from '../model/objects'
 import { addShelf, addWedge, copyStageWedges, setStageCount, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
@@ -43,12 +46,14 @@ export type EditorAction =
   | { type: 'setPlanSize'; width?: number; height?: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
+  | { type: 'setJoint'; side: Side; patch: Partial<Joint> }
   | { type: 'setStageCount'; count: number }
   | { type: 'setStageHeight'; shelfBelowId: string; mm: number }
   | { type: 'copyStageWedges'; fromId: string; toIds: string[] }
   | { type: 'addSupport'; placement: SupportPlacement }
   | { type: 'setSupportProperty'; id: string; property: SupportProperty; mm: number }
   | { type: 'alignSupportFront'; id: string }
+  | { type: 'duplicateSupport'; id: string; mode: 'next' | 'mirror' }
   | { type: 'moveSupport'; id: string; x?: number; y?: number; z?: number }
   | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number; gap?: number }
   | { type: 'setObjectRowCount'; rowId: string; count: number }
@@ -159,6 +164,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     }
     case 'addShelf':
       return withAdded(addShelf(plan, action.shelfBelowId))
+    case 'setJoint':
+      return withPlan(setJoint(plan, action.side, action.patch))
     case 'setStageCount':
       return withPlan(setStageCount(plan, action.count))
     case 'setStageHeight':
@@ -173,6 +180,10 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(setSupportProperty(plan, action.id, action.property, action.mm))
     case 'moveSupport':
       return withPlan(moveSupport(plan, action.id, { x: action.x, y: action.y, z: action.z }))
+    case 'duplicateSupport': {
+      const result = duplicateSupport(plan, action.id, action.mode)
+      return result.ok ? commit(result.plan, [result.id]) : refused(result.error)
+    }
     case 'alignSupportFront':
       return withPlan(alignSupportFront(plan, action.id))
     case 'addObjectRow': {

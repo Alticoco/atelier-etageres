@@ -2,7 +2,7 @@ import { fail, finish, type EditResult } from './edit'
 import { profileSize } from './profile'
 import type { Plan, Support } from './types'
 
-export type SupportPlacement = 'under' | 'left' | 'right'
+export type SupportPlacement = 'under' | 'left' | 'right' | 'base'
 export type SupportProperty = 'x' | 'y' | 'z' | 'width' | 'height' | 'depth'
 
 export const MAX_SUPPORTS = 100
@@ -65,7 +65,21 @@ export function addSupport(plan: Plan, placement: SupportPlacement): { ok: true;
   const depth = frontDepth(plan)
   const id = nextSupportId(plan)
   let support: Support
-  if (placement === 'under') {
+  if (placement === 'base') {
+    // Planche horizontale posée sous tous les supports du dessous : elle les relie et donne une base stable.
+    const under = (plan.supports ?? []).filter((s) => s.y < 0)
+    const thickness = plan.shelves[0]?.thickness ?? DEFAULT_UNDER.height
+    if (under.length === 0) {
+      support = { id, x: 0, y: -thickness, z: 0, width: plan.width, height: thickness, depth }
+    } else {
+      const minX = Math.min(...under.map((s) => s.x))
+      const maxX = Math.max(...under.map((s) => s.x + s.width))
+      const minZ = Math.min(...under.map((s) => s.z))
+      const maxZ = Math.max(...under.map((s) => s.z + s.depth))
+      const bottom = Math.min(...under.map((s) => s.y))
+      support = { id, x: minX, y: bottom - thickness, z: minZ, width: maxX - minX, height: thickness, depth: maxZ - minZ }
+    }
+  } else if (placement === 'under') {
     const d = Math.min(DEFAULT_UNDER.depth, depth)
     const w = Math.min(DEFAULT_UNDER.width, plan.width)
     const slots = [0, plan.width - w, Math.round((plan.width - w) / 2)]
@@ -87,6 +101,33 @@ export function addSupport(plan: Plan, placement: SupportPlacement): { ok: true;
   next.supports = [...(next.supports ?? []), support]
   const result = finish(next)
   return result.ok ? { ok: true, plan: result.plan, id } : result
+}
+
+/**
+ * Duplique un support. `next` : à droite de l'original (ou à gauche s'il n'y a plus de place), avec 5 cm d'écart ;
+ * `mirror` : symétrique par rapport au milieu de l'étagère. La copie est ensuite réglable comme les autres.
+ */
+export function duplicateSupport(
+  plan: Plan,
+  id: string,
+  mode: 'next' | 'mirror',
+): { ok: true; plan: Plan; id: string } | { ok: false; error: string } {
+  const source = plan.supports?.find((s) => s.id === id)
+  if (!source) return fail('Support inconnu.') as { ok: false; error: string }
+  if ((plan.supports ?? []).length >= MAX_SUPPORTS) return fail(`Pas plus de ${MAX_SUPPORTS} supports.`) as { ok: false; error: string }
+  let x: number
+  if (mode === 'mirror') {
+    x = plan.width - source.x - source.width
+    if (x === source.x) return fail('Ce support est déjà au milieu de l’étagère : sa symétrique serait au même endroit.') as { ok: false; error: string }
+  } else {
+    x = source.x + source.width + 50
+    if (x + source.width > plan.width && source.x - source.width - 50 >= 0) x = source.x - source.width - 50
+  }
+  const copyId = nextSupportId(plan)
+  const next = structuredClone(plan)
+  next.supports = [...(next.supports ?? []), { ...source, id: copyId, x }]
+  const result = finish(next)
+  return result.ok ? { ok: true, plan: result.plan, id: copyId } : result
 }
 
 export function setSupportProperty(plan: Plan, id: string, property: SupportProperty, mm: number): EditResult {
