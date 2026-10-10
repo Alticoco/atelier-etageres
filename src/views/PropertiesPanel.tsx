@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { ObjectsSection } from './ObjectsSection'
 import { readPiece, setPieceProperty, setPlanProperty, type PieceProperty, type PlanChange } from '../model/edit'
 import { parseVerticalId, pieceLabel } from '../model/labels'
 import { computePieces, getStages, sortedShelves } from '../model/pieces'
@@ -89,6 +90,11 @@ function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
   const [chosen, setChosen] = useState('')
   const valid = (id?: string) => stages.some((s) => s.shelfBelowId === id)
   const stageId = valid(chosen) ? chosen : valid(defaultStageId) ? defaultStageId : stages[0]?.shelfBelowId
+  // Copie des cales : l'étage choisi ci-dessus est la source ; la destination est un étage ou « tous les autres ».
+  const [copyTarget, setCopyTarget] = useState('all')
+  const others = stages.filter((s) => s.shelfBelowId !== stageId)
+  const target = copyTarget === 'all' || others.some((s) => s.shelfBelowId === copyTarget) ? copyTarget : 'all'
+  const sourceWedges = plan.wedges.filter((w) => w.shelfBelowId === stageId).length
 
   return (
     <fieldset className="panel-section tools">
@@ -116,6 +122,41 @@ function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsProps) {
           Espacer les tablettes également
         </button>
       </div>
+      {stages.length > 1 && (
+        <div className="copy-wedges">
+          <div className="field">
+            <label>
+              Copier les cales de cet étage vers
+              <select value={target} onChange={(e) => setCopyTarget(e.target.value)}>
+                <option value="all">Tous les autres étages</option>
+                {stages.map((stage, i) =>
+                  stage.shelfBelowId === stageId ? null : (
+                    <option key={stage.shelfBelowId} value={stage.shelfBelowId}>{`Étage ${i + 1}`}</option>
+                  ),
+                )}
+              </select>
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              stageId &&
+              dispatch({
+                type: 'copyStageWedges',
+                fromId: stageId,
+                toIds: target === 'all' ? others.map((s) => s.shelfBelowId) : [target],
+              })
+            }
+          >
+            Copier les cales
+          </button>
+          <p className="panel-hint">
+            {sourceWedges === 0
+              ? 'Cet étage n’a pas de cale : la copie vide les étages choisis.'
+              : `${sourceWedges} cale${sourceWedges > 1 ? 's' : ''} copiée${sourceWedges > 1 ? 's' : ''}, aux mêmes positions ; celles de l’étage visé sont remplacées.`}
+          </p>
+        </div>
+      )}
     </fieldset>
   )
 }
@@ -282,6 +323,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
         </fieldset>
 
         <StageTools plan={plan} unit={unit} dispatch={dispatch} />
+        <ObjectsSection plan={plan} unit={unit} dispatch={dispatch} />
         <p className="panel-hint">Cliquez sur une pièce pour modifier ses cotes. Ctrl ou Maj + clic pour en sélectionner plusieurs.</p>
       </aside>
     )
@@ -411,6 +453,7 @@ export function PropertiesPanel({ plan, selection, unit, dispatch }: PropertiesP
         {single ? 'Supprimer cette pièce' : `Supprimer ces ${pieces.length} pièces`}
       </button>
       <StageTools key={sameKey} plan={plan} unit={unit} dispatch={dispatch} defaultStageId={defaultStageId} />
+      <ObjectsSection plan={plan} unit={unit} dispatch={dispatch} />
     </aside>
   )
 }

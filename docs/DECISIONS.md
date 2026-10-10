@@ -210,3 +210,21 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 ## 2026-10-10 (profondeur dans les dimensions hors-tout)
 
 - **Champ « Profondeur » ajouté aux dimensions hors-tout** du panneau de l'étagère (à côté de largeur et hauteur). Le modèle stocke la profondeur par pièce (pas de profondeur globale) : saisir une valeur donne **la même profondeur à toutes les pièces** (montants, tablettes, cales), en un seul pas d'historique. Si les pièces ont des profondeurs différentes (étape 15), le champ est vide (« Valeurs différentes ») avec une note ; la saisie les uniformise. Les profondeurs par pièce restent réglables au clic (panneau ou vue de profil).
+
+## 2026-10-10 (étape 17a — cales d'un étage à l'autre)
+
+- **Une cale se glisse dans les deux sens** (horizontal et vertical) ; l'étage visé est celui sous le curseur (le plus proche si le curseur est sur une tablette). Sa hauteur s'adapte seule (hauteur libre − jeu), car elle est calculée. Fonction pure `moveWedge` (`src/model/tools.ts`), action `placeWedge` : un glisser = un pas d'historique.
+- **Aimantation** : la position est arrondie au pas réglé, puis collée contre le montant ou la cale voisine si elle en est à moins de 10 mm (`MAGNET_MM`). Alt désactive l'arrondi et l'aimantation. Une cale ne chevauche jamais une voisine : elle se range dans la place libre la plus proche.
+- **Reporté** : « Couper ici » (étape 17b) touche au cœur du modèle (les tablettes et montants traversent aujourd'hui toute la largeur / hauteur) ; la conception est à valider avec l'auteur. L'ancienne étape 17 (optimisation) devient l'étape 18.
+
+## 2026-10-10 (étape 17c — simulation de rangement)
+
+- **Rangées d'objets stockées dans le plan** (`plan.rows`, facultatif) : type d'objet + nombre + étage (tablette du dessous, comme les cales). Elles sont enregistrées avec le plan mais **n'ont aucun effet sur le bois** : ni liste de découpe, ni contrôles de cohérence, ni PDF. Fichiers anciens inchangés (champ absent, pas de changement de version).
+- **Catalogue fixe de 5 objets aux dimensions courantes** (`OBJECT_KINDS`, `src/model/objects.ts`) : manga 14 × 175 × 115 mm, livre de poche 25 × 177 × 108, livre grand format 30 × 215 × 140, grand livre / BD 25 × 320 × 240, bocal d'épices 55 × 100 × 55. **Ces dimensions sont mes estimations** (aucune n'avait été donnée) : à corriger par l'auteur.
+- **Rangement debout, côte à côte, de gauche à droite** depuis le montant, en sautant les cales. La quantité vide = « remplir » ce qui reste. Les objets qui n'ont plus de place sont comptés (« N sans place ») ; un objet plus haut que l'étage ou plus profond que la tablette est dessiné en rouge pointillé et signalé.
+- **Dessin dans la vue de face seulement**, non cliquable. Reporté (boîte à idées) : vue de profil, PDF, objets sur mesure, objets couchés ou empilés.
+
+## 2026-10-10 (étape 17d — fiche d'objet et copie des cales)
+
+- **Fiche d'information par objet** : un bouton rond « i » à côté du choix de l'objet et sur chaque rangée ouvre une fiche (largeur, hauteur, profondeur, hauteur d'étage et profondeur de tablette nécessaires, nombre par mètre). Dimensions indicatives, dans l'unité choisie (mm / cm).
+- **Copier les cales d'un étage vers d'autres** (`copyStageWedges`, `src/model/tools.ts`) : l'étage source est celui choisi dans « Outils » ; la destination est un étage ou « tous les autres ». Mêmes positions, épaisseurs, profondeurs et arrondis ; **les cales déjà présentes dans l'étage visé sont remplacées** (on récupère la même disposition, sans doublon). Un étage source sans cale vide les étages visés (le panneau le dit). Un seul pas d'historique.

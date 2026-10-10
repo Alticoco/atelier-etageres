@@ -72,6 +72,16 @@ export interface Wedge {
   edgeRadius: number
 }
 
+/** Rangée d'objets de simulation (mangas, livres, bocaux…) posée dans un étage. N'a aucun effet sur les pièces de bois. */
+export interface ObjectRow {
+  id: string
+  /** Tablette située sous l'étage. */
+  shelfBelowId: string
+  /** Identifiant du type d'objet (voir `OBJECT_KINDS`). */
+  kind: string
+  count: number
+}
+
 export interface PlanOptions {
   /**
    * Propagation « intelligente » : si activée, changer la largeur garde les cales à leur position
@@ -102,6 +112,8 @@ export interface Plan {
   rightUpright: Upright
   shelves: Shelf[]
   wedges: Wedge[]
+  /** Objets de simulation, absent s'il n'y en a pas. */
+  rows?: ObjectRow[]
   options: PlanOptions
 }
 

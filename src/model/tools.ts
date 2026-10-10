@@ -88,6 +88,86 @@ export function addWedge(plan: Plan, shelfBelowId: string): AddResult {
 }
 
 /**
+ * Copie la disposition des cales de l'étage `fromId` (au-dessus de cette tablette) vers les étages `toIds` :
+ * mêmes positions, épaisseurs, profondeurs et arrondis. Les cales déjà présentes dans un étage de destination sont
+ * remplacées ; si l'étage source n'a pas de cale, les étages de destination sont vidés.
+ */
+export function copyStageWedges(plan: Plan, fromId: string, toIds: string[]): EditResult {
+  const stages = getStages(plan)
+  if (!stages.some((s) => s.shelfBelowId === fromId)) return fail('Étage source inconnu.')
+  const targets = [...new Set(toIds)].filter((id) => id !== fromId)
+  if (targets.length === 0) return fail('Choisissez au moins un autre étage.')
+  if (targets.some((id) => !stages.some((s) => s.shelfBelowId === id))) return fail('Étage de destination inconnu.')
+
+  const next = structuredClone(plan)
+  const source = plan.wedges.filter((w) => w.shelfBelowId === fromId)
+  next.wedges = next.wedges.filter((w) => !targets.includes(w.shelfBelowId))
+  for (const target of targets) {
+    for (const wedge of source) {
+      next.wedges.push({ ...wedge, id: nextId('wedge', next.wedges.map((w) => w.id)), shelfBelowId: target })
+    }
+  }
+  return finish(next)
+}
+
+/** Distance (mm) en dessous de laquelle une cale s'aimante contre un montant ou une cale voisine. */
+export const MAGNET_MM = 10
+
+/**
+ * Place la cale `wedgeId` dans l'étage au-dessus de `shelfBelowId`, le plus près possible de `rawX` (bord gauche).
+ * Elle reste dans les places libres de l'étage (entre les montants, sans chevaucher une autre cale) ; si `step`
+ * est donné, la position est d'abord arrondie, puis aimantée contre le montant ou la cale voisine si elle en est
+ * à moins de `MAGNET_MM`. Sa hauteur s'adapte seule à l'étage (hauteur libre − jeu).
+ */
+export function moveWedge(plan: Plan, wedgeId: string, shelfBelowId: string, rawX: number, step: number | null): EditResult {
+  const wedge = plan.wedges.find((w) => w.id === wedgeId)
+  if (!wedge) return fail('Cale inconnue.')
+  const stage = getStages(plan).find((s) => s.shelfBelowId === shelfBelowId)
+  if (!stage) return fail('Étage inconnu.')
+
+  const span = innerSpan(plan)
+  const others = plan.wedges
+    .filter((w) => w.id !== wedgeId && w.shelfBelowId === shelfBelowId)
+    .sort((a, b) => a.x - b.x)
+
+  // Places libres où la cale tient : [début minimal, début maximal] du bord gauche.
+  const slots: { min: number; max: number }[] = []
+  let cursor = span.left
+  for (const edge of [...others.map((w) => ({ from: w.x, to: w.x + w.thickness })), { from: span.right, to: span.right }]) {
+    if (edge.from - cursor >= wedge.thickness) slots.push({ min: cursor, max: edge.from - wedge.thickness })
+    cursor = Math.max(cursor, edge.to)
+  }
+  if (slots.length === 0) return fail('Il n’y a pas assez de place pour la cale dans cet étage.')
+
+  const clampToSlots = (x: number): number => {
+    let best = slots[0].min
+    let bestDistance = Infinity
+    for (const slot of slots) {
+      const candidate = Math.min(Math.max(x, slot.min), slot.max)
+      if (Math.abs(candidate - x) < bestDistance) {
+        best = candidate
+        bestDistance = Math.abs(candidate - x)
+      }
+    }
+    return best
+  }
+
+  let x = clampToSlots(step === null ? Math.round(rawX) : Math.round(rawX / Math.max(step, 1)) * Math.max(step, 1))
+  if (step !== null) {
+    // Aimantation : bords des places libres (contre un montant ou une cale voisine).
+    const magnets = slots.flatMap((slot) => [slot.min, slot.max])
+    const near = magnets.reduce((a, b) => (Math.abs(b - rawX) < Math.abs(a - rawX) ? b : a))
+    if (Math.abs(near - rawX) <= MAGNET_MM) x = near
+  }
+
+  const next = structuredClone(plan)
+  const target = next.wedges.find((w) => w.id === wedgeId)!
+  target.shelfBelowId = shelfBelowId
+  target.x = x
+  return finish(next)
+}
+
+/**
  * Supprime des tablettes intermédiaires et/ou des cales. Les montants et les tablettes du haut et du bas
  * ferment le cadre : ils ne se suppriment pas. Quand une tablette disparaît, les cales de son étage
  * passent dans l'étage fusionné.
@@ -122,6 +202,7 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
     }
     const merged = shelves[index - 1].id
     for (const wedge of next.wedges) if (wedge.shelfBelowId === id) wedge.shelfBelowId = merged
+    for (const row of next.rows ?? []) if (row.shelfBelowId === id) row.shelfBelowId = merged
     next.shelves = next.shelves.filter((s) => s.id !== id)
   }
 
