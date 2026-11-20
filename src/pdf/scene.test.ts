@@ -370,7 +370,7 @@ describe('objets rangés sur le plan PDF', () => {
     expect(outlines(primitives).every((r) => r.stroke !== undefined && r.stroke > 0 && r.stroke < 1)).toBe(true)
     const legend = texts(primitives).filter((t) => t.text.startsWith('Objets rangés'))
     expect(legend.length).toBeGreaterThan(0)
-    expect(allText(primitives)).toContain('Objets rangés (indicatif) : 54 mangas, 4 boîte à thé.')
+    expect(allText(primitives)).toContain('Objets rangés (indicatif) : 54 mangas, 4 boîtes à thé.')
     expect(legend.every((t) => t.size >= 6)).toBe(true)
   })
 
