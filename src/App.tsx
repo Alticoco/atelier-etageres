@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { readImportedPlan } from './importPlan'
 import { type Command, type ViewMode } from './keyboard'
-import { nudgePiece } from './model/drag'
+import { copyPieces, stageOfSelection } from './model/clipboard'
 import { exportFileName, pdfFileName, serializePlan } from './model/serialize'
 import type { Plan } from './model/types'
 import { downloadBytes, downloadTextFile } from './storage/download'
@@ -93,12 +93,27 @@ export default function App() {
         run({ type: 'removePieces', ids: selection })
         break
       case 'nudge': {
-        // Le déplacement au clavier concerne une seule pièce à la fois.
-        if (!plan || selection.length !== 1) break
-        const move = nudgePiece(plan, selection[0], command.dx, command.dy, command.fine ? 1 : snapStep)
-        if (move) run({ type: 'setPieceProperty', ids: selection, property: move.property, mm: move.mm })
+        // Toutes les pièces choisies se déplacent ensemble ; si l'une est bloquée, aucune ne bouge.
+        run({ type: 'nudgePieces', ids: selection, dx: command.dx, dy: command.dy, step: command.fine ? 1 : snapStep })
         break
       }
+      case 'duplicate':
+        run({ type: 'duplicatePieces', ids: selection })
+        break
+      case 'copy': {
+        if (!plan) break
+        const copied = copyPieces(plan, selection)
+        if (!copied.ok) return notify(copied.error)
+        wsDispatch({ type: 'setClipboard', clipboard: copied.clipboard })
+        const n = copied.clipboard.items.length
+        notify(`${n} pièce${n > 1 ? 's' : ''} copiée${n > 1 ? 's' : ''} : Ctrl+V pour coller.`, 'info')
+        break
+      }
+      case 'paste':
+        if (!plan) break
+        if (!ws.clipboard) return notify('Rien à coller : copiez d’abord des pièces avec Ctrl+C.')
+        run({ type: 'pastePieces', clipboard: ws.clipboard, targetStageId: stageOfSelection(plan, selection) })
+        break
       case 'view':
         setView(command.mode)
         break

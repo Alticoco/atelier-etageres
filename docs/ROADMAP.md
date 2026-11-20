@@ -64,6 +64,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] Portes / coffrets et tiroirs — première version (modèle avec cadre) : par étage, ouvert / une porte (charnières à gauche ou à droite) / deux portes / un tiroir ; vue de face, 3D, PDF, liste de découpe à part (repères P1…). À venir : portes ouvertes à l'écran, quincaillerie (charnières, coulisses) et son comptage, portes à recouvrement, plusieurs tiroirs par étage, tiroirs en 3D détaillés.
 - [x] Modèles de départ dans l'assistant — Mangathèque, étagère à épices, bibliothèque, étagère murale sans cadre, meuble bas : un clic pré-remplit le formulaire.
 - [x] Objets sur mesure : créer ses objets, couché / de face / empilés, ajuster un étage à ses objets.
+- [x] Copier, coller, dupliquer, symétrie, répartir (cales, supports, objets) et sélection multiple qui agit : Ctrl+C / V / D, boutons « Dupliquer à côté / en symétrique », « Répartir N cales », flèches sur toute la sélection.
 
 ## Boîte à idées (plus tard)
 

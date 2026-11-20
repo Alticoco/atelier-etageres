@@ -1,3 +1,4 @@
+import type { Clipboard } from '../model/clipboard'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
 import { applyAction, initialEditorState, type EditorAction, type EditorState } from './editor'
@@ -26,6 +27,8 @@ export interface Workspace {
   unit: LengthUnit
   snapStep: number
   nextKey: number
+  /** Presse-papiers interne (copier / coller entre pièces et entre onglets) : hors historique. */
+  clipboard: Clipboard | null
 }
 
 export const emptyWorkspace: Workspace = {
@@ -35,12 +38,15 @@ export const emptyWorkspace: Workspace = {
   unit: initialEditorState.unit,
   snapStep: initialEditorState.snapStep,
   nextKey: 1,
+  clipboard: null,
 }
 
 export type WorkspaceAction =
   /** Ouvre un plan : s'il est déjà ouvert dans un onglet, on y revient ; sinon on crée un onglet. */
   | { type: 'openPlan'; plan: Plan; planId: string | null }
   | { type: 'closeTab'; key: string }
+  /** Mémorise les pièces copiées (Ctrl+C). */
+  | { type: 'setClipboard'; clipboard: Clipboard | null }
   /** Affiche un onglet dans un volet (par défaut celui qui a le focus). */
   | { type: 'showTab'; key: string; pane?: 0 | 1 }
   | { type: 'focusPane'; pane: 0 | 1 }
@@ -142,6 +148,8 @@ export function workspaceReducer(ws: Workspace, action: WorkspaceAction): Worksp
     }
     case 'closeTab':
       return close(ws, action.key)
+    case 'setClipboard':
+      return { ...ws, clipboard: action.clipboard }
     case 'showTab':
       return show(ws, action.key, action.pane)
     case 'focusPane':

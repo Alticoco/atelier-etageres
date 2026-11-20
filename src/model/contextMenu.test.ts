@@ -29,6 +29,26 @@ describe('menu du clic droit', () => {
     expect(labels(items).some((l) => l.startsWith('Décaler à droite'))).toBe(true)
   })
 
+  it('sur une cale : dupliquer, symétrie, répartir, même disposition dans tous les étages', () => {
+    const r = addWedge(base(), 'shelf-1')
+    if (!r.ok) throw new Error(r.error)
+    const items = contextMenuItems(r.plan, r.id, { x: 100, y: 100 })
+    expect(items.find((i) => i.label === 'Dupliquer à côté')!.action).toEqual({ type: 'duplicatePieces', ids: [r.id] })
+    expect(items.find((i) => i.label === 'Dupliquer en symétrique')!.action).toEqual({ type: 'mirrorPieces', ids: [r.id] })
+    expect(items.find((i) => i.label === 'Mettre la même disposition dans tous les étages')!.action).toEqual({
+      type: 'copyStageWedges',
+      fromId: 'shelf-1',
+      toIds: ['shelf-2', 'shelf-3'],
+    })
+  })
+
+  it('dans le vide d’un étage : répartir N cales', () => {
+    const plan = base()
+    const stage = plan.shelves.sort((a, b) => a.y - b.y)[0]
+    const items = contextMenuItems(plan, null, { x: 300, y: stage.y + stage.thickness + 50 })
+    expect(items.find((i) => i.label.startsWith('Répartir 3 cales'))!.action).toEqual({ type: 'distributeWedges', shelfBelowId: stage.id, count: 3 })
+  })
+
   it('dans le vide d’un étage : ajouter une cale ou une tablette dans cet étage', () => {
     const plan = base()
     const stage = plan.shelves.sort((a, b) => a.y - b.y)[0]

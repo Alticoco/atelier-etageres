@@ -11,6 +11,17 @@ function run(actions: WorkspaceAction[], from: Workspace = emptyWorkspace): Work
 
 const open = (name: string, planId: string | null): WorkspaceAction => ({ type: 'openPlan', plan: plan(name), planId })
 
+describe('presse-papiers', () => {
+  it('survit au changement d’onglet et n’entre pas dans l’historique', () => {
+    let ws = run([open('A', 'a'), open('B', 'b')])
+    ws = workspaceReducer(ws, { type: 'setClipboard', clipboard: { items: [] } })
+    ws = workspaceReducer(ws, { type: 'showTab', key: ws.tabs[0].key })
+    expect(ws.clipboard).toEqual({ items: [] })
+    expect(ws.tabs.every((t) => t.editor.past.length === 0)).toBe(true)
+    expect(emptyWorkspace.clipboard).toBeNull()
+  })
+})
+
 describe('onglets', () => {
   it('ouvrir un plan crée un onglet et l’affiche', () => {
     const ws = run([open('A', 'a'), open('B', 'b')])

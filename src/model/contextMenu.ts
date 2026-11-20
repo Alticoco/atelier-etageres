@@ -61,6 +61,9 @@ export function contextMenuItems(plan: Plan, pieceId: string | null, at: { x: nu
     const stage = stageAt(at.y)
     items.push({ label: 'Dans le vide' })
     if (stage) addInStage(stage.shelfBelowId, 'dans cet étage')
+    if (stage) {
+      for (const count of [2, 3, 4]) items.push({ label: `Répartir ${count} cales également dans cet étage`, action: { type: 'distributeWedges', shelfBelowId: stage.shelfBelowId, count } })
+    }
     if (stage && plan.model === 'frame') {
       const id = stage.shelfBelowId
       items.push({ label: 'Mettre une porte dans cet étage', action: { type: 'setFront', shelfBelowId: id, choice: { type: 'doors', count: 1 } } })
@@ -121,6 +124,15 @@ export function contextMenuItems(plan: Plan, pieceId: string | null, at: { x: nu
 
   if (plan.wedges.some((w) => w.id === pieceId)) {
     nudges(pieceId)
+    const wedge = plan.wedges.find((w) => w.id === pieceId)!
+    items.push({ label: 'Dupliquer à côté', action: { type: 'duplicatePieces', ids: [pieceId] } })
+    items.push({ label: 'Dupliquer en symétrique', action: { type: 'mirrorPieces', ids: [pieceId] } })
+    const inStage = plan.wedges.filter((w) => w.shelfBelowId === wedge.shelfBelowId).length
+    if (inStage >= 2) items.push({ label: `Répartir ces ${inStage} cales également`, action: { type: 'distributeWedges', shelfBelowId: wedge.shelfBelowId, count: inStage } })
+    if (stages.length > 1) {
+      const others = stages.map((s) => s.shelfBelowId).filter((id) => id !== wedge.shelfBelowId)
+      items.push({ label: 'Mettre la même disposition dans tous les étages', action: { type: 'copyStageWedges', fromId: wedge.shelfBelowId, toIds: others } })
+    }
     items.push({ label: 'Supprimer cette cale', action: { type: 'removePieces', ids: [pieceId] }, danger: true })
     return items
   }
@@ -134,6 +146,8 @@ export function contextMenuItems(plan: Plan, pieceId: string | null, at: { x: nu
   }
 
   if (isObjectId(pieceId)) {
+    items.push({ label: 'Dupliquer à côté', action: { type: 'duplicatePieces', ids: [pieceId] } })
+    items.push({ label: 'Dupliquer en symétrique', action: { type: 'mirrorPieces', ids: [pieceId] } })
     items.push({ label: 'Retirer cet objet', action: { type: 'removePieces', ids: [pieceId] }, danger: true })
   }
   return items
