@@ -35,6 +35,9 @@ interface AppHeaderProps {
   exportingPdf: boolean
   pdfSupports: boolean
   onPdfSupportsChange: (value: boolean) => void
+  /** Option « objets rangés sur le plan PDF » : proposée seulement si `onPdfObjectsChange` est fourni et que le plan a des objets. */
+  pdfObjects?: boolean
+  onPdfObjectsChange?: (value: boolean) => void
   dispatch: (action: EditorAction) => void
   onDuplicate: () => void
   onPdf: () => void
@@ -56,6 +59,8 @@ export function AppHeader({
   exportingPdf,
   pdfSupports,
   onPdfSupportsChange,
+  pdfObjects = false,
+  onPdfObjectsChange,
   dispatch,
   onDuplicate,
   onPdf,
@@ -125,6 +130,9 @@ export function AppHeader({
               hasSupports={(plan.supports ?? []).length > 0}
               pdfSupports={pdfSupports}
               onPdfSupportsChange={onPdfSupportsChange}
+              hasObjects={onPdfObjectsChange !== undefined && ((plan.rows ?? []).length > 0 || (plan.placedObjects ?? []).length > 0)}
+              pdfObjects={pdfObjects}
+              onPdfObjectsChange={onPdfObjectsChange}
             />
             <button
               type="button"

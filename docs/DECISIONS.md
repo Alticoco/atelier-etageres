@@ -334,3 +334,11 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Sens et pile** : réglages mémorisés avec le reste du formulaire (`objectsForm`), donc conservés quand on change de sélection ; modifiables après coup sur chaque rangée. « Remplir (N max) » en tient compte.
 - **Ajuster l'étage** : « Hauteur conseillée » = pile la plus haute + marge (20 mm par défaut, réglable, mémorisée) ; profondeur nécessaire affichée avec un avertissement si la tablette est moins profonde. Les calculs d'affichage sont dans `src/views/customKindDraft.ts` (pur, testé) et non dans le modèle.
 - **Nom de fichier** : la logique du formulaire est dans `customKindDraft.ts` et non `customKindForm.ts`, qui ne différait de `CustomKindForm.tsx` que par la casse (conflit sous Windows et pour TypeScript).
+
+## 2026-11-20 (objets en profil, 3D, PDF)
+
+- **Profil** : les objets rangés sont dessinés de côté, un seul rectangle par (étage, type, sens, niveau de pile), au plus profond (`src/model/profileObjects.ts`, fonction pure testée). Semi-transparents, non cliquables ; couleur de l'objet sur mesure si elle existe, contour rouge pointillé si trop haut ou trop profond.
+- **3D, cylindres** : un cylindre couché (`lying`) a son axe horizontal (`Box3D.axis = 'x'`). De face (`facing`, quart de tour), il reste debout, avec une section elliptique (largeur et profondeur échangées).
+- **3D, noms** : le nom d'un objet sur mesure s'écrit sur sa face avant (texture `CanvasTexture`, texte sombre ou clair selon la couleur) si la face fait au moins 40 × 15 mm ; jamais sur les objets du catalogue. Les textures sont libérées avec le reste de la vue.
+- **PDF** : option « Objets rangés sur le plan », décochée par défaut (`objects` de `buildScene` / `buildPlanPdf`) : contour fin gris sans remplissage en vue de face, et une ligne « Objets rangés (indicatif) : 54 mangas, … » sous la liste de découpe. Le plan joint pour le ré-import contient toujours tout. Le pluriel d'un objet sur mesure n'est pas géré : on écrit son nom tel quel.
+- La case n'apparaît dans le menu que si `AppHeader` reçoit `onPdfObjectsChange` (état à tenir dans `App.tsx`).
