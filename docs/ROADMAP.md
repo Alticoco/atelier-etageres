@@ -29,6 +29,7 @@ Règle : une étape = un commit testable. On ne commence pas l'étape suivante t
 
 ## Période de test
 
+- Choix par défaut à confirmer par Alexis : dimensions des 5 objets du catalogue, valeurs des modèles de départ, tiroir (jeux, épaisseurs), encoches, supports et façades comptés à part.
 - [ ] Utiliser l'app pour concevoir l'étagère à épices.
 - [ ] Imprimer le plan PDF sur une vraie imprimante A4 : vérifier marges et lisibilité des cotes (critère 3).
 - [ ] Chronométrer la recréation d'une mangathèque existante (critère 1).
@@ -42,7 +43,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] **Étape 14 — Arrondis** des arêtes et des coins (plan + PDF) : deux rayons par pièce (coins vus de face, arêtes vues de profil), mention dans la liste de découpe.
 - [x] **Étape 15 — Vue de profil éditable** : choisir une pièce au clic, changer la profondeur en tirant son bord avant, monter / descendre les tablettes ; étages de profondeurs différentes.
 - [x] **Étape 16 — Onglets de plans + écran partagé** : plusieurs plans ouverts en onglets (historique et sélection propres à chacun), deux plans côte à côte avec une vue au choix dans chaque volet.
-- [~] **Étape 17 — Déplacer les cales entre étages et segmenter les planches** (demande d'Alexis, 10 octobre 2026) :
+- [x] **Étape 17 — Déplacer les cales entre étages et segmenter les planches** (demande d'Alexis, 10 octobre 2026) :
   - [x] 17a — Glisser une cale d'un étage à l'autre : elle prend la hauteur de l'étage et s'aimante contre les montants et les cales voisines.
   - [x] 17b — « Couper ici » (option) : raccourcir un **montant** pour avoir des hauteurs différentes (ex. un côté à 1 m, l'autre à 70 cm), au clic droit sur le montant ou par le champ « Hauteur du montant » du panneau. Tablettes pas concernées pour l'instant (choix d'Alexis : montants seulement).
 - [x] **Étape 17c — Simulation de rangement** (idée de la spec « plus tard », demandée par Alexis le 10 octobre 2026) : poser des mangas, livres, grands livres, bocaux d'épices dans un étage, avec capacité.
@@ -51,7 +52,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] **Étape 17g — Nombre d'étages et variantes** (demande d'Alexis, 10 octobre 2026) : régler le nombre d'étages dans le panneau pour préconstruire l'étagère ; bouton « Dupliquer » pour créer une variante dans un nouvel onglet.
 - [x] **Étape 17h — Couleurs d'affichage** (demande d'Alexis, 10 octobre 2026) : couleurs par catégorie et par pièce (tons de bois, contrastes, décor), en 2D et en 3D.
 - [x] **Étape 17i — Repères d'aimantation** (demande d'Alexis, 10 octobre 2026) : milieu, écarts égaux (tiers, quarts), alignement entre étages, pour les cales et les supports.
-- [~] **Étape 18 — Supports (planches de soutien à part)** (demande d'Alexis, 10 octobre 2026) :
+- [x] **Étape 18 — Supports (planches de soutien à part)** (demande d'Alexis, 10 octobre 2026) :
   - [x] 18a — Supports sous et autour de l'étagère : largeur, hauteur, profondeur, position, recul depuis le mur ; réglage au panneau et en tirant dans les vues de face, de profil et de dessous (nouvelle) ; liste de découpe à part.
   - [x] 18b — Supports dans le PDF, en option au moment de l'export (tireté, repères S1…, liste à part) ; copie / symétrie d'un support (« Dupliquer »). Reste : aimantation sur d'autres supports.
 - [x] **Étape 19 — Panneau de droite repensé, nombre d'étages modifiable, menu au clic sur le dessin** : panneau en onglets, nombre d'étages, et menu du clic droit sur la vue de face (couper un montant, décaler / supprimer / ajouter cale ou tablette, dupliquer un support, retirer un objet, ajouter dans le vide d'un étage).
@@ -68,17 +69,27 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 
 ## Boîte à idées (plus tard)
 
-- Simulation d'objets rangés : objets de dimensions personnalisées, rangées couchées / empilées, vue de profil et PDF
-- Alerte de flexion
-- Estimation du prix
+Fait (gardé pour mémoire) : objets de dimensions personnalisées, rangées couchées / empilées, vue de profil et PDF des objets ; synthèse des longueurs à acheter par section.
+
+- Alerte de flexion (avec le poids des objets, un champ de plus dans l'objet sur mesure ; formule de mécanique à valider).
+- Estimation du prix (prix au mètre par section, saisi par l'utilisateur).
+- Quincaillerie comptée : vis, charnières, coulisses, poignées.
 - Version téléphone
-- Sélection par rectangle (la spec la prévoit en complément de Ctrl/Maj + clic) : en conflit avec le glisser pour déplacer la vue ; à trancher (ex. Maj + glisser) avant l étape 5.
+- Photo collée sur un objet en 3D.
+- Bibliothèque « Mes objets » commune à tous les plans.
+- Symétrie liée : deux pièces liées, bouger l'une bouge l'autre en miroir (seulement si la copie en symétrique ne suffit pas).
+- Taper une valeur pendant le glisser (« 30 » + Entrée).
+- 3D cliquable : choisir une pièce en cliquant dans la 3D.
+- Menu du clic droit aussi dans la vue de profil et la vue de dessous.
+- Tests d'interface automatiques (Playwright) sur les parcours clés : créer, glisser une cale, poser des objets, exporter.
+- Historique nommé (« Annuler : déplacer la cale »).
+- Décision sur le modèle sans cadre : le garder au même niveau que le modèle avec cadre (coût double à chaque fonction) ou le geler tel quel.
+- Sélection par rectangle (la spec la prévoit en complément de Ctrl/Maj + clic) : en conflit avec le glisser pour déplacer la vue ; à trancher (ex. Maj + glisser).
 - Conversion d'une étagère existante d'un modèle à l'autre (avec cadre ↔ sans cadre).
 - Cotes de débord et largeur du corps sur le dessin (modèle sans cadre).
-- Synthèse des longueurs totales à acheter par section de planche (largeur × épaisseur), à côté de la liste de découpe.
 - Repères A, B, C aussi sur la vue de profil (écran et PDF) ; export PDF directement depuis la liste « Mes étagères ».
 - Impression : vérifier le rendu sur une vraie imprimante A4 (marges, lisibilité des cotes à 7 pt) pendant la période de test.
 - Arrondir seulement certains coins d une pièce ; rayon par défaut dans l assistant.
-- Retrouver les onglets ouverts au rechargement de la page ; copier une pièce d'un plan à l'autre en écran partagé ; synchroniser le zoom des deux volets.
+- Retrouver les onglets ouverts au rechargement de la page (aujourd'hui, seule la bibliothèque est rechargée) ; copier une pièce d'un plan à l'autre en écran partagé ; synchroniser le zoom des deux volets.
 - Choisir une pièce du profil dans une liste cliquable (en plus du clic sur la plus petite pièce).
 - Profil : tirer plusieurs pièces d'un même écart (en gardant leurs différences) plutôt qu'à la même profondeur.

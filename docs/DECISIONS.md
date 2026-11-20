@@ -350,3 +350,11 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Répartir N cales** : remplace les cales de l'étage par N cales d'épaisseur par défaut, écarts égaux (`evenSlots`). Menu du clic droit : 2, 3 ou 4 cales dans le vide d'un étage, ou « Répartir ces N cales » sur une cale ; champ « Nombre de cales » dans l'onglet Étages. « Même disposition dans tous les étages » ajouté au menu d'une cale (action existante `copyStageWedges`).
 - **Flèches sur plusieurs pièces** : toutes les cales (←→), tablettes intermédiaires (↑↓) et supports (x / y) choisis bougent d'un pas, de la plus avancée à la plus en retrait ; si l'une est bloquée, rien ne bouge (message). Les objets ne bougent pas aux flèches.
 - Raccourcis : Ctrl+C, Ctrl+V, Ctrl+D (pas dans un champ de texte).
+
+## 2026-11-20 (corrections après fusion)
+
+- **Pluriel des objets sur mesure** (remplace « le pluriel n'est pas géré » de la section « objets en profil, 3D, PDF ») : accordé sur le premier mot par `pluralLabel` (« boîtes à thé », « bocaux »).
+- **Case PDF « Objets rangés sur le plan »** (remplace la condition sur `onPdfObjectsChange`) : branchée dans `App.tsx`, décochée par défaut.
+- **Couleur des objets sur mesure** appliquée aussi en vue de face.
+- **Cartes des modèles de départ** : hauteur automatique (corrigé).
+- **Tests Vitest limités au projet** : `.claude/**` exclu (copies de travail des agents).
