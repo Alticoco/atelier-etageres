@@ -1,39 +1,22 @@
-import { lazy, Suspense, useEffect, useMemo, useReducer, useState } from 'react'
-import { commandForKey, type Command, type ViewMode } from './keyboard'
-import { nudgePiece, SNAP_STEPS } from './model/drag'
-import { exportFileName, parsePlanFile, pdfFileName, serializePlan, type ParseResult } from './model/serialize'
+import { useEffect, useMemo, useReducer, useState } from 'react'
+import { readImportedPlan } from './importPlan'
+import { type Command, type ViewMode } from './keyboard'
+import { nudgePiece } from './model/drag'
+import { exportFileName, pdfFileName, serializePlan } from './model/serialize'
 import type { Plan } from './model/types'
-import type { LengthUnit } from './model/units'
-import { isPdf } from './pdf/detect'
 import { downloadBytes, downloadTextFile } from './storage/download'
 import { useAutosave } from './storage/useAutosave'
 import { useLibrary } from './storage/useLibrary'
 import { applyAction, initialEditorState, type EditorAction } from './store/editor'
-import { activeTab, emptyWorkspace, isSplit, tabByKey, workspaceReducer, type Tab } from './store/workspace'
+import { activeTab, emptyWorkspace, isSplit, tabByKey, workspaceReducer } from './store/workspace'
+import { useKeyboardCommands } from './useKeyboardCommands'
+import { AppHeader } from './views/AppHeader'
 import { CreationWizard } from './views/CreationWizard'
-import { BottomView } from './views/BottomView'
-import { CutListView } from './views/CutListView'
-import { ExportMenu } from './views/ExportMenu'
-import { FrontView } from './views/FrontView'
+import { EditorPane } from './views/EditorPane'
 import { LibraryView } from './views/LibraryView'
-import { Logo } from './views/Logo'
-import { ProfileView } from './views/ProfileView'
 import { PropertiesPanel } from './views/PropertiesPanel'
 import { ShortcutsDialog } from './views/ShortcutsDialog'
 import { TabBar } from './views/TabBar'
-
-/** Three.js pèse lourd : la vue 3D est chargée seulement quand on l'ouvre. */
-const ThreeView = lazy(() => import('./views/ThreeView'))
-
-const UNITS: LengthUnit[] = ['mm', 'cm']
-
-const VIEWS: { mode: ViewMode; label: string }[] = [
-  { mode: 'front', label: 'Face' },
-  { mode: 'side', label: 'Profil' },
-  { mode: 'cut', label: 'Découpe' },
-  { mode: 'bottom', label: 'Dessous' },
-  { mode: 'three', label: '3D' },
-]
 
 type Screen = 'library' | 'wizard' | 'editor'
 
@@ -42,119 +25,8 @@ interface Notice {
   kind: 'error' | 'info'
 }
 
-/** Un plan d'étagère fait quelques ko : au-delà, ce n'est pas un de nos fichiers (un PDF exporté pèse quelques dizaines de ko). */
-const MAX_IMPORT_BYTES = 5_000_000
-const MAX_IMPORT_PDF_BYTES = 20_000_000
-
-/** Champ où l'on tape du texte : Ctrl+Z doit alors annuler la frappe, pas le plan. */
-function isTextEntry(el: HTMLElement): boolean {
-  if (el.tagName === 'TEXTAREA') return true
-  return el.tagName === 'INPUT' && !['checkbox', 'radio', 'button'].includes((el as HTMLInputElement).type)
-}
-
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : 'Une erreur est survenue.'
-}
-
-interface PaneProps {
-  tab: Tab
-  split: boolean
-  focused: boolean
-  view: ViewMode
-  unit: LengthUnit
-  snapStep: number
-  showMarks: boolean
-  /** Les plans ouverts, pour choisir celui du volet en écran partagé. */
-  choices: { key: string; name: string }[]
-  onFocus: () => void
-  onView: (mode: ViewMode) => void
-  onShowMarks: (show: boolean) => void
-  onChoose: (key: string) => void
-  onChange: (action: EditorAction) => void
-  onSelect: (action: EditorAction) => void
-}
-
-/** Un volet de l'éditeur : le plan d'un onglet, dans la vue choisie. Deux volets côte à côte en écran partagé. */
-function Pane({ tab, split, focused, view, unit, snapStep, showMarks, choices, onFocus, onView, onShowMarks, onChoose, onChange, onSelect }: PaneProps) {
-  const plan = tab.editor.plan!
-  const { selection } = tab.editor
-  const select = (id: string, additive: boolean) => onSelect({ type: 'selectPiece', id, additive })
-  const clear = () => onSelect({ type: 'clearSelection' })
-  const name = `view-${tab.key}`
-  return (
-    <div className={`canvas${split ? ' pane' : ''}${split && focused ? ' focused' : ''}`} onPointerDownCapture={onFocus} onFocusCapture={onFocus}>
-      {split && (
-        <div className="pane-title">
-          <select value={tab.key} onChange={(e) => onChoose(e.target.value)} aria-label="Plan affiché dans ce volet">
-            {choices.map((choice) => (
-              <option key={choice.key} value={choice.key}>
-                {choice.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      <div className="canvas-tools">
-        <div className="view-switch" role="radiogroup" aria-label="Vue">
-          {VIEWS.map(({ mode, label }) => (
-            <label key={mode} className={mode === view ? 'active' : undefined}>
-              <input type="radio" name={name} value={mode} checked={mode === view} onChange={() => onView(mode)} />
-              {label}
-            </label>
-          ))}
-        </div>
-        {view === 'front' && (
-          <label className="marks-toggle" title="Repères de la liste de découpe">
-            <input type="checkbox" checked={showMarks} onChange={(e) => onShowMarks(e.target.checked)} />
-            Repères
-          </label>
-        )}
-      </div>
-      <div className="canvas-body">
-      {view === 'cut' ? (
-        <CutListView plan={plan} unit={unit} />
-      ) : view === 'front' ? (
-        <FrontView
-          key={tab.key}
-          plan={plan}
-          unit={unit}
-          selection={selection}
-          snapStep={snapStep}
-          showMarks={showMarks}
-          onChange={onChange}
-          onSelectPiece={select}
-          onClearSelection={clear}
-        />
-      ) : view === 'three' ? (
-        <Suspense fallback={<p className="view-hint">Chargement de la vue 3D…</p>}>
-          <ThreeView key={tab.key} plan={plan} unit={unit} selection={selection} />
-        </Suspense>
-      ) : view === 'bottom' ? (
-        <BottomView
-          key={tab.key}
-          plan={plan}
-          unit={unit}
-          selection={selection}
-          snapStep={snapStep}
-          onChange={onChange}
-          onSelectPiece={select}
-          onClearSelection={clear}
-        />
-      ) : (
-        <ProfileView
-          key={tab.key}
-          plan={plan}
-          unit={unit}
-          selection={selection}
-          snapStep={snapStep}
-          onChange={onChange}
-          onSelectPiece={select}
-          onClearSelection={clear}
-        />
-      )}
-      </div>
-    </div>
-  )
 }
 
 export default function App() {
@@ -239,23 +111,7 @@ export default function App() {
     }
   }
 
-  // Raccourcis clavier. Les touches d'édition restent aux champs de saisie quand on y tape.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (screen !== 'editor' || helpOpen) return
-      const target = e.target as HTMLElement
-      const command = commandForKey(e, {
-        textEntry: isTextEntry(target),
-        select: target.tagName === 'SELECT',
-        hasSelection: selection.length > 0,
-      })
-      if (!command) return
-      e.preventDefault()
-      execute(command)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  })
+  useKeyboardCommands(screen === 'editor' && !helpOpen, selection.length > 0, execute)
 
   /** Ouvre un plan dans l'éditeur. `id` est null quand il n'est pas enregistré (stockage indisponible). */
   const showPlan = (opened: Plan, id: string | null) => {
@@ -368,28 +224,8 @@ export default function App() {
   }
 
   const importFile = async (file: File) => {
-    if (file.size > MAX_IMPORT_PDF_BYTES) return notify('Ce fichier est trop volumineux pour être un plan d’étagère.')
-    let bytes: Uint8Array
-    try {
-      bytes = new Uint8Array(await file.arrayBuffer())
-    } catch {
-      return notify('Impossible de lire ce fichier.')
-    }
-
-    let result: ParseResult
-    if (isPdf(bytes)) {
-      try {
-        const { readPlanFromPdf } = await import('./pdf/pdf')
-        result = await readPlanFromPdf(bytes)
-      } catch (error) {
-        return notify(`Import impossible : ${messageOf(error)}`)
-      }
-    } else if (bytes.length > MAX_IMPORT_BYTES) {
-      return notify('Ce fichier est trop volumineux pour être un plan d’étagère.')
-    } else {
-      result = parsePlanFile(new TextDecoder().decode(bytes))
-    }
-    if (!result.ok) return notify(`Import impossible : ${result.error}`)
+    const result = await readImportedPlan(file)
+    if (!result.ok) return notify(result.error)
     await addPlan(result.plan, `« ${result.plan.name} » a été importée.`)
   }
 
@@ -409,113 +245,27 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>
-          <Logo />
-          Atelier Étagères
-        </h1>
-        {screen === 'editor' && plan && (
-          <>
-            <span className="app-plan-name">{plan.name}</span>
-            <span
-              className={`save-state${!currentId || saveState === 'error' ? ' warn' : ''}`}
-              role="status"
-              title={currentId && saveState === 'saved' ? 'Enregistrée automatiquement dans ce navigateur' : undefined}
-            >
-              {saveLabel}
-            </span>
-            <div className="header-tools">
-              <div className="history-buttons">
-                <button
-                  type="button"
-                  className="header-button"
-                  disabled={past.length === 0}
-                  onClick={() => dispatch({ type: 'undo' })}
-                  title="Annuler (Ctrl+Z)"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  className="header-button"
-                  disabled={future.length === 0}
-                  onClick={() => dispatch({ type: 'redo' })}
-                  title="Rétablir (Ctrl+Y)"
-                >
-                  Rétablir
-                </button>
-              </div>
-              <label className="snap-select" title="Maintenez Alt pour déplacer sans aimantation">
-                Aimantation
-                <select value={snapStep} onChange={(e) => dispatch({ type: 'setSnapStep', mm: Number(e.target.value) })}>
-                  {SNAP_STEPS.map((step) => (
-                    <option key={step} value={step}>
-                      {step < 10 ? `${step} mm` : `${step / 10} cm`}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="unit-toggle" role="radiogroup" aria-label="Unité d’affichage">
-                {UNITS.map((u) => (
-                  <label key={u} className={u === unit ? 'active' : undefined}>
-                    <input
-                      type="radio"
-                      name="unit"
-                      value={u}
-                      checked={u === unit}
-                      onChange={() => dispatch({ type: 'setUnit', unit: u })}
-                    />
-                    {u}
-                  </label>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="header-button"
-                onClick={() => void addPlan({ ...structuredClone(plan), name: `${plan.name} (variante)` }, 'Variante créée dans un nouvel onglet : choisissez l’onglet pour comparer, ou activez l’écran partagé.')}
-                title="Créer une copie de cette étagère dans un nouvel onglet, pour en faire une variante"
-              >
-                Dupliquer
-              </button>
-              <ExportMenu
-                onPdf={() => void exportPdf(plan)}
-                onJson={() => exportPlan(plan)}
-                busy={exportingPdf}
-                hasSupports={(plan.supports ?? []).length > 0}
-                pdfSupports={pdfSupports}
-                onPdfSupportsChange={setPdfSupports}
-              />
-              <button
-                type="button"
-                className="header-button icon-button"
-                onClick={() => setHelpOpen(true)}
-                title="Raccourcis clavier (?)"
-                aria-label="Raccourcis clavier"
-              >
-                ?
-              </button>
-            </div>
-          </>
-        )}
-        {screen !== 'editor' && (
-          <div className="header-tools">
-            <div className="unit-toggle" role="radiogroup" aria-label="Unité d’affichage">
-              {UNITS.map((u) => (
-                <label key={u} className={u === unit ? 'active' : undefined}>
-                  <input
-                    type="radio"
-                    name="unit"
-                    value={u}
-                    checked={u === unit}
-                    onChange={() => dispatch({ type: 'setUnit', unit: u })}
-                  />
-                  {u}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-      </header>
+      <AppHeader
+        editor={screen === 'editor'}
+        plan={plan}
+        currentId={currentId}
+        saveState={saveState}
+        saveLabel={saveLabel}
+        canUndo={past.length > 0}
+        canRedo={future.length > 0}
+        snapStep={snapStep}
+        unit={unit}
+        exportingPdf={exportingPdf}
+        pdfSupports={pdfSupports}
+        onPdfSupportsChange={setPdfSupports}
+        dispatch={dispatch}
+        onDuplicate={() =>
+          void addPlan({ ...structuredClone(plan!), name: `${plan!.name} (variante)` }, 'Variante créée dans un nouvel onglet : choisissez l’onglet pour comparer, ou activez l’écran partagé.')
+        }
+        onPdf={() => void exportPdf(plan!)}
+        onJson={() => exportPlan(plan!)}
+        onHelp={() => setHelpOpen(true)}
+      />
 
       {ws.tabs.length > 0 && screen !== 'wizard' && (
         <TabBar
@@ -563,7 +313,7 @@ export default function App() {
                 const paneTab = tabByKey(ws, key)
                 if (!paneTab?.editor.plan) return null
                 return (
-                  <Pane
+                  <EditorPane
                     key={index}
                     tab={paneTab}
                     split={split}
