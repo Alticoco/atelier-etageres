@@ -31,6 +31,7 @@ import {
   type CustomKindInput,
   type CustomKindPatch,
 } from '../model/objects'
+import { distributeWedges, duplicatePieces, mirrorPieces, nudgePieces, pastePieces, type Clipboard } from '../model/clipboard'
 import { addShelf, addWedge, copyStageWedges, setStageCount, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
@@ -91,6 +92,15 @@ export type EditorAction =
   | { type: 'removeObjectRow'; rowId: string }
   | { type: 'placeWedge'; wedgeId: string; shelfBelowId: string; x: number }
   | { type: 'removePieces'; ids: string[] }
+  /** Duplique la sélection (cales, supports, objets) à côté des originaux ; les copies sont sélectionnées. */
+  | { type: 'duplicatePieces'; ids: string[] }
+  /** Copie en miroir par rapport au milieu de l'étagère. */
+  | { type: 'mirrorPieces'; ids: string[] }
+  /** Colle le presse-papiers (de l'application) : dans `targetStageId` si donné, sinon dans l'étage d'origine. */
+  | { type: 'pastePieces'; clipboard: Clipboard; targetStageId: string | null }
+  | { type: 'distributeWedges'; shelfBelowId: string; count: number }
+  /** Déplace toutes les pièces choisies d'un pas (mm). */
+  | { type: 'nudgePieces'; ids: string[]; dx: -1 | 0 | 1; dy: -1 | 0 | 1; step: number }
   | { type: 'distributeShelves' }
   | { type: 'setShelfVertical'; shelfId: string; side: 'left' | 'right'; present: boolean }
   | { type: 'undo' }
@@ -262,6 +272,26 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(moveWedge(plan, action.wedgeId, action.shelfBelowId, action.x, null))
     case 'addWedge':
       return withAdded(addWedge(plan, action.shelfBelowId))
+    case 'duplicatePieces': {
+      const result = duplicatePieces(plan, action.ids)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'mirrorPieces': {
+      const result = mirrorPieces(plan, action.ids)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'pastePieces': {
+      const result = pastePieces(plan, action.clipboard, action.targetStageId)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'distributeWedges': {
+      const result = distributeWedges(plan, action.shelfBelowId, action.count)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'nudgePieces': {
+      const result = nudgePieces(plan, action.ids, action.dx, action.dy, action.step)
+      return result.ok ? commit(result.plan) : refused(result.error)
+    }
     case 'removePieces': {
       const result = removePieces(plan, action.ids)
       if (!result.ok) return refused(result.error)

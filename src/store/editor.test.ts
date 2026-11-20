@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { copyPieces } from '../model/clipboard'
 import { createPlan } from '../model/plan'
 import { applyAction, editorReducer, initialEditorState, type EditorState } from './editor'
 
@@ -12,6 +13,49 @@ const plan = createPlan({
 })
 
 const withPlan: EditorState = { ...initialEditorState, plan }
+
+describe('copier / coller / répartir', () => {
+  const withWedge = (): EditorState => editorReducer(withPlan, { type: 'addWedge', shelfBelowId: 'shelf-1' })
+
+  it('dupliquer : un seul pas d’historique, la copie est sélectionnée', () => {
+    const state = withWedge()
+    const id = state.plan!.wedges[0].id
+    const out = applyAction(state, { type: 'duplicatePieces', ids: [id] })
+    expect(out.error).toBeNull()
+    expect(out.state.plan!.wedges).toHaveLength(2)
+    expect(out.state.past).toHaveLength(state.past.length + 1)
+    expect(out.state.selection).toHaveLength(1)
+    expect(out.state.selection[0]).not.toBe(id)
+  })
+
+  it('dupliquer une tablette : refus avec message, état inchangé', () => {
+    const out = applyAction(withPlan, { type: 'duplicatePieces', ids: ['shelf-2'] })
+    expect(out.error).toContain('Ajouter une tablette')
+    expect(out.state).toBe(withPlan)
+  })
+
+  it('répartir : un pas d’historique ; coller puis annuler', () => {
+    let state = withWedge()
+    state = editorReducer(state, { type: 'distributeWedges', shelfBelowId: 'shelf-1', count: 3 })
+    expect(state.plan!.wedges).toHaveLength(3)
+    const ids = state.plan!.wedges.slice(0, 1).map((w) => w.id)
+    const clip = copyPieces(state.plan!, ids)
+    if (!clip.ok) throw new Error(clip.error)
+    state = editorReducer(state, { type: 'pastePieces', clipboard: clip.clipboard, targetStageId: 'shelf-2' })
+    expect(state.plan!.wedges).toHaveLength(4)
+    state = editorReducer(state, { type: 'undo' })
+    expect(state.plan!.wedges).toHaveLength(3)
+  })
+
+  it('nudgePieces : déplace toute la sélection en un pas', () => {
+    let state = editorReducer(withWedge(), { type: 'distributeWedges', shelfBelowId: 'shelf-1', count: 2 })
+    const before = state.plan!.wedges.map((w) => w.x)
+    const pastLength = state.past.length
+    state = editorReducer(state, { type: 'nudgePieces', ids: state.plan!.wedges.map((w) => w.id), dx: 1, dy: 0, step: 10 })
+    expect(state.plan!.wedges.map((w) => w.x)).toEqual(before.map((x) => x + 10))
+    expect(state.past).toHaveLength(pastLength + 1)
+  })
+})
 
 describe('editorReducer', () => {
   it('newPlan installe le plan et vide la sélection', () => {

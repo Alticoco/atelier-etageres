@@ -11,9 +11,12 @@ export type Command =
   | { type: 'selectAll' }
   | { type: 'clearSelection' }
   | { type: 'deleteSelection' }
-  /** Déplacer la pièce sélectionnée d'un pas : `fine` = 1 mm au lieu du pas d'aimantation. */
+  /** Déplacer les pièces sélectionnées d'un pas : `fine` = 1 mm au lieu du pas d'aimantation. */
   | { type: 'nudge'; dx: -1 | 0 | 1; dy: -1 | 0 | 1; fine: boolean }
   | { type: 'view'; mode: ViewMode }
+  | { type: 'copy' }
+  | { type: 'paste' }
+  | { type: 'duplicate' }
   | { type: 'save' }
   | { type: 'help' }
 
@@ -48,6 +51,9 @@ export function commandForKey(e: KeyInfo, ctx: KeyContext): Command | null {
     if (key === 'z') return e.shiftKey ? { type: 'redo' } : { type: 'undo' }
     if (key === 'y') return { type: 'redo' }
     if (key === 'a') return { type: 'selectAll' }
+    if (!e.shiftKey && key === 'c' && ctx.hasSelection) return { type: 'copy' }
+    if (!e.shiftKey && key === 'v') return { type: 'paste' }
+    if (!e.shiftKey && key === 'd' && ctx.hasSelection) return { type: 'duplicate' }
     return null
   }
   if (mod || e.altKey) return null
@@ -84,14 +90,17 @@ export const SHORTCUTS: ShortcutGroup[] = [
       { keys: 'Ctrl + Y   ou   Ctrl + Maj + Z', label: 'Rétablir' },
       { keys: 'Suppr   ou   Retour arrière', label: 'Supprimer la sélection' },
       { keys: 'Ctrl + A', label: 'Tout sélectionner' },
+      { keys: 'Ctrl + C', label: 'Copier la sélection (cales, supports, objets)' },
+      { keys: 'Ctrl + V', label: 'Coller (dans l’étage d’origine, ou dans l’étage de la pièce choisie), aussi d’un onglet à l’autre' },
+      { keys: 'Ctrl + D', label: 'Dupliquer la sélection à côté (une tablette ne se duplique pas)' },
       { keys: 'Échap', label: 'Désélectionner' },
     ],
   },
   {
     title: 'Pièce sélectionnée',
     items: [
-      { keys: '↑  ↓', label: 'Monter / descendre une tablette (un pas d’aimantation)' },
-      { keys: '←  →', label: 'Déplacer une cale à gauche / à droite' },
+      { keys: '↑  ↓', label: 'Monter / descendre les tablettes choisies (un pas d’aimantation) ; déplacer les supports' },
+      { keys: '←  →', label: 'Déplacer toutes les cales (et supports) choisis à gauche / à droite ; rien ne bouge si l’un est bloqué' },
       { keys: 'Maj + flèche', label: 'Déplacer d’un seul millimètre' },
       { keys: 'Ctrl / Maj + clic', label: 'Ajouter ou retirer une pièce de la sélection' },
       { keys: 'Alt + glisser', label: 'Déplacer sans aimantation' },

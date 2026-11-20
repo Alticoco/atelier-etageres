@@ -1857,3 +1857,23 @@ button.tab {
 .object-row-layout input {
   width: 3.5rem;
 }
+
+/* Copier / coller / symétrie / répartir */
+.clip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.clip-distribute {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.clip-distribute input {
+  width: 4.5rem;
+}

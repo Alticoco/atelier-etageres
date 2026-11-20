@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PanelSection } from '../PanelSection'
 import { stageLabel } from '../stageLabel'
+import { MAX_DISTRIBUTE } from '../../model/clipboard'
 import { getStages } from '../../model/pieces'
 import type { Plan } from '../../model/types'
 import type { LengthUnit } from '../../model/units'
@@ -38,6 +39,7 @@ export function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsP
   const stageId = valid(chosen) ? chosen : valid(defaultStageId) ? defaultStageId : stages[0]?.shelfBelowId
   // Copie des cales : l'étage choisi ci-dessus est la source ; la destination est un étage ou « tous les autres ».
   const [copyTarget, setCopyTarget] = useState('all')
+  const [distributeCount, setDistributeCount] = useState('3')
   const others = stages.filter((s) => s.shelfBelowId !== stageId)
   const target = copyTarget === 'all' || others.some((s) => s.shelfBelowId === copyTarget) ? copyTarget : 'all'
   const sourceWedges = plan.wedges.filter((w) => w.shelfBelowId === stageId).length
@@ -67,6 +69,16 @@ export function StageTools({ plan, unit, dispatch, defaultStageId }: StageToolsP
           Espacer les tablettes également
         </button>
       </div>
+      <div className="clip-distribute">
+        <label>
+          Nombre de cales
+          <input type="number" min={1} max={MAX_DISTRIBUTE} value={distributeCount} onChange={(e) => setDistributeCount(e.target.value)} />
+        </label>
+        <button type="button" onClick={() => stageId && dispatch({ type: 'distributeWedges', shelfBelowId: stageId, count: Number(distributeCount) })}>
+          Répartir également dans cet étage
+        </button>
+      </div>
+      <p className="panel-hint">Remplace les cales de l’étage par ce nombre de cales aux écarts égaux (épaisseur par défaut des cales).</p>
       {plan.model === 'frame' && stageId && (
         <div className="field">
           <label>

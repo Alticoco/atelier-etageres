@@ -159,6 +159,16 @@ export function PieceCard({ plan, ids, unit, dispatch }: PieceCardProps) {
       </details>
 
       {computed && <p className="panel-hint">Longueur (calculée) : {formatLength(computed.length, unit)}</p>}
+      {pieces.every((p) => p.kind === 'wedge') && (
+        <div className="clip-actions">
+          <button type="button" onClick={() => dispatch({ type: 'duplicatePieces', ids })} title="Ctrl+D">
+            Dupliquer à côté
+          </button>
+          <button type="button" onClick={() => dispatch({ type: 'mirrorPieces', ids })}>
+            Dupliquer en symétrique
+          </button>
+        </div>
+      )}
       <button type="button" className="danger" onClick={() => dispatch({ type: 'removePieces', ids })}>
         {single ? 'Supprimer cette pièce' : `Supprimer ces ${pieces.length} pièces`}
       </button>
