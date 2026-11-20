@@ -55,7 +55,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
   - [x] 18a — Supports sous et autour de l'étagère : largeur, hauteur, profondeur, position, recul depuis le mur ; réglage au panneau et en tirant dans les vues de face, de profil et de dessous (nouvelle) ; liste de découpe à part.
   - [x] 18b — Supports dans le PDF, en option au moment de l'export (tireté, repères S1…, liste à part) ; copie / symétrie d'un support (« Dupliquer »). Reste : aimantation sur d'autres supports.
 - [x] **Étape 19 — Panneau de droite repensé, nombre d'étages modifiable, menu au clic sur le dessin** : panneau en onglets, nombre d'étages, et menu du clic droit sur la vue de face (couper un montant, décaler / supprimer / ajouter cale ou tablette, dupliquer un support, retirer un objet, ajouter dans le vide d'un étage).
-- [ ] **Étape 20 — Optimisation des découpes** (à confirmer : peut-être inutile).
+- [x] **Étape 20 — Synthèse d'achat et optimisation 1D** : dans la vue « Découpe », tableau « À acheter » par section (largeur × épaisseur) et schéma de découpe de chaque planche du commerce (longueur réglable par section, 2 400 mm par défaut).
 
 
 ## V3
