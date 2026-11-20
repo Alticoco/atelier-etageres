@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getStages } from './pieces'
-import { BLANK_WIZARD_VALUES, DEFAULT_WIZARD_VALUES, resolveWizard } from './wizard'
+import { BLANK_WIZARD_VALUES, DEFAULT_WIZARD_VALUES, resolveWizard, WIZARD_PRESETS } from './wizard'
 
 describe('resolveWizard', () => {
   it('convertit les cm saisis en mm et crée le plan', () => {
@@ -71,5 +71,37 @@ describe('resolveWizard', () => {
     const result = resolveWizard(BLANK_WIZARD_VALUES)
     if (!result.ok) throw new Error('doit être valide')
     expect(getStages(result.plan)).toHaveLength(1)
+  })
+})
+
+describe('WIZARD_PRESETS', () => {
+  // Hauteur libre attendue par étage (mm), calculée à la main.
+  const expectedClear: Record<string, number> = {
+    mangatheque: 190,
+    epices: 120,
+    bibliotheque: 300,
+    murale: 267,
+    'meuble-bas': 320,
+  }
+
+  it('a un identifiant unique et une hauteur attendue pour chaque modèle', () => {
+    const ids = WIZARD_PRESETS.map((p) => p.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect([...ids].sort()).toEqual(Object.keys(expectedClear).sort())
+  })
+
+  it.each(WIZARD_PRESETS)('$label produit un plan valide', (preset) => {
+    const result = resolveWizard(preset.values)
+    if (!result.ok) throw new Error(`modèle invalide : ${JSON.stringify(result)}`)
+    const stages = getStages(result.plan)
+    expect(stages).toHaveLength(Number(preset.values.stages))
+    for (const stage of stages) {
+      expect(Math.abs(stage.clearHeight - expectedClear[preset.id])).toBeLessThanOrEqual(2)
+    }
+  })
+
+  it('le modèle mural est sans cadre', () => {
+    const murale = WIZARD_PRESETS.find((p) => p.id === 'murale')
+    expect(murale?.values.model).toBe('frameless')
   })
 })

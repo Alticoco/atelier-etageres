@@ -312,3 +312,7 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Pas en vue de profil ni de dessous** (cachées par le montant). En 3D : plaques de façade et une caisse pleine pour le tiroir.
 - Réglage : menu « Contenu de l'étage » (onglet Étages) ou clic droit dans l'étage / sur la porte.
 
+
+## 2026-11-20 (modèles de départ)
+- **Boutons « Partir d'un modèle » en haut de l'assistant** : un clic remplit tous les champs (nom compris), l'utilisateur ajuste ensuite. Le modèle choisi reste en évidence jusqu'à la modification d'un champ. Liste `WIZARD_PRESETS` dans `src/model/wizard.ts` : de simples valeurs de formulaire passées à la même fonction de création que le reste (pas de chemin spécial).
+- **Cinq modèles, valeurs à confirmer par l'auteur** (estimations) : Mangathèque (60 × 105,8 cm, 5 étages de 19 cm libres, profondeur 15, bois 18 mm), Étagère à épices (40 × 69, 5 étages de 12 cm, profondeur 8, bois 15 mm), Bibliothèque (80 × 163,2, 5 étages de 30 cm, profondeur 25, bois 22 mm), Étagère murale sans cadre (80 × 60, 2 étages, débord 2 cm, profondeur 20, bois 22 mm), Meuble bas (90 × 70, 2 étages de 32 cm, profondeur 35, bois 20 mm). Un test vérifie que chacun donne un plan valide avec la hauteur libre attendue (à 2 mm près).

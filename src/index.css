@@ -1635,3 +1635,40 @@ button.tab {
   stroke-width: 2;
   pointer-events: none;
 }
+
+.preset-row {
+  margin-bottom: 1rem;
+}
+.preset-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.preset-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  flex: 1 1 9rem;
+  max-width: 14rem;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+}
+.preset-card .preset-label {
+  font-weight: 600;
+}
+.preset-card .preset-desc {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.preset-card.active {
+  border-color: var(--wood-dark);
+  background: var(--accent-soft, rgba(0, 0, 0, 0.06));
+  box-shadow: 0 0 0 2px var(--wood-dark);
+}

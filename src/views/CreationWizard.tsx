@@ -4,6 +4,7 @@ import {
   BLANK_WIZARD_VALUES,
   DEFAULT_WIZARD_VALUES,
   resolveWizard,
+  WIZARD_PRESETS,
   type WizardField,
   type WizardValues,
 } from '../model/wizard'
@@ -51,10 +52,14 @@ interface CreationWizardProps {
 /** Assistant de création : formulaire à gauche, aperçu de face en direct à droite. */
 export function CreationWizard({ onCreate, onCancel }: CreationWizardProps) {
   const [values, setValues] = useState<WizardValues>(DEFAULT_WIZARD_VALUES)
+  // Modèle de départ mis en évidence, jusqu'à ce qu'un champ soit modifié.
+  const [presetId, setPresetId] = useState<string | null>(null)
   const result = resolveWizard(values)
 
-  const set = <K extends keyof WizardValues>(key: K, value: WizardValues[K]) =>
+  const set = <K extends keyof WizardValues>(key: K, value: WizardValues[K]) => {
+    setPresetId(null)
     setValues((v) => ({ ...v, [key]: value }))
+  }
 
   const errors = result.ok ? {} : result.fieldErrors
   const field = (id: WizardField, label: string, hint?: string) => (
@@ -70,6 +75,28 @@ export function CreationWizard({ onCreate, onCancel }: CreationWizardProps) {
     <div className="wizard">
       <form className="wizard-form" onSubmit={submit} noValidate>
         <h2>Nouvelle étagère</h2>
+
+        <div className="preset-row" role="group" aria-label="Partir d’un modèle">
+          <span className="preset-title">Partir d’un modèle</span>
+          <div className="preset-list">
+            {WIZARD_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className={`preset-card${presetId === preset.id ? ' active' : ''}`}
+                aria-pressed={presetId === preset.id}
+                title={preset.description}
+                onClick={() => {
+                  setValues(preset.values)
+                  setPresetId(preset.id)
+                }}
+              >
+                <span className="preset-label">{preset.label}</span>
+                <span className="preset-desc">{preset.description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="field">
           <label htmlFor="name">Nom</label>
@@ -133,7 +160,10 @@ export function CreationWizard({ onCreate, onCancel }: CreationWizardProps) {
           <button type="submit" className="primary" disabled={!result.ok}>
             Créer l’étagère
           </button>
-          <button type="button" onClick={() => setValues(BLANK_WIZARD_VALUES)}>
+          <button type="button" onClick={() => {
+              setPresetId(null)
+              setValues(BLANK_WIZARD_VALUES)
+            }}>
             Plan vierge minimal
           </button>
           {onCancel && (

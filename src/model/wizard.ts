@@ -49,6 +49,108 @@ export const BLANK_WIZARD_VALUES: WizardValues = {
   stages: '1',
 }
 
+/** Modèle de départ : pré-remplit l'assistant, l'utilisateur ajuste ensuite. */
+export interface WizardPreset {
+  id: string
+  label: string
+  description: string
+  values: WizardValues
+}
+
+/**
+ * Modèles de départ. Toutes les valeurs sont des estimations, à ajuster.
+ * Les épaisseurs sont des épaisseurs courantes de bois massif (15, 18, 20, 22 mm).
+ */
+export const WIZARD_PRESETS: WizardPreset[] = [
+  {
+    id: 'mangatheque',
+    label: 'Mangathèque',
+    description: '5 étages de 19 cm libres (mangas de 17,5 cm), profondeur 15 cm.',
+    // estimation, à ajuster
+    values: {
+      ...DEFAULT_WIZARD_VALUES,
+      name: 'Mangathèque',
+      width: '60',
+      height: '105,8',
+      depth: '15',
+      stages: '5',
+      uprightThickness: '1,8',
+      shelfThickness: '1,8',
+      wedgeThickness: '1,8',
+    },
+  },
+  {
+    id: 'epices',
+    label: 'Étagère à épices',
+    description: '5 petits étages de 12 cm libres, profondeur 8 cm, planches fines (15 mm).',
+    // estimation, à ajuster
+    values: {
+      ...DEFAULT_WIZARD_VALUES,
+      name: 'Étagère à épices',
+      width: '40',
+      height: '69',
+      depth: '8',
+      stages: '5',
+      uprightThickness: '1,5',
+      shelfThickness: '1,5',
+      wedgeThickness: '1,5',
+    },
+  },
+  {
+    id: 'bibliotheque',
+    label: 'Bibliothèque',
+    description: '5 étages de 30 cm libres, profondeur 25 cm, bois de 22 mm.',
+    // estimation, à ajuster
+    values: {
+      ...DEFAULT_WIZARD_VALUES,
+      name: 'Bibliothèque',
+      width: '80',
+      height: '163,2',
+      depth: '25',
+      stages: '5',
+      uprightThickness: '2,2',
+      shelfThickness: '2,2',
+      wedgeThickness: '2,2',
+    },
+  },
+  {
+    id: 'murale',
+    label: 'Étagère murale sans cadre',
+    description: '2 étages, planches apparentes qui dépassent de 2 cm, profondeur 20 cm.',
+    // estimation, à ajuster
+    values: {
+      ...DEFAULT_WIZARD_VALUES,
+      name: 'Étagère murale',
+      model: 'frameless',
+      overhang: '2',
+      width: '80',
+      height: '60',
+      depth: '20',
+      stages: '2',
+      uprightThickness: '2,2',
+      shelfThickness: '2,2',
+      wedgeThickness: '2,2',
+    },
+  },
+  {
+    id: 'meuble-bas',
+    label: 'Meuble bas',
+    description: '2 étages de 32 cm libres, profondeur 35 cm, bois de 20 mm.',
+    // estimation, à ajuster
+    values: {
+      ...DEFAULT_WIZARD_VALUES,
+      name: 'Meuble bas',
+      width: '90',
+      height: '70',
+      depth: '35',
+      stages: '2',
+      uprightThickness: '2',
+      shelfThickness: '2',
+      wedgeThickness: '2',
+    },
+  },
+]
+
 const LENGTH_FIELDS: WizardField[] = [
   'width',
   'height',
