@@ -39,6 +39,7 @@ export default function App() {
   const [showMarks, setShowMarks] = useState(true)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [pdfSupports, setPdfSupports] = useState(true)
+  const [pdfObjects, setPdfObjects] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const tab = activeTab(ws)
   const state = tab?.editor ?? initialEditorState
@@ -203,7 +204,7 @@ export default function App() {
     setExportingPdf(true)
     try {
       const { buildPlanPdf } = await import('./pdf/pdf')
-      const bytes = await buildPlanPdf(exported, { unit, supports: pdfSupports })
+      const bytes = await buildPlanPdf(exported, { unit, supports: pdfSupports, objects: pdfObjects })
       downloadBytes(pdfFileName(exported.name), bytes, 'application/pdf')
       notify('Le plan PDF a été créé. Vous pouvez le ré-importer plus tard pour le modifier.', 'info')
     } catch (error) {
@@ -258,6 +259,8 @@ export default function App() {
         exportingPdf={exportingPdf}
         pdfSupports={pdfSupports}
         onPdfSupportsChange={setPdfSupports}
+        pdfObjects={pdfObjects}
+        onPdfObjectsChange={setPdfObjects}
         dispatch={dispatch}
         onDuplicate={() =>
           void addPlan({ ...structuredClone(plan!), name: `${plan!.name} (variante)` }, 'Variante créée dans un nouvel onglet : choisissez l’onglet pour comparer, ou activez l’écran partagé.')

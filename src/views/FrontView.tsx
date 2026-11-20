@@ -333,6 +333,7 @@ export function FrontView({
                   width={o.width}
                   height={o.height}
                   rx={resolveKind(shown, o.kindId)?.round ? o.width / 3 : 0}
+                  style={o.color ? { fill: o.color } : undefined}
                   vectorEffect="non-scaling-stroke"
                 />
               )),
