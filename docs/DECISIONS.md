@@ -325,3 +325,12 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Pièce plus longue que la planche** : message d'erreur dans la section (« la pièce C (1 850 mm) dépasse la longueur des planches (1 800 mm) »), la pièce n'est pas placée, rien ne plante.
 - **Longueur des planches enregistrée dans le plan** (`options.stockLengths`, facultatif, clés « largeurxépaisseur », entiers de 100 à 6000 mm, 50 clés au plus ; défaut 2 400 mm). Raison : c'est un choix lié à l'achat réel de ce projet, qui doit survivre à l'enregistrement et à l'annulation. Action `setStockLength` (un pas d'historique). Conséquence : `CutListView` reçoit la prop `onChange` (une ligne dans `App.tsx`).
 - **Schéma** en SVG : barre proportionnelle à la longueur de la planche, pièces (repère et longueur) et chute hachurée ; le trait de scie n'est pas dessiné à part.
+
+## 2026-11-20 (objets sur mesure)
+
+- **Modèle** : `plan.customKinds` (nom, largeur, hauteur, profondeur en mm, forme boîte ou cylindre, couleur) ; chaque rangée ou objet posé garde un sens (`orientation` : debout, couché, de face) et une pile (`stack`, 1 à 50). `fitStageToObjects` règle la hauteur libre d'un étage sur sa plus haute pile + une marge. Les valeurs par défaut (debout, pile de 1) ne sont pas écrites dans le plan.
+- **Interface** : section repliable « Mes objets » au-dessus de la simulation (liste avec pastille et dimensions dans l'unité choisie, « + Nouvel objet », modifier, supprimer). Le formulaire garde un brouillon en mm ; les erreurs viennent du modèle (le même appel pur sert à valider avant d'envoyer l'action) et s'affichent sous le formulaire. Un objet créé est choisi tout de suite dans le menu « Objet » (groupe « Mes objets »).
+- **Suppression** : confirmation par `window.confirm` qui dit combien d'objets posés (piles comprises) disparaîtront avec lui.
+- **Sens et pile** : réglages mémorisés avec le reste du formulaire (`objectsForm`), donc conservés quand on change de sélection ; modifiables après coup sur chaque rangée. « Remplir (N max) » en tient compte.
+- **Ajuster l'étage** : « Hauteur conseillée » = pile la plus haute + marge (20 mm par défaut, réglable, mémorisée) ; profondeur nécessaire affichée avec un avertissement si la tablette est moins profonde. Les calculs d'affichage sont dans `src/views/customKindDraft.ts` (pur, testé) et non dans le modèle.
+- **Nom de fichier** : la logique du formulaire est dans `customKindDraft.ts` et non `customKindForm.ts`, qui ne différait de `CustomKindForm.tsx` que par la casse (conflit sous Windows et pour TypeScript).
