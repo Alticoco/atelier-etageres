@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { addObjectRow } from './objects'
+import { addCustomKind, addObjectRow } from './objects'
 import { createPlan } from './plan'
-import { buildScene3D, WALL_THICKNESS } from './scene3d'
+import { buildScene3D, labelTextColor, showsLabel, WALL_THICKNESS } from './scene3d'
 import { addSupport } from './supports'
 
 // 800 × 1000 × 250, 3 étages, bois de 18.
@@ -51,5 +51,51 @@ describe('scène 3D', () => {
     const r = addObjectRow(shallow, 'shelf-1', 'manga', 1)
     if (!r.ok) throw new Error(r.error)
     expect(buildScene3D(r.plan).boxes.find((b) => b.kind === 'object')!.bad).toBe(true)
+  })
+})
+
+describe('scène 3D : cylindres couchés et noms', () => {
+  const withJars = (orientation: 'standing' | 'lying' | 'facing') => {
+    const r = addObjectRow(base(), 'shelf-1', 'jar', 2, 0, { orientation })
+    if (!r.ok) throw new Error(r.error)
+    return buildScene3D(r.plan).boxes.filter((b) => b.kind === 'object')
+  }
+
+  it('un bocal debout ou de face a son axe vertical, couché il a son axe dans le sens de la largeur', () => {
+    expect(withJars('standing')[0]).toMatchObject({ shape: 'cylinder', axis: 'y', sx: 55, sy: 100 })
+    expect(withJars('facing')[0]).toMatchObject({ shape: 'cylinder', axis: 'y' })
+    expect(withJars('lying')[0]).toMatchObject({ shape: 'cylinder', axis: 'x', sx: 100, sy: 55, sz: 55 })
+  })
+
+  it('les boîtes n’ont pas d’axe', () => {
+    const r = addObjectRow(base(), 'shelf-1', 'manga', 1)
+    if (!r.ok) throw new Error(r.error)
+    expect(buildScene3D(r.plan).boxes.find((b) => b.kind === 'object')!.axis).toBeUndefined()
+  })
+
+  it('le nom ne s’écrit que sur un objet sur mesure dont la face avant est assez grande', () => {
+    let p = base()
+    const wide = addCustomKind(p, { label: 'Boîte à thé', width: 100, height: 120, depth: 100 })
+    if (!wide.ok) throw new Error(wide.error)
+    const thin = addCustomKind(wide.plan, { label: 'Fin', width: 20, height: 120, depth: 100 })
+    if (!thin.ok) throw new Error(thin.error)
+    p = thin.plan
+    for (const id of [wide.id, thin.id, 'manga']) {
+      const r = addObjectRow(p, 'shelf-1', id, 1)
+      if (!r.ok) throw new Error(r.error)
+      p = r.plan
+    }
+    const objects = buildScene3D(p).boxes.filter((b) => b.kind === 'object')
+    const byKind = (id: string) => objects.find((b) => b.objectKind === id)!
+    expect(showsLabel(byKind(wide.id))).toBe(true)
+    expect(showsLabel(byKind(thin.id))).toBe(false)
+    expect(showsLabel(byKind('manga'))).toBe(false)
+  })
+
+  it('texte sombre sur fond clair, clair sur fond sombre', () => {
+    expect(labelTextColor('#ffffff')).toBe('#222222')
+    expect(labelTextColor('#e3c46f')).toBe('#222222')
+    expect(labelTextColor('#1a2b4c')).toBe('#ffffff')
+    expect(labelTextColor('n’importe quoi')).toBe('#222222')
   })
 })

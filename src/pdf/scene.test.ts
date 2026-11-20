@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { addCustomKind, addObjectRow } from '../model/objects'
 import { createPlan } from '../model/plan'
 import { addSupport } from '../model/supports'
 import { addWedge } from '../model/tools'
@@ -337,6 +338,54 @@ describe('supports sur le plan PDF', () => {
           expect(p.x + p.width).toBeLessThanOrEqual(PAGE.width)
           expect(p.y + p.height).toBeLessThanOrEqual(PAGE.height)
         }
+      }
+    }
+  })
+})
+
+describe('objets rangés sur le plan PDF', () => {
+  const withObjects = () => {
+    const tea = addCustomKind(plan(), { label: 'Boîte à thé', width: 100, height: 120, depth: 100 })
+    if (!tea.ok) throw new Error(tea.error)
+    let p = tea.plan
+    for (const [shelf, kind, count] of [['shelf-1', 'manga', 54], ['shelf-2', tea.id, 4]] as const) {
+      const r = addObjectRow(p, shelf, kind, count)
+      if (!r.ok) throw new Error(r.error)
+      p = r.plan
+    }
+    return p
+  }
+  // Contour fin gris, sans remplissage.
+  const outlines = (primitives: Primitive[]) => rects(primitives).filter((r) => r.strokeWidth === 0.12 && r.fill === undefined)
+
+  it('par défaut, aucun objet n’est dessiné ni résumé', () => {
+    const { primitives } = buildScene(withObjects(), { date: DATE })
+    expect(outlines(primitives)).toHaveLength(0)
+    expect(allText(primitives).some((t) => t.startsWith('Objets rangés'))).toBe(false)
+  })
+
+  it('l’option dessine un contour gris par objet et une ligne de légende', () => {
+    const { primitives } = buildScene(withObjects(), { date: DATE, objects: true })
+    expect(outlines(primitives)).toHaveLength(58)
+    expect(outlines(primitives).every((r) => r.stroke !== undefined && r.stroke > 0 && r.stroke < 1)).toBe(true)
+    const legend = texts(primitives).filter((t) => t.text.startsWith('Objets rangés'))
+    expect(legend.length).toBeGreaterThan(0)
+    expect(allText(primitives)).toContain('Objets rangés (indicatif) : 54 mangas, 4 boîtes à thé.')
+    expect(legend.every((t) => t.size >= 6)).toBe(true)
+  })
+
+  it('sans objet dans le plan, l’option ne change rien', () => {
+    const a = buildScene(plan(), { date: DATE })
+    const b = buildScene(plan(), { date: DATE, objects: true })
+    expect(b.primitives).toEqual(a.primitives)
+  })
+
+  it('tout le texte fait au moins 6 pt et reste dans la page', () => {
+    for (const p of buildScene(withObjects(), { date: DATE, objects: true }).primitives) {
+      if (p.kind === 'text') expect(p.size).toBeGreaterThanOrEqual(6)
+      if (p.kind === 'rect') {
+        expect(p.x).toBeGreaterThanOrEqual(0)
+        expect(p.x + p.width).toBeLessThanOrEqual(PAGE.width)
       }
     }
   })

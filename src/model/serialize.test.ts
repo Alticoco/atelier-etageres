@@ -223,3 +223,104 @@ describe('exportFileName', () => {
     expect(exportFileName('x'.repeat(300)).length).toBeLessThanOrEqual(60 + '.etagere.json'.length)
   })
 })
+
+describe('objets sur mesure, sens et piles', () => {
+  /** Plan avec une boîte à thé sur mesure, une rangée couchée empilée et une pile posée seule. */
+  function withCustom(): Record<string, any> {
+    return {
+      ...raw(),
+      customKinds: [{ id: 'custom-1', label: 'Boîte à thé', width: 90, height: 180, depth: 90, shape: 'cylinder', color: '#aa3300' }],
+      rows: [{ id: 'row-1', shelfBelowId: 'shelf-1', kind: 'custom-1', count: 5, orientation: 'lying', stack: 3 }],
+      placedObjects: [{ id: 'placed-1', shelfBelowId: 'shelf-2', kind: 'custom-1', x: 100, orientation: 'facing', stack: 2 }],
+    }
+  }
+
+  it('aller-retour : objets sur mesure, sens et piles relus à l’identique', () => {
+    const first = parsePlan(withCustom())
+    if (!first.ok) throw new Error(first.error)
+    expect(first.plan.customKinds).toEqual(withCustom().customKinds)
+    expect(first.plan.rows).toEqual(withCustom().rows)
+    expect(first.plan.placedObjects).toEqual(withCustom().placedObjects)
+    expect(parsePlanFile(serializePlan(first.plan))).toEqual({ ok: true, plan: first.plan })
+  })
+
+  it('un fichier ancien, sans ces champs, se lit comme avant (debout, sans pile, sans objet sur mesure)', () => {
+    const old = { ...raw(), rows: [{ id: 'row-1', shelfBelowId: 'shelf-1', kind: 'manga', count: 3 }] }
+    const result = parsePlan(old)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.plan.customKinds).toBeUndefined()
+    expect(result.plan.rows).toEqual([{ id: 'row-1', shelfBelowId: 'shelf-1', kind: 'manga', count: 3 }])
+    expect('customKinds' in result.plan).toBe(false)
+  })
+
+  it('les valeurs par défaut ne sont pas écrites ; forme absente = boîte ; couleur en minuscules', () => {
+    const plan = withCustom()
+    delete plan.customKinds[0].shape
+    plan.customKinds[0].color = '#AA3300'
+    plan.rows[0].orientation = 'standing'
+    plan.rows[0].stack = 1
+    const result = parsePlan(plan)
+    if (!result.ok) throw new Error(result.error)
+    expect(result.plan.customKinds![0]).toMatchObject({ shape: 'box', color: '#aa3300' })
+    expect(result.plan.rows).toEqual([{ id: 'row-1', shelfBelowId: 'shelf-1', kind: 'custom-1', count: 5 }])
+  })
+
+  it('une rangée qui utilise un objet sur mesure absent du fichier est refusée', () => {
+    expect(error({ ...withCustom(), customKinds: undefined })).toContain('type d’objet inconnu')
+    const plan = withCustom()
+    plan.placedObjects[0].kind = 'custom-2'
+    expect(error(plan)).toContain('type d’objet inconnu')
+  })
+
+  it('refuse un objet sur mesure invalide', () => {
+    const variants: Record<string, unknown>[] = [
+      { id: 'custom-x' },
+      { id: '__proto__' },
+      { id: 'manga' },
+      { label: '   ' },
+      { label: 'x'.repeat(61) },
+      { label: 7 },
+      { width: 0 },
+      { height: 3001 },
+      { depth: 12.5 },
+      { depth: '90' },
+      { shape: 'sphere' },
+      { color: 'rouge' },
+      { color: '#abc' },
+    ]
+    for (const change of variants) {
+      const plan = withCustom()
+      Object.assign(plan.customKinds[0], change)
+      expect(parsePlan(plan).ok, JSON.stringify(change)).toBe(false)
+    }
+  })
+
+  it('refuse un identifiant d’objet sur mesure en double et une liste trop longue', () => {
+    const plan = withCustom()
+    plan.customKinds.push({ ...plan.customKinds[0] })
+    expect(error(plan)).toContain('en double')
+    const many = withCustom()
+    many.customKinds = Array.from({ length: 101 }, (_, i) => ({ id: `custom-${i + 1}`, label: 'Boîte', width: 10, height: 10, depth: 10 }))
+    expect(parsePlan(many).ok).toBe(false)
+    expect(parsePlan({ ...withCustom(), customKinds: 'thé' }).ok).toBe(false)
+  })
+
+  it('refuse un sens inconnu ou une pile hors bornes (1 à 50)', () => {
+    for (const change of [{ orientation: 'upside' }, { orientation: 1 }, { stack: 0 }, { stack: 51 }, { stack: 2.5 }]) {
+      const row = withCustom()
+      Object.assign(row.rows[0], change)
+      expect(parsePlan(row).ok, JSON.stringify(change)).toBe(false)
+      const placed = withCustom()
+      Object.assign(placed.placedObjects[0], change)
+      expect(parsePlan(placed).ok, JSON.stringify(change)).toBe(false)
+    }
+  })
+
+  it('ne garde rien d’inattendu d’un objet sur mesure', () => {
+    const plan = withCustom()
+    plan.customKinds[0].surprise = 'oui'
+    const result = parsePlan(plan)
+    if (!result.ok) throw new Error(result.error)
+    expect(JSON.stringify(result.plan)).not.toContain('surprise')
+  })
+})

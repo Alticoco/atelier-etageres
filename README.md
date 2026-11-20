@@ -16,14 +16,39 @@ Concevez vos étagères en bois massif dans le navigateur : dessinez-les, ajuste
 - **Propagation « intelligente »** : changer la largeur ou la hauteur garde les cales et les tablettes à leur position proportionnelle (désactivable).
 - **Contrôles de cohérence** : pas de chevauchement, pas de cale plus haute que son étage, des messages clairs quand une modification est refusée.
 - **Arrondis** : deux rayons par pièce, un pour les coins (vue de face) et un pour les arêtes (vue de profil), limités à la moitié de la plus petite dimension visible. Dessinés sur le plan et sur le PDF, et indiqués dans la liste de découpe.
+- **Vue de dessous et vue 3D** (rotation, zoom) : mur plein, transparent ou masqué, vues prédéfinies.
+- **Encoches** (modèle avec cadre) : par côté, montant vissé ou à encoches (mi-bois, les tablettes traversent et dépassent) ; bout de tablette droit, arrondi ou coupé en biais.
+- **Portes et tiroirs** (modèle avec cadre) : par étage, ouvert, une porte, deux portes ou un tiroir ; visibles en face, en 3D et dans le PDF, avec une liste de découpe à part.
+- **Supports** : planches de soutien à part (sous et autour de l'étagère), réglables dans les vues de face, de profil et de dessous, avec liste de découpe à part et option dans le PDF.
+- **Couleurs d'affichage** par catégorie et par pièce, en 2D et en 3D.
+- **Onglets et écran partagé** : plusieurs plans ouverts, chacun avec son historique ; deux plans côte à côte.
+- **Simulation de rangement** : poser des mangas, livres, bocaux d'épices dans un étage, avec capacité. On peut **créer ses propres objets** (nom, dimensions, boîte ou cylindre, couleur), les ranger debout, couchés ou de face, les empiler, et **ajuster la hauteur d'un étage à ses objets**. Les objets sont visibles en face, en profil et en 3D ; dans le PDF, c'est une option.
+- **Synthèse d'achat et optimisation des découpes** : dans la vue « Découpe », le nombre de planches du commerce à acheter par section (largeur × épaisseur) et un schéma de découpe de chaque planche ; longueur des planches réglable (2 400 mm par défaut).
+- **Modèles de départ** dans l'assistant : mangathèque, étagère à épices, bibliothèque, étagère murale sans cadre, meuble bas. Un clic remplit le formulaire, que l'on ajuste ensuite.
+- **Copier, coller, dupliquer, symétrie, répartir** : sur les cales, supports et objets (aussi d'un onglet à l'autre) ; « Répartir N cales » dans un étage ; les flèches agissent sur toute la sélection.
+- **Menu du clic droit** sur la vue de face : couper un montant, ajouter, décaler ou supprimer une cale ou une tablette, dupliquer un support, retirer un objet, répartir des cales.
 - **Annuler / rétablir** (`Ctrl+Z`, `Ctrl+Y`), sans limite pendant la session.
 - **Liste de découpe** : pièces regroupées par dimensions identiques, avec quantités et repères A, B, C… reportés sur le plan ; option « trait de scie » pour estimer la perte de bois.
-- **Plan PDF** en A4 paysage, dessin vectoriel : vue de face et de profil cotées, liste de découpe, notes, cartouche. Option « fixation murale ».
+- **Plan PDF** en A4 paysage, dessin vectoriel : vue de face et de profil cotées, liste de découpe, notes, cartouche. Options : « fixation murale », supports, objets rangés.
 - **Sauvegarde** automatique dans le navigateur (bibliothèque d'étagères : ouvrir, renommer, dupliquer, supprimer), export et import d'un fichier `.etagere.json`.
 - **Un PDF exporté peut être ré-importé** : le plan éditable est joint au PDF.
 - Unités au choix : millimètres ou centimètres.
 
-Les raccourcis clavier sont listés dans l'application (touche `?`).
+## Raccourcis clavier principaux
+
+La liste complète est dans l'application (touche `?`).
+
+| Touches | Action |
+|---|---|
+| `Ctrl+Z`, `Ctrl+Y` | Annuler, rétablir |
+| `Ctrl+C`, `Ctrl+V`, `Ctrl+D` | Copier, coller, dupliquer la sélection (cales, supports, objets) |
+| `Ctrl+A`, `Échap` | Tout sélectionner, désélectionner |
+| `Suppr` | Supprimer la sélection |
+| Flèches, `Maj` + flèche | Déplacer la sélection d'un pas d'aimantation, d'un millimètre |
+| `Ctrl` ou `Maj` + clic | Ajouter ou retirer une pièce de la sélection |
+| `Alt` + glisser | Déplacer sans aimantation |
+| `1` `2` `3` `4` `5` | Vue de face, de profil, liste de découpe, de dessous, 3D |
+| `Ctrl+S` | Enregistrer maintenant (c'est déjà automatique) |
 
 ### Exemple de plan PDF
 
@@ -86,8 +111,8 @@ docs/         spécification, feuille de route, journal des décisions
 
 - Pensé pour **un ordinateur** (écran d'au moins 1280 px de large) ; pas de version téléphone pour l'instant.
 - Testé surtout avec un navigateur de la famille Chrome ; conçu pour Chrome, Edge et Firefox récents.
-- La liste de découpe regroupe les pièces mais **n'optimise pas** la découpe dans les planches : on choisit soi-même les planches en magasin.
-- Le modèle de construction (avec ou sans cadre) se choisit à la création et ne se change pas ensuite. La vue 3D, les portes et les tiroirs sont prévus plus tard (voir la feuille de route).
+- L'optimisation des découpes est en **une dimension** (planches d'une même section coupées en longueur) ; pas de calepinage de panneaux.
+- Le modèle de construction (avec ou sans cadre) se choisit à la création et ne se change pas ensuite. Portes et tiroirs : modèle avec cadre seulement ; ni quincaillerie comptée ni estimation du prix (voir la feuille de route).
 
 ## Licence
 

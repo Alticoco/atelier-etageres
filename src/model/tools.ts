@@ -1,3 +1,4 @@
+import { dropPieceColors } from './colors'
 import { fail, finish, type EditResult } from './edit'
 import { innerSpan } from './geometry'
 import { parseVerticalId } from './labels'
@@ -236,6 +237,7 @@ export function removePieces(plan: Plan, ids: string[]): EditResult {
     next.shelves = next.shelves.filter((s) => s.id !== id)
   }
 
+  dropPieceColors(next, ids)
   return finish(next)
 }
 

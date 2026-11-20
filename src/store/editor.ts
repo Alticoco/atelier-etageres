@@ -6,15 +6,32 @@ import {
   type PieceProperty,
   type PlanChange,
 } from '../model/edit'
+import { setStockLength } from '../model/purchase'
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
 import { setCategoryColor, setPieceColors, type ColorCategory } from '../model/colors'
 import { setFront } from '../model/frontEdit'
 import { moveUpright, setJoint } from '../model/jointEdit'
 import type { Side } from '../model/joints'
-import type { Joint, StageFront } from '../model/types'
+import type { Joint, ObjectOrientation, StageFront } from '../model/types'
 import { addSupport, alignSupportFront, duplicateSupport, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
-import { addObjectRow, moveObject, objectIdExists, removeObjectRow, setObjectRowCount, setObjectRowGap } from '../model/objects'
+import {
+  addCustomKind,
+  addObjectRow,
+  fitStageToObjects,
+  moveObject,
+  objectIdExists,
+  removeCustomKind,
+  removeObjectRow,
+  setObjectRowCount,
+  setObjectRowGap,
+  setObjectRowOrientation,
+  setObjectRowStack,
+  updateCustomKind,
+  type CustomKindInput,
+  type CustomKindPatch,
+} from '../model/objects'
+import { distributeWedges, duplicatePieces, mirrorPieces, nudgePieces, pastePieces, type Clipboard } from '../model/clipboard'
 import { addShelf, addWedge, copyStageWedges, setStageCount, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
@@ -46,6 +63,7 @@ export type EditorAction =
   | { type: 'setPieceProperty'; ids: string[]; property: PieceProperty; mm: number }
   | { type: 'setPlanProperty'; change: PlanChange }
   | { type: 'setPlanSize'; width?: number; height?: number }
+  | { type: 'setStockLength'; key: string; mm: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
   | { type: 'setCategoryColor'; category: ColorCategory; color: string | null }
@@ -61,13 +79,28 @@ export type EditorAction =
   | { type: 'alignSupportFront'; id: string }
   | { type: 'duplicateSupport'; id: string; mode: 'next' | 'mirror' }
   | { type: 'moveSupport'; id: string; x?: number; y?: number; z?: number }
-  | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number; gap?: number }
+  | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number; gap?: number; orientation?: ObjectOrientation; stack?: number }
+  | { type: 'setObjectRowOrientation'; rowId: string; orientation: ObjectOrientation }
+  | { type: 'setObjectRowStack'; rowId: string; stack: number }
+  | { type: 'addCustomKind'; data: CustomKindInput }
+  | { type: 'updateCustomKind'; id: string; patch: CustomKindPatch }
+  | { type: 'removeCustomKind'; id: string }
+  | { type: 'fitStageToObjects'; shelfBelowId: string; margin: number }
   | { type: 'setObjectRowCount'; rowId: string; count: number }
   | { type: 'setObjectRowGap'; rowId: string; gap: number }
   | { type: 'moveObject'; id: string; shelfBelowId: string; x: number }
   | { type: 'removeObjectRow'; rowId: string }
   | { type: 'placeWedge'; wedgeId: string; shelfBelowId: string; x: number }
   | { type: 'removePieces'; ids: string[] }
+  /** Duplique la sélection (cales, supports, objets) à côté des originaux ; les copies sont sélectionnées. */
+  | { type: 'duplicatePieces'; ids: string[] }
+  /** Copie en miroir par rapport au milieu de l'étagère. */
+  | { type: 'mirrorPieces'; ids: string[] }
+  /** Colle le presse-papiers (de l'application) : dans `targetStageId` si donné, sinon dans l'étage d'origine. */
+  | { type: 'pastePieces'; clipboard: Clipboard; targetStageId: string | null }
+  | { type: 'distributeWedges'; shelfBelowId: string; count: number }
+  /** Déplace toutes les pièces choisies d'un pas (mm). */
+  | { type: 'nudgePieces'; ids: string[]; dx: -1 | 0 | 1; dy: -1 | 0 | 1; step: number }
   | { type: 'distributeShelves' }
   | { type: 'setShelfVertical'; shelfId: string; side: 'left' | 'right'; present: boolean }
   | { type: 'undo' }
@@ -159,6 +192,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(setPieceProperty(plan, action.ids, action.property, action.mm))
     case 'setPlanProperty':
       return withPlan(setPlanProperty(plan, action.change))
+    case 'setStockLength':
+      return withPlan(setStockLength(plan, action.key, action.mm))
     case 'setPlanSize':
       return withPlan(setPlanSize(plan, { width: action.width, height: action.height }))
     case 'distributeShelves':
@@ -201,9 +236,28 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     case 'alignSupportFront':
       return withPlan(alignSupportFront(plan, action.id))
     case 'addObjectRow': {
-      const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count, action.gap)
+      const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count, action.gap, { orientation: action.orientation, stack: action.stack })
       return result.ok ? commit(result.plan) : refused(result.error)
     }
+    case 'setObjectRowOrientation':
+      return withPlan(setObjectRowOrientation(plan, action.rowId, action.orientation))
+    case 'setObjectRowStack':
+      return withPlan(setObjectRowStack(plan, action.rowId, action.stack))
+    case 'addCustomKind': {
+      // Comme `addObjectRow` : la sélection ne change pas ; le nouvel objet est le dernier de `plan.customKinds`.
+      const result = addCustomKind(plan, action.data)
+      return result.ok ? commit(result.plan) : refused(result.error)
+    }
+    case 'updateCustomKind':
+      return withPlan(updateCustomKind(plan, action.id, action.patch))
+    case 'removeCustomKind': {
+      // Les objets qui l'utilisaient disparaissent : on les retire de la sélection.
+      const result = removeCustomKind(plan, action.id)
+      if (!result.ok) return refused(result.error)
+      return commit(result.plan, existingOnly(state.selection, result.plan))
+    }
+    case 'fitStageToObjects':
+      return withPlan(fitStageToObjects(plan, action.shelfBelowId, action.margin))
     case 'setObjectRowGap':
       return withPlan(setObjectRowGap(plan, action.rowId, action.gap))
     case 'moveObject': {
@@ -218,6 +272,26 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(moveWedge(plan, action.wedgeId, action.shelfBelowId, action.x, null))
     case 'addWedge':
       return withAdded(addWedge(plan, action.shelfBelowId))
+    case 'duplicatePieces': {
+      const result = duplicatePieces(plan, action.ids)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'mirrorPieces': {
+      const result = mirrorPieces(plan, action.ids)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'pastePieces': {
+      const result = pastePieces(plan, action.clipboard, action.targetStageId)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'distributeWedges': {
+      const result = distributeWedges(plan, action.shelfBelowId, action.count)
+      return result.ok ? commit(result.plan, result.ids) : refused(result.error)
+    }
+    case 'nudgePieces': {
+      const result = nudgePieces(plan, action.ids, action.dx, action.dy, action.step)
+      return result.ok ? commit(result.plan) : refused(result.error)
+    }
     case 'removePieces': {
       const result = removePieces(plan, action.ids)
       if (!result.ok) return refused(result.error)

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Copies de travail des agents et réglages locaux de Claude Code
+.claude/

@@ -312,3 +312,78 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Pas en vue de profil ni de dessous** (cachées par le montant). En 3D : plaques de façade et une caisse pleine pour le tiroir.
 - Réglage : menu « Contenu de l'étage » (onglet Étages) ou clic droit dans l'étage / sur la porte.
 
+
+## 2026-11-20 (modèles de départ)
+- **Boutons « Partir d'un modèle » en haut de l'assistant** : un clic remplit tous les champs (nom compris), l'utilisateur ajuste ensuite. Le modèle choisi reste en évidence jusqu'à la modification d'un champ. Liste `WIZARD_PRESETS` dans `src/model/wizard.ts` : de simples valeurs de formulaire passées à la même fonction de création que le reste (pas de chemin spécial).
+- **Cinq modèles, valeurs à confirmer par l'auteur** (estimations) : Mangathèque (60 × 105,8 cm, 5 étages de 19 cm libres, profondeur 15, bois 18 mm), Étagère à épices (40 × 69, 5 étages de 12 cm, profondeur 8, bois 15 mm), Bibliothèque (80 × 163,2, 5 étages de 30 cm, profondeur 25, bois 22 mm), Étagère murale sans cadre (80 × 60, 2 étages, débord 2 cm, profondeur 20, bois 22 mm), Meuble bas (90 × 70, 2 étages de 32 cm, profondeur 35, bois 20 mm). Un test vérifie que chacun donne un plan valide avec la hauteur libre attendue (à 2 mm près).
+
+## 2026-11-20 (étape 20 — synthèse d'achat et optimisation 1D)
+
+- **Une planche par section.** Bois massif : les pièces de même section (largeur × épaisseur) sortent d'une même planche de cette section, coupées en longueur. Largeur = la `width` des listes de découpe. Les supports et les portes et tiroirs sont comptés avec l'étagère (ils ont la même forme de planche) ; la colonne « Pièces » indique leur origine en infobulle. Pas de panneau collé ni de quincaillerie.
+- **First Fit Decreasing, rien de plus.** Pièces de la plus longue à la plus courte, chacune dans la première planche où elle tient. Suffisant pour quelques dizaines de pièces ; pas d'amélioration supplémentaire.
+- **Trait de scie** : celui des options du plan s'il est activé, sinon 0. Une planche de n pièces demande somme des longueurs + trait × (n − 1) ≤ longueur de la planche (la coupe côté chute est gratuite si elle tombe au bout) ; la chute affichée déduit n traits de scie.
+- **Pièce plus longue que la planche** : message d'erreur dans la section (« la pièce C (1 850 mm) dépasse la longueur des planches (1 800 mm) »), la pièce n'est pas placée, rien ne plante.
+- **Longueur des planches enregistrée dans le plan** (`options.stockLengths`, facultatif, clés « largeurxépaisseur », entiers de 100 à 6000 mm, 50 clés au plus ; défaut 2 400 mm). Raison : c'est un choix lié à l'achat réel de ce projet, qui doit survivre à l'enregistrement et à l'annulation. Action `setStockLength` (un pas d'historique). Conséquence : `CutListView` reçoit la prop `onChange` (une ligne dans `App.tsx`).
+- **Schéma** en SVG : barre proportionnelle à la longueur de la planche, pièces (repère et longueur) et chute hachurée ; le trait de scie n'est pas dessiné à part.
+
+## 2026-11-20 (objets sur mesure)
+
+- **Modèle** : `plan.customKinds` (nom, largeur, hauteur, profondeur en mm, forme boîte ou cylindre, couleur) ; chaque rangée ou objet posé garde un sens (`orientation` : debout, couché, de face) et une pile (`stack`, 1 à 50). `fitStageToObjects` règle la hauteur libre d'un étage sur sa plus haute pile + une marge. Les valeurs par défaut (debout, pile de 1) ne sont pas écrites dans le plan.
+- **Interface** : section repliable « Mes objets » au-dessus de la simulation (liste avec pastille et dimensions dans l'unité choisie, « + Nouvel objet », modifier, supprimer). Le formulaire garde un brouillon en mm ; les erreurs viennent du modèle (le même appel pur sert à valider avant d'envoyer l'action) et s'affichent sous le formulaire. Un objet créé est choisi tout de suite dans le menu « Objet » (groupe « Mes objets »).
+- **Suppression** : confirmation par `window.confirm` qui dit combien d'objets posés (piles comprises) disparaîtront avec lui.
+- **Sens et pile** : réglages mémorisés avec le reste du formulaire (`objectsForm`), donc conservés quand on change de sélection ; modifiables après coup sur chaque rangée. « Remplir (N max) » en tient compte.
+- **Ajuster l'étage** : « Hauteur conseillée » = pile la plus haute + marge (20 mm par défaut, réglable, mémorisée) ; profondeur nécessaire affichée avec un avertissement si la tablette est moins profonde. Les calculs d'affichage sont dans `src/views/customKindDraft.ts` (pur, testé) et non dans le modèle.
+- **Nom de fichier** : la logique du formulaire est dans `customKindDraft.ts` et non `customKindForm.ts`, qui ne différait de `CustomKindForm.tsx` que par la casse (conflit sous Windows et pour TypeScript).
+
+## 2026-11-20 (objets en profil, 3D, PDF)
+
+- **Profil** : les objets rangés sont dessinés de côté, un seul rectangle par (étage, type, sens, niveau de pile), au plus profond (`src/model/profileObjects.ts`, fonction pure testée). Semi-transparents, non cliquables ; couleur de l'objet sur mesure si elle existe, contour rouge pointillé si trop haut ou trop profond.
+- **3D, cylindres** : un cylindre couché (`lying`) a son axe horizontal (`Box3D.axis = 'x'`). De face (`facing`, quart de tour), il reste debout, avec une section elliptique (largeur et profondeur échangées).
+- **3D, noms** : le nom d'un objet sur mesure s'écrit sur sa face avant (texture `CanvasTexture`, texte sombre ou clair selon la couleur) si la face fait au moins 40 × 15 mm ; jamais sur les objets du catalogue. Les textures sont libérées avec le reste de la vue.
+- **PDF** : option « Objets rangés sur le plan », décochée par défaut (`objects` de `buildScene` / `buildPlanPdf`) : contour fin gris sans remplissage en vue de face, et une ligne « Objets rangés (indicatif) : 54 mangas, … » sous la liste de découpe. Le plan joint pour le ré-import contient toujours tout. Le pluriel d'un objet sur mesure n'est pas géré : on écrit son nom tel quel.
+- La case n'apparaît dans le menu que si `AppHeader` reçoit `onPdfObjectsChange` (état à tenir dans `App.tsx`).
+## 2026-11-20 (copier, coller, symétrie, répartir)
+
+- **Toute la logique dans `src/model/clipboard.ts`** (fonctions pures testées : `duplicatePieces`, `copyPieces`, `pastePieces`, `mirrorPieces` / `mirrorPiece`, `distributeWedges`, `nudgePieces`) ; actions nommées dans `editor.ts` (`duplicatePieces`, `mirrorPieces`, `pastePieces`, `distributeWedges`, `nudgePieces`), un pas d'historique chacune, quel que soit le nombre de pièces. Les tablettes et les montants ne se copient pas (seuls cales, supports, objets).
+- **Presse-papiers interne** dans l'espace de travail (`Workspace.clipboard`, action `setClipboard`), hors historique, partagé entre les onglets ; rien n'est écrit dans le presse-papiers du système. Chaque pièce garde son étage d'origine (tablette du dessous + rang de l'étage). Coller : dans l'étage de la sélection si une seule cale, un seul objet ou une seule tablette (étage au-dessus) est choisi ; sinon dans l'étage d'origine, ou l'étage de même rang dans un autre plan, sinon refus. Même x si libre, sinon place libre la plus proche (`moveWedge` / `moveObject`). Un support collé se décale s'il y en a déjà un identique. Un objet sur mesure absent du plan visé est refusé.
+- **Dupliquer** : cale à droite avec un écart égal à son épaisseur (sinon à gauche, sinon refus) ; support = `duplicateSupport` « à côté » ; objet = objet posé seul de même type, sens et pile (un objet de rangée devient un objet seul, comme au glisser), place libre la plus proche. Tablette refusée avec message. **Symétrie** : miroir par rapport au milieu de l'espace entre les montants (cales et objets), de la largeur hors-tout (supports) ; refus si la pièce est au milieu ou si la place symétrique est prise (position exacte, pas de recalage).
+- **Répartir N cales** : remplace les cales de l'étage par N cales d'épaisseur par défaut, écarts égaux (`evenSlots`). Menu du clic droit : 2, 3 ou 4 cales dans le vide d'un étage, ou « Répartir ces N cales » sur une cale ; champ « Nombre de cales » dans l'onglet Étages. « Même disposition dans tous les étages » ajouté au menu d'une cale (action existante `copyStageWedges`).
+- **Flèches sur plusieurs pièces** : toutes les cales (←→), tablettes intermédiaires (↑↓) et supports (x / y) choisis bougent d'un pas, de la plus avancée à la plus en retrait ; si l'une est bloquée, rien ne bouge (message). Les objets ne bougent pas aux flèches.
+- Raccourcis : Ctrl+C, Ctrl+V, Ctrl+D (pas dans un champ de texte).
+
+## 2026-11-20 (corrections après fusion)
+
+- **Pluriel des objets sur mesure** (remplace « le pluriel n'est pas géré » de la section « objets en profil, 3D, PDF ») : accordé sur le premier mot par `pluralLabel` (« boîtes à thé », « bocaux »).
+- **Case PDF « Objets rangés sur le plan »** (remplace la condition sur `onPdfObjectsChange`) : branchée dans `App.tsx`, décochée par défaut.
+- **Couleur des objets sur mesure** appliquée aussi en vue de face.
+- **Cartes des modèles de départ** : hauteur automatique (corrigé).
+- **Tests Vitest limités au projet** : `.claude/**` exclu (copies de travail des agents).
+
+## 2026-11-20 (cotes dynamiques et aimantation étendue)
+
+- **Cotes dynamiques pendant le glisser** (vue de face seulement), calculées par `liveDimensions` (`src/model/liveDimensions.ts`, pur, testé) sur le plan provisoire : cale et objet posé seul → place libre à gauche et à droite jusqu'au montant, à la cale ou à l'objet posé seul le plus proche **du même étage** (les objets des rangées ne comptent pas : ils se rangent autour) ; support → jusqu'au support voisin **qui le chevauche en hauteur**, sinon jusqu'au bord de l'étagère (un support sur le côté n'a pas de cote du côté extérieur) ; tablette intermédiaire → hauteur libre de l'étage du dessous et du dessus, au milieu de la largeur. Trait couleur d'accent, texte dans une pastille, distances nulles non dessinées, rien hors glisser.
+- **Repères des tablettes** (`shelfGuides`) : « Étages égaux » (dessous et dessus de même hauteur libre), « Ajusté aux objets » (plus haute pile de l'étage du dessous + 20 mm, même calcul que « Ajuster l'étage »), « Même hauteur que l'étage N » (hauteur libre d'un étage non voisin). L'**alignement sur la hauteur d'une autre tablette** demandé n'a pas de sens ici (toutes les tablettes traversent la largeur, deux tablettes ne sont jamais à la même hauteur) : remplacé par « même hauteur qu'un autre étage ». Un repère l'emporte sur l'arrondi au pas s'il donne un plan valide ; Alt les désactive ; trait rose horizontal sur toute la largeur. `dragShelf` garde sa signature (vue de profil : aimantation identique, sans trait affiché).
+- **Repères des objets posés seuls** : milieu de l'étage, même bord gauche qu'une cale ou qu'un objet **posé seul** d'un autre étage (trait sur toute la hauteur, passant par le bord gauche). Les objets des rangées ne servent pas de repère (un tous les 1 à 3 cm). Calculés dans `dragObjectToStage` puis posés par `moveObject(…, step null)` sans modifier `objects.ts` ; un repère occupé (cale, autre objet) est ignoré et l'aimant habituel s'applique.
+- **Aimant entre supports** (reste de l'étape 18b) : à 10 mm près, en x, y et z : bords alignés (début ou fin communs) et collés de chaque côté (côte à côte, l'un sous l'autre). Invisible comme les aimants contre les bords ; les repères (milieu, tiers…) gardent la priorité.
+- **Valeur tapée pendant le glisser** : taper des chiffres (virgule ou point) ouvre un petit champ près du curseur ; Entrée place la pièce pour que la cote principale (distance à gauche ; hauteur libre du dessous pour une tablette) vaille la valeur, dans l'unité choisie, et termine le geste (un pas d'historique) ; la position est ensuite limitée à ce que le plan permet. Retour arrière efface un chiffre ; **Échap ferme le champ sans annuler le glisser** (la pièce suit toujours la souris). Les touches sont prises en phase de capture pendant le glisser, pour ne pas changer de vue avec les chiffres.
+
+## 2026-11-20 (corrections après relecture)
+
+- Coller un objet sur mesure : le presse-papiers emporte sa définition ; au collage on retrouve un type identique (nom, dimensions, forme) ou on le crée, au lieu de se fier à l'identifiant `custom-N`.
+- `nudgePieces` en sélection multiple : refus de tout le mouvement si une pièce ne peut pas avancer du pas complet (les écarts ne changent plus).
+- Nombre d'objets d'une rangée : validé avant l'action (`parseCount`), message « Entrez un nombre entier » au lieu de « pas de place ».
+- Arrondi des cylindres : une seule fonction `objectCornerRadius` (face et PDF) ; debout/de face min/6, couché min/2.
+- Achat : la limite de 50 sections réglées ne compte plus les sections qui n'existent plus dans le plan (retirées au réglage suivant).
+- Couleurs propres : purgées pour les pièces supprimées (`removePieces`) ou remplacées (`distributeWedges`).
+- Ctrl+C ne bloque plus la copie native quand du texte est surligné (`textSelected` dans `KeyContext`).
+- Motif hachuré des planches d'achat : identifiant unique par barre (`useId`) ; vue 3D : cache des textures de nom, libéré au démontage.
+
+## 2026-11-20 (corrections du glisser)
+
+- Suppr et Retour arrière sont toujours interceptés pendant un glisser (champ ouvert ou non) : la pièce n'est jamais supprimée en plein geste ; Retour arrière efface un chiffre si le champ est ouvert.
+- Saisie clavier : `typedChar` (`src/model/typedKey.ts`, pure, testée) lit les chiffres par `code` (`Digit`/`Numpad`) en plus de `key`, donc la rangée du haut AZERTY fonctionne ; virgule et point par `key` ou `Comma`/`Period`/`NumpadDecimal`.
+- Alt (qui coupe l'aimantation) n'empêche plus la saisie ; seuls Ctrl et Méta sont exclus.
+- Sans cote à gauche (support en x négatif), la cote principale est celle de droite : la valeur tapée est la distance à droite (`mainDimension`, `typedTarget`) ; sans aucune cote, le champ ne s'ouvre pas.
+- Valeur refusée pour un support : `place()` calcule la position avant de quitter le glisser ; refus = renvoie false, message « Valeur non valide », le glisser continue.
+- Performances : cotes dynamiques en `useMemo`, largeur de l'objet glissé mémorisée au début du geste (`dragObjectToStage`, paramètre `knownWidth`), pas de `findDrawnObject` pour une tablette, position du pointeur convertie seulement à l'ouverture du champ, écouteur clavier recréé seulement quand la pièce active change (valeurs courantes lues via une ref).
+- Aide du champ : « Tapez une valeur puis Entrée · Échap : annuler ».

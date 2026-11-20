@@ -1,4 +1,6 @@
 import { innerSpan } from './geometry'
+import { layoutStage, orientedSize, resolveKind, type DrawnObject } from './objects'
+import { getStages, sortedShelves } from './pieces'
 import type { Plan, Support } from './types'
 
 /**
@@ -116,6 +118,88 @@ export function supportXGuides(plan: Plan, supportId: string): Guide[] {
 /** Repère de profondeur d'un support : centré dans la profondeur de l'étagère. */
 export function supportZGuides(support: Support, frontDepth: number): Guide[] {
   return [{ pos: Math.round((frontDepth - support.depth) / 2), size: support.depth, label: 'Milieu de la profondeur' }]
+}
+
+/** Jour (mm) laissé au-dessus de la plus haute pile d'objets par le repère « Ajusté aux objets ». */
+export const OBJECT_CLEARANCE_MM = 20
+
+/**
+ * Repères d'une tablette intermédiaire (`pos` = dessous de la tablette, `size` = son épaisseur) :
+ * - « Étages égaux » : l'étage du dessous et celui du dessus ont la même hauteur libre ;
+ * - « Ajusté aux objets » : l'étage du dessous laisse 2 cm au-dessus de sa plus haute pile d'objets (comme le
+ *   bouton « Ajuster l'étage » avec sa marge par défaut) ;
+ * - « Même hauteur que l'étage N » : l'étage du dessous prend la hauteur libre d'un autre étage.
+ * Une tablette du haut ou du bas n'en a pas (elle ne se glisse pas).
+ */
+export function shelfGuides(plan: Plan, shelfId: string): Guide[] {
+  const shelves = sortedShelves(plan)
+  const index = shelves.findIndex((s) => s.id === shelfId)
+  if (index <= 0 || index >= shelves.length - 1) return []
+  const shelf = shelves[index]
+  const below = shelves[index - 1]
+  const above = shelves[index + 1]
+  const belowTop = below.y + below.thickness
+  const size = shelf.thickness
+  const guides: Guide[] = [{ pos: Math.round((belowTop + above.y - size) / 2), size, label: 'Étages égaux' }]
+
+  const tallest = tallestPile(plan, below.id)
+  if (tallest > 0) guides.push({ pos: belowTop + tallest + OBJECT_CLEARANCE_MM, size, label: 'Ajusté aux objets' })
+
+  const stages = getStages(plan)
+  stages.forEach((st, i) => {
+    // Les deux étages qui touchent la tablette changent pendant le glisser : pas de repère sur eux.
+    if (st.shelfBelowId === below.id || st.shelfBelowId === shelf.id) return
+    guides.push({ pos: belowTop + st.clearHeight, size, label: `Même hauteur que l’étage ${i + 1}` })
+  })
+
+  return dedupe(guides)
+}
+
+/**
+ * Hauteur de la plus haute pile d'objets d'un étage (rangées et objets posés seuls, dans leur sens, qu'ils aient de la
+ * place en largeur ou non), 0 s'il n'y en a pas. Même calcul que « Ajuster l'étage » (`fitStageToObjects`).
+ */
+export function tallestPile(plan: Plan, shelfBelowId: string): number {
+  const heights: number[] = []
+  for (const row of plan.rows ?? []) {
+    const kind = row.shelfBelowId === shelfBelowId ? resolveKind(plan, row.kind) : undefined
+    if (kind) heights.push(Math.min(row.stack ?? 1, row.count) * orientedSize(kind, row.orientation).height)
+  }
+  for (const p of plan.placedObjects ?? []) {
+    const kind = p.shelfBelowId === shelfBelowId ? resolveKind(plan, p.kind) : undefined
+    if (kind) heights.push((p.stack ?? 1) * orientedSize(kind, p.orientation).height)
+  }
+  return Math.max(0, ...heights)
+}
+
+/** Un objet dessiné (rangée ou posé seul) et son étage, ou null. */
+export function findDrawnObject(plan: Plan, id: string): { object: DrawnObject; shelfBelowId: string } | null {
+  for (const stage of getStages(plan)) {
+    const object = layoutStage(plan, stage).objects.find((o) => o.id === id)
+    if (object) return { object, shelfBelowId: stage.shelfBelowId }
+  }
+  return null
+}
+
+/**
+ * Repères d'un objet de simulation de largeur `width` posé dans l'étage au-dessus de `shelfBelowId` :
+ * - le milieu de l'étage (entre les montants) ;
+ * - le même bord gauche qu'une cale ou qu'un objet posé seul d'un autre étage (trait sur toute la hauteur).
+ * Les objets des rangées ne servent pas de repère : collés les uns aux autres, ils en donneraient un tous les 1 à 3 cm.
+ * Pour un alignement, `size` vaut 0 : le trait passe par le bord gauche commun, pas par le milieu de l'objet.
+ */
+export function objectGuides(plan: Plan, objectId: string, width: number, shelfBelowId: string): Guide[] {
+  const span = innerSpan(plan)
+  const guides: Guide[] = [{ pos: Math.round((span.left + span.right - width) / 2), size: width, label: 'Milieu' }]
+  for (const w of plan.wedges) {
+    if (w.shelfBelowId === shelfBelowId) continue
+    guides.push({ pos: w.x, size: 0, label: 'Aligné avec une cale', aligned: true })
+  }
+  for (const p of plan.placedObjects ?? []) {
+    if (p.shelfBelowId === shelfBelowId || `obj:${p.id}` === objectId) continue
+    guides.push({ pos: p.x, size: 0, label: 'Aligné avec un objet', aligned: true })
+  }
+  return dedupe(guides)
 }
 
 function dedupe(guides: Guide[]): Guide[] {

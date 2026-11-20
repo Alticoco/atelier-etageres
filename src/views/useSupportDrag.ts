@@ -37,11 +37,22 @@ export function useSupportDrag({ plan, scale, snapStep, mapping, onChange, onSel
   const pendingRef = useRef<EditorAction | null>(null)
   const [draft, setDraft] = useState<Plan | null>(null)
   const [guides, setGuides] = useState<{ x: Guide | null; z: Guide | null }>({ x: null, z: null })
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  const reset = () => {
+    gestureRef.current = null
+    pendingRef.current = null
+    setDraft(null)
+    setGuides({ x: null, z: null })
+    setActiveId(null)
+  }
 
   return {
     draft,
     /** Repères sur lesquels le support est calé pendant le glisser (x : sens horizontal, z : profondeur). */
     guides,
+    /** Support en cours de glisser (après le seuil du clic), ou null. */
+    activeId,
     /** Début d'un appui sur un support. */
     begin(e: React.PointerEvent, id: string): boolean {
       const start = plan.supports?.find((s) => s.id === id)
@@ -58,6 +69,7 @@ export function useSupportDrag({ plan, scale, snapStep, mapping, onChange, onSel
       if (!g.active) {
         if (Math.hypot(dx, dy) <= CLICK_TOLERANCE_PX) return true
         g.active = true
+        setActiveId(g.id)
         if (!isSelected(g.id)) onSelect?.(g.id, false)
       }
       const raw = mapping(dx * g.scale, dy * g.scale, g.start)
@@ -68,14 +80,26 @@ export function useSupportDrag({ plan, scale, snapStep, mapping, onChange, onSel
       pendingRef.current = { type: 'moveSupport', id: g.id, x: raw.x === undefined ? undefined : moved.x, y: raw.y === undefined ? undefined : moved.y, z: raw.z === undefined ? undefined : moved.z }
       return true
     },
+    /**
+     * Termine le glisser en cours en posant le support à la position `raw` (mm, sans arrondi ni aimant), par exemple
+     * une valeur tapée au clavier. Renvoie false s'il n'y a pas de glisser en cours ou si la position est refusée
+     * (le glisser continue alors).
+     */
+    place(raw: { x?: number; y?: number; z?: number }): boolean {
+      const g = gestureRef.current
+      if (!g || !g.active) return false
+      const next = dragSupport(plan, g.id, raw, null)
+      if (next === plan) return false
+      reset()
+      const moved = next.supports!.find((s) => s.id === g.id)!
+      onChange?.({ type: 'moveSupport', id: g.id, x: raw.x === undefined ? undefined : moved.x, y: raw.y === undefined ? undefined : moved.y, z: raw.z === undefined ? undefined : moved.z })
+      return true
+    },
     /** Renvoie true si le relâchement termine un geste sur un support. */
     end(e: React.PointerEvent | null): boolean {
       const g = gestureRef.current
-      gestureRef.current = null
       const action = pendingRef.current
-      pendingRef.current = null
-      setDraft(null)
-      setGuides({ x: null, z: null })
+      reset()
       if (!g) return false
       if (!e) return true
       if (g.active) {

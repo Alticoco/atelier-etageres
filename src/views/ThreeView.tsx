@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AmbientLight,
   BoxGeometry,
+  CanvasTexture,
   Color,
   CylinderGeometry,
   DirectionalLight,
@@ -10,7 +11,9 @@ import {
   LineBasicMaterial,
   LineSegments,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
+  PlaneGeometry,
   PerspectiveCamera,
   Scene,
   Vector3,
@@ -19,7 +22,7 @@ import {
   type Material,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { buildScene3D, type Box3D, type Scene3D } from '../model/scene3d'
+import { buildScene3D, labelTextColor, showsLabel, type Box3D, type Scene3D } from '../model/scene3d'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 
@@ -73,19 +76,68 @@ function disposeGroup(group: Group) {
     const geometry: BufferGeometry | undefined = item.geometry
     geometry?.dispose()
     const material: Material | Material[] | undefined = item.material
-    if (Array.isArray(material)) material.forEach((m) => m.dispose())
-    else material?.dispose()
+    const disposeMaterial = (m: Material) => {
+      // Les textures de nom ne sont pas libérées avec le matériau ; celles du cache (`userData.shared`) le sont au démontage.
+      const map = (m as MeshBasicMaterial).map
+      if (map && !map.userData.shared) map.dispose()
+      m.dispose()
+    }
+    if (Array.isArray(material)) material.forEach(disposeMaterial)
+    else if (material) disposeMaterial(material)
   })
   group.clear()
 }
 
-function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selected: boolean }) {
+/** Texture portant le nom d'un objet, texte centré, réduit pour tenir dans la face (fond transparent). */
+function labelTexture(text: string, aspect: number, textColor: string): CanvasTexture {
+  const width = 256
+  const height = Math.min(512, Math.max(32, Math.round(width / aspect)))
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    let size = Math.round(height * 0.5)
+    const font = (px: number) => `600 ${px}px sans-serif`
+    ctx.font = font(size)
+    while (size > 8 && ctx.measureText(text).width > width * 0.9) {
+      size -= 2
+      ctx.font = font(size)
+    }
+    ctx.fillStyle = textColor
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, width / 2, height / 2)
+  }
+  return new CanvasTexture(canvas)
+}
+
+/** Textures de nom déjà créées, par (texte, couleur, largeur et hauteur arrondies) : évite de recréer des canvas à chaque redessin. */
+type LabelCache = Map<string, CanvasTexture>
+
+function cachedLabelTexture(cache: LabelCache, text: string, width: number, height: number, textColor: string): CanvasTexture {
+  const w = Math.max(1, Math.round(width))
+  const h = Math.max(1, Math.round(height))
+  const key = `${text}|${textColor}|${w}|${h}`
+  let texture = cache.get(key)
+  if (!texture) {
+    texture = labelTexture(text, w / h, textColor)
+    texture.userData.shared = true
+    cache.set(key, texture)
+  }
+  return texture
+}
+
+function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selected: boolean; labels: LabelCache }) {
   const isWall = box.kind === 'wall'
-  const color = box.kind === 'object' ? (OBJECT_COLORS[box.objectKind ?? ''] ?? '#7fa6c9') : (box.color ?? KIND_COLORS[box.kind])
+  const color = box.kind === 'object' ? (box.color ?? OBJECT_COLORS[box.objectKind ?? ''] ?? '#7fa6c9') : (box.color ?? KIND_COLORS[box.kind])
   const transparentWall = isWall && options.wallMode === 'transparent'
 
-  const geometry: BufferGeometry =
-    box.shape === 'cylinder' ? new CylinderGeometry(box.sx / 2, box.sx / 2, box.sy, 24) : new BoxGeometry(box.sx, box.sy, box.sz)
+  // Cylindre : forme de diamètre 1 et de longueur 1, mise à l'échelle de la boîte (section elliptique si besoin) ;
+  // couché (axe `x`), on la tourne d'un quart de tour pour que sa longueur suive la largeur.
+  const isCylinder = box.shape === 'cylinder'
+  const geometry: BufferGeometry = isCylinder ? new CylinderGeometry(0.5, 0.5, 1, 24) : new BoxGeometry(box.sx, box.sy, box.sz)
+  if (isCylinder && box.axis === 'x') geometry.rotateZ(Math.PI / 2)
   const material = new MeshStandardMaterial({
     color: new Color(color),
     roughness: 0.85,
@@ -96,8 +148,7 @@ function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selecte
   })
   const mesh = new Mesh(geometry, material)
   mesh.position.set(box.x + box.sx / 2, box.y + box.sy / 2, box.z + box.sz / 2)
-  // Un bocal est un cylindre : si sa profondeur diffère de sa largeur, on l'étire.
-  if (box.shape === 'cylinder') mesh.scale.z = box.sz / box.sx
+  if (isCylinder) mesh.scale.set(box.sx, box.sy, box.sz)
   group.add(mesh)
 
   const edgeColor = options.selected ? ACCENT : box.bad ? '#c0392b' : isWall ? '#b8ae9a' : '#6b4f2a'
@@ -108,6 +159,18 @@ function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selecte
   edges.position.copy(mesh.position)
   edges.scale.copy(mesh.scale)
   group.add(edges)
+
+  // Objet sur mesure : son nom sur la face avant, si elle est assez grande pour être lue.
+  if (showsLabel(box)) {
+    const texture = cachedLabelTexture(options.labels, box.label!, box.sx, box.sy, labelTextColor(color))
+    const plane = new Mesh(
+      new PlaneGeometry(box.sx, box.sy),
+      new MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, toneMapped: false }),
+    )
+    // Juste devant la face avant (un cylindre : devant sa génératrice la plus avancée).
+    plane.position.set(box.x + box.sx / 2, box.y + box.sy / 2, box.z + box.sz + 0.5)
+    group.add(plane)
+  }
 }
 
 function fitCamera(stage: Stage3D, scene: Scene3D) {
@@ -135,6 +198,7 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Stage3D | null>(null)
   const fittedRef = useRef(false)
+  const labelsRef = useRef<LabelCache>(new Map())
   const [wallMode, setWallMode] = useState<WallMode>('solid')
   const [showObjects, setShowObjects] = useState(true)
   const [showSupports, setShowSupports] = useState(true)
@@ -204,6 +268,15 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
     }
   }, [webgl])
 
+  // Libère le cache des textures de nom au démontage.
+  useEffect(() => {
+    const labels = labelsRef.current
+    return () => {
+      for (const texture of labels.values()) texture.dispose()
+      labels.clear()
+    }
+  }, [])
+
   // Le dessin suit le plan et les options ; la caméra n'est cadrée qu'à la première fois (ou sur demande).
   const scene3d = useMemo(() => buildScene3D(plan, { objects: showObjects, supports: showSupports }), [plan, showObjects, showSupports])
   const selected = selection.join('|')
@@ -212,8 +285,8 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
     if (!stage) return
     const ids = new Set(selected === '' ? [] : selected.split('|'))
     disposeGroup(stage.group)
-    for (const box of scene3d.boxes) addBox(stage.group, box, { wallMode, selected: ids.has(box.id) })
-    if (wallMode !== 'hidden') addBox(stage.group, scene3d.wall, { wallMode, selected: false })
+    for (const box of scene3d.boxes) addBox(stage.group, box, { wallMode, selected: ids.has(box.id), labels: labelsRef.current })
+    if (wallMode !== 'hidden') addBox(stage.group, scene3d.wall, { wallMode, selected: false, labels: labelsRef.current })
     if (!fittedRef.current) {
       fitCamera(stage, scene3d)
       fittedRef.current = true

@@ -1,6 +1,7 @@
 import { computeCutList, describeJoinery, roundingCode } from '../model/cutlist'
 import { frontRects } from '../model/fronts'
 import { computeFrontRects } from '../model/layout'
+import { layoutStage, objectCornerRadius, resolveKind } from '../model/objects'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
 import { supportFrontRect, supportOverflow, supportProfileRect } from '../model/supports'
@@ -81,6 +82,30 @@ export interface SceneOptions {
    * défaut ; sans effet si le plan n'a pas de support.
    */
   supports?: boolean
+  /**
+   * Dessiner les objets rangés (vue de face, contour fin gris sans remplissage) et en résumer le contenu sous la liste de
+   * découpe. Faux par défaut ; sans effet si le plan n'a pas d'objet.
+   */
+  objects?: boolean
+}
+
+/** Objets rangés d'un plan, pour le dessin et la légende : un seul parcours des étages. */
+function storedObjects(plan: Plan) {
+  const drawn = getStages(plan).flatMap((stage) => layoutStage(plan, stage).objects)
+  const counts = new Map<string, number>()
+  for (const o of drawn) counts.set(o.kindId, (counts.get(o.kindId) ?? 0) + 1)
+  return { drawn, counts }
+}
+
+/** « 54 mangas, 12 boîtes à thé » : nombre d'objets rangés par type. */
+function objectsSummary(plan: Plan, counts: Map<string, number>): string {
+  return [...counts]
+    .map(([id, n]) => {
+      const kind = resolveKind(plan, id)
+      const name = n > 1 ? (kind?.plural ?? id) : (kind?.label.toLowerCase() ?? id)
+      return `${n} ${name}`
+    })
+    .join(', ')
 }
 
 type Overflow = ReturnType<typeof supportOverflow>
@@ -158,8 +183,13 @@ function chooseScale(plan: Plan, ov: Overflow): number {
   return SCALES.find(fits) ?? SCALES[SCALES.length - 1]
 }
 
-export function buildScene(plan: Plan, { unit = 'cm', date = new Date(), supports: withSupports = true }: SceneOptions = {}): Scene {
+export function buildScene(
+  plan: Plan,
+  { unit = 'cm', date = new Date(), supports: withSupports = true, objects: withObjects = false }: SceneOptions = {},
+): Scene {
   const primitives: Primitive[] = []
+  const stored = withObjects ? storedObjects(plan) : null
+  const showObjects = stored !== null && stored.drawn.length > 0
   const showSupports = withSupports && (plan.supports ?? []).length > 0
   const ov = showSupports ? supportOverflow(plan) : NO_OVERFLOW
   const d = chooseScale(plan, ov)
@@ -254,6 +284,16 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date(), support
       dash: r.kind === 'wedge' ? [1.2, 0.8] : undefined,
       radius: r.cornerRadius > 0 ? r.cornerRadius / d : undefined,
     })
+  }
+  if (showObjects) {
+    // Indicatif : contour fin gris, sans remplissage, pour ne pas les confondre avec les pièces à découper.
+    for (const o of stored.drawn) {
+      rect(fx(o.x), fy(o.y + o.height), o.width / d, o.height / d, {
+        strokeWidth: 0.12,
+        stroke: HIDDEN_GRAY,
+        radius: objectCornerRadius(o) > 0 ? objectCornerRadius(o) / d : undefined,
+      })
+    }
   }
   for (const r of computeFrontRects(plan)) bubble(fx(r.x + r.width / 2), fy(r.y + r.height / 2), cutList.marks[r.id])
 
@@ -464,6 +504,10 @@ export function buildScene(plan: Plan, { unit = 'cm', date = new Date(), support
     writeLines(
       wrapText(`Trait de scie (estimation) : ${cuts} coupes × ${formatLength(kerf, unit)} = ${formatLength(loss, unit)} de bois perdu.`, listW, 7),
     )
+  }
+
+  if (showObjects) {
+    writeLines(wrapText(`Objets rangés (indicatif) : ${objectsSummary(plan, stored.counts)}.`, listW, 7))
   }
 
   y += 2.5

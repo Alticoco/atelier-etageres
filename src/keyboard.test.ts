@@ -10,7 +10,7 @@ const key = (k: string, mods: Partial<KeyInfo> = {}): KeyInfo => ({
   ...mods,
 })
 
-const idle: KeyContext = { textEntry: false, select: false, hasSelection: false }
+const idle: KeyContext = { textEntry: false, select: false, hasSelection: false, textSelected: false }
 const selected: KeyContext = { ...idle, hasSelection: true }
 const typing: KeyContext = { ...idle, textEntry: true, hasSelection: true }
 
@@ -105,6 +105,19 @@ describe('vues, aide et enregistrement', () => {
     expect(commandForKey(key('s', { metaKey: true }), idle)).toEqual({ type: 'save' })
   })
 
+  it('Ctrl+C, Ctrl+V, Ctrl+D : copier, coller, dupliquer (pas dans un champ texte)', () => {
+    expect(commandForKey(key('c', { ctrlKey: true }), selected)).toEqual({ type: 'copy' })
+    // Du texte surligné : la copie native du navigateur garde la main.
+    expect(commandForKey(key('c', { ctrlKey: true }), { ...selected, textSelected: true })).toBeNull()
+    expect(commandForKey(key('c', { ctrlKey: true }), idle)).toBeNull()
+    expect(commandForKey(key('v', { ctrlKey: true }), idle)).toEqual({ type: 'paste' })
+    expect(commandForKey(key('d', { metaKey: true }), selected)).toEqual({ type: 'duplicate' })
+    expect(commandForKey(key('d', { ctrlKey: true }), idle)).toBeNull()
+    expect(commandForKey(key('c', { ctrlKey: true }), typing)).toBeNull()
+    expect(commandForKey(key('v', { ctrlKey: true }), typing)).toBeNull()
+    expect(commandForKey(key('c', { ctrlKey: true, shiftKey: true }), selected)).toBeNull()
+  })
+
   it('une lettre ordinaire ne déclenche rien', () => {
     expect(commandForKey(key('q'), idle)).toBeNull()
     expect(commandForKey(key('Enter'), selected)).toBeNull()
@@ -123,7 +136,7 @@ describe('liste d’aide', () => {
 
   it('couvre les raccourcis réellement gérés', () => {
     const text = SHORTCUTS.flatMap((g) => g.items.map((i) => i.keys)).join(' | ')
-    for (const expected of ['Ctrl + Z', 'Ctrl + Y', 'Suppr', 'Ctrl + A', 'Échap', 'Ctrl + S', '1   2   3', '?', 'Maj + flèche']) {
+    for (const expected of ['Ctrl + Z', 'Ctrl + Y', 'Suppr', 'Ctrl + A', 'Ctrl + C', 'Ctrl + V', 'Ctrl + D', 'Échap', 'Ctrl + S', '1   2   3', '?', 'Maj + flèche']) {
       expect(text).toContain(expected)
     }
   })

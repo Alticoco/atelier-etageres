@@ -1,6 +1,6 @@
 import { setPieceProperty, setPlanSize } from './edit'
 import { getStages, sortedShelves } from './pieces'
-import { wedgeGuides, type Guide } from './guides'
+import { findDrawnObject, nearestGuide, objectGuides, shelfGuides, wedgeGuides, type Guide } from './guides'
 import { moveObject } from './objects'
 import { moveUpright } from './jointEdit'
 import { jointOf, type Side } from './joints'
@@ -38,16 +38,33 @@ export function clampToValid(start: number, target: number, isValid: (value: num
  * La tablette s'arrête contre ses voisines et les cales de ses étages.
  */
 export function dragShelf(plan: Plan, id: string, rawY: number, step: number | null): Plan {
+  return dragShelfWithGuide(plan, id, rawY, step).plan
+}
+
+/**
+ * Comme `dragShelf`, et indique le repère sur lequel la tablette s'est calée (étages égaux, ajusté aux objets,
+ * même hauteur qu'un autre étage), ou null. Un repère à portée l'emporte sur l'arrondi au pas, s'il est valide.
+ * `step` null (Alt) = ni arrondi ni repère.
+ */
+export function dragShelfWithGuide(plan: Plan, id: string, rawY: number, step: number | null): { plan: Plan; guide: Guide | null } {
   const shelves = sortedShelves(plan)
   const index = shelves.findIndex((s) => s.id === id)
-  if (index < 0) return plan
+  if (index < 0) return { plan, guide: null }
   const below = shelves[index - 1]
   const belowTop = below ? below.y + below.thickness : 0
 
-  const target = belowTop + snapToStep(rawY - belowTop, step)
+  let target = belowTop + snapToStep(rawY - belowTop, step)
+  let guide: Guide | null = null
+  if (step !== null) {
+    const near = nearestGuide(shelfGuides(plan, id), rawY)
+    if (near && setPieceProperty(plan, [id], 'y', near.pos).ok) {
+      target = near.pos
+      guide = near
+    }
+  }
   const y = clampToValid(shelves[index].y, target, (v) => setPieceProperty(plan, [id], 'y', v).ok)
   const result = setPieceProperty(plan, [id], 'y', y)
-  return result.ok ? result.plan : plan
+  return result.ok ? { plan: result.plan, guide: y === target ? guide : null } : { plan, guide: null }
 }
 
 /** Plan avec une cale amenée vers la position `rawX` (bord gauche, depuis le bord extérieur gauche du cadre). */
@@ -101,6 +118,8 @@ export function dragWedgeToStage(
 /**
  * Plan avec un objet de simulation amené vers (`rawX`, `rawY`) : bord gauche de l'objet et hauteur du curseur (mm).
  * L'objet passe dans l'étage sous le curseur (le plus proche s'il est sur une tablette) et s'aimante contre ses voisins.
+ * Avant cela, il se cale sur ses repères (milieu de l'étage, même bord gauche qu'une cale ou un objet d'un autre étage)
+ * s'ils sont à portée et libres ; `guide` dit lequel. `step` null (Alt) = ni arrondi, ni aimant, ni repère.
  */
 export function dragObjectToStage(
   plan: Plan,
@@ -108,16 +127,31 @@ export function dragObjectToStage(
   rawX: number,
   rawY: number,
   step: number | null,
-): { plan: Plan; id: string; shelfBelowId: string; x: number } | null {
+  knownWidth?: number,
+): { plan: Plan; id: string; shelfBelowId: string; x: number; guide: Guide | null } | null {
   const stages = getStages(plan)
   const distance = (s: { y: number; clearHeight: number }) =>
     rawY < s.y ? s.y - rawY : rawY > s.y + s.clearHeight ? rawY - (s.y + s.clearHeight) : 0
   const stage = [...stages].sort((a, b) => distance(a) - distance(b))[0]
   if (!stage) return null
+
+  // Repère : la position cible est calculée ici, puis posée telle quelle (`step` null : moveObject n'y touche plus).
+  // `knownWidth` : largeur de l'objet connue au début du geste (évite de la rechercher à chaque mouvement).
+  const width = step === null ? undefined : (knownWidth ?? findDrawnObject(plan, id)?.object.width)
+  const guide = width !== undefined ? nearestGuide(objectGuides(plan, id, width, stage.shelfBelowId), rawX) : null
+  if (guide) {
+    const onGuide = moveObject(plan, id, stage.shelfBelowId, guide.pos, null)
+    if (onGuide.ok) {
+      const placed = onGuide.plan.placedObjects!.find((p) => `obj:${p.id}` === onGuide.id)!
+      // Repère occupé (cale, autre objet) : l'objet a été repoussé ailleurs, on garde l'aimantation normale.
+      if (placed.x === guide.pos) return { plan: onGuide.plan, id: onGuide.id, shelfBelowId: stage.shelfBelowId, x: placed.x, guide }
+    }
+  }
+
   const result = moveObject(plan, id, stage.shelfBelowId, rawX, step)
   if (!result.ok) return null
   const placed = result.plan.placedObjects!.find((p) => `obj:${p.id}` === result.id)!
-  return { plan: result.plan, id: result.id, shelfBelowId: stage.shelfBelowId, x: placed.x }
+  return { plan: result.plan, id: result.id, shelfBelowId: stage.shelfBelowId, x: placed.x, guide: null }
 }
 
 /** Plan avec le cadre amené vers la largeur et/ou la hauteur demandées (mm, non arrondis). */

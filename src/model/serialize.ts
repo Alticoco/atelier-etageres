@@ -1,7 +1,7 @@
 import { checkPlan } from './edit'
-import { MAX_GAP, MAX_PLACED, MAX_ROW_COUNT, objectKind } from './objects'
+import { MAX_CUSTOM_KINDS, MAX_CUSTOM_LABEL, MAX_CUSTOM_MM, MAX_GAP, MAX_PLACED, MAX_ROW_COUNT, MAX_STACK, OBJECT_ORIENTATIONS, objectKind } from './objects'
 import { isColor } from './colors'
-import type { Joint, ObjectRow, PlacedObject, Plan, PlanColors, StageFront, Support } from './types'
+import type { CustomObjectKind, Joint, ObjectOrientation, ObjectRow, PlacedObject, Plan, PlanColors, StageFront, Support } from './types'
 
 /**
  * Format de fichier d'un plan (`.etagere.json`) : { format, version, plan }.
@@ -19,6 +19,8 @@ const MAX_SHELVES = 200
 const MAX_WEDGES = 1000
 const MAX_MM = 100_000
 const RESERVED_IDS = ['upright-left', 'upright-right']
+/** Identifiant d'un objet sur mesure (exclut aussi `__proto__` et autres noms piégés). */
+const CUSTOM_ID = /^custom-\d+$/
 
 class ParseError extends Error {}
 
@@ -126,24 +128,82 @@ function readPlan(value: unknown): Plan {
     }
   })
 
+  // Objets sur mesure : lus avant les rangées, pour que les rangées qui s'en servent les trouvent.
+  const kindIds = new Set<string>()
+  const customKinds: CustomObjectKind[] = root.customKinds === undefined ? [] : list(root, 'customKinds', 'Plan', MAX_CUSTOM_KINDS).map((item, i) => {
+    const where = `Objet sur mesure ${i + 1}`
+    const obj = record(item, where)
+    const id = text(obj, 'id', where, MAX_ID)
+    if (!CUSTOM_ID.test(id) || kindIds.has(id)) fail(`${where} : l'identifiant « ${id} » est invalide ou en double.`)
+    kindIds.add(id)
+    const label = text(obj, 'label', where, MAX_NAME).trim()
+    if (label === '' || label.length > MAX_CUSTOM_LABEL) fail(`${where} : « label » doit compter de 1 à ${MAX_CUSTOM_LABEL} caractères.`)
+    const size = (key: string) => {
+      const value = int(obj, key, where, 1)
+      if (value > MAX_CUSTOM_MM) fail(`${where} : « ${key} » est hors limites (1 à ${MAX_CUSTOM_MM} mm).`)
+      return value
+    }
+    const shape = obj.shape === undefined ? 'box' : obj.shape
+    if (shape !== 'box' && shape !== 'cylinder') fail(`${where} : « shape » doit valoir « box » ou « cylinder ».`)
+    const color = obj.color
+    if (color !== undefined && !isColor(color)) fail(`${where} : « color » doit être une couleur #rrggbb.`)
+    return {
+      id,
+      label,
+      width: size('width'),
+      height: size('height'),
+      depth: size('depth'),
+      shape,
+      ...(color !== undefined ? { color: color.toLowerCase() } : {}),
+    }
+  })
+  const knownKind = (kind: string) => kindIds.has(kind) || objectKind(kind) !== undefined
+
+  /** Sens et pile facultatifs d'une rangée ou d'un objet posé (absents = debout, sans pile). */
+  const layout = (obj: Record<string, unknown>, where: string): { orientation?: ObjectOrientation; stack?: number } => {
+    const orientation = obj.orientation
+    if (orientation !== undefined && !OBJECT_ORIENTATIONS.includes(orientation as ObjectOrientation)) {
+      fail(`${where} : « orientation » doit valoir « standing », « lying » ou « facing ».`)
+    }
+    const stack = optionalInt(obj, 'stack', where, 1, 1)
+    if (stack > MAX_STACK) fail(`${where} : pile trop haute (${MAX_STACK} objets au plus).`)
+    return {
+      ...(orientation !== undefined && orientation !== 'standing' ? { orientation: orientation as ObjectOrientation } : {}),
+      ...(stack > 1 ? { stack } : {}),
+    }
+  }
+
   const rows: ObjectRow[] = root.rows === undefined ? [] : list(root, 'rows', 'Plan', 200).map((item, i) => {
     const where = `Rangée d’objets ${i + 1}`
     const obj = record(item, where)
     const kind = text(obj, 'kind', where, MAX_ID)
-    if (!objectKind(kind)) fail(`${where} : type d’objet inconnu.`)
+    if (!knownKind(kind)) fail(`${where} : type d’objet inconnu.`)
     const count = int(obj, 'count', where, 1)
     if (count > MAX_ROW_COUNT) fail(`${where} : trop d’objets.`)
     const gap = optionalInt(obj, 'gap', where, 0, 0)
     if (gap > MAX_GAP) fail(`${where} : espace trop grand.`)
-    return { id: uniqueId(text(obj, 'id', where, MAX_ID), where), shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), kind, count, ...(gap > 0 ? { gap } : {}) }
+    return {
+      id: uniqueId(text(obj, 'id', where, MAX_ID), where),
+      shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID),
+      kind,
+      count,
+      ...(gap > 0 ? { gap } : {}),
+      ...layout(obj, where),
+    }
   })
 
   const placedObjects: PlacedObject[] = root.placedObjects === undefined ? [] : list(root, 'placedObjects', 'Plan', MAX_PLACED).map((item, i) => {
     const where = `Objet posé ${i + 1}`
     const obj = record(item, where)
     const kind = text(obj, 'kind', where, MAX_ID)
-    if (!objectKind(kind)) fail(`${where} : type d’objet inconnu.`)
-    return { id: uniqueId(text(obj, 'id', where, MAX_ID), where), shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID), kind, x: int(obj, 'x', where, 0) }
+    if (!knownKind(kind)) fail(`${where} : type d’objet inconnu.`)
+    return {
+      id: uniqueId(text(obj, 'id', where, MAX_ID), where),
+      shelfBelowId: text(obj, 'shelfBelowId', where, MAX_ID),
+      kind,
+      x: int(obj, 'x', where, 0),
+      ...layout(obj, where),
+    }
   })
 
   const supports: Support[] = root.supports === undefined ? [] : list(root, 'supports', 'Plan', 100).map((item, i) => {
@@ -214,6 +274,8 @@ function readPlan(value: unknown): Plan {
   const model = root.model === undefined ? 'frame' : root.model
   if (model !== 'frame' && model !== 'frameless') fail('Plan : « model » doit valoir « frame » ou « frameless ».')
 
+  const stockLengths = readStockLengths(options.stockLengths)
+
   const plan: Plan = {
     model,
     name: text(root, 'name', 'Plan', MAX_NAME).trim() || 'Étagère',
@@ -223,6 +285,7 @@ function readPlan(value: unknown): Plan {
     rightUpright: upright(root.rightUpright, 'Montant droit'),
     shelves,
     wedges,
+    ...(customKinds.length > 0 ? { customKinds } : {}),
     ...(rows.length > 0 ? { rows } : {}),
     ...(placedObjects.length > 0 ? { placedObjects } : {}),
     ...(supports.length > 0 ? { supports } : {}),
@@ -237,12 +300,31 @@ function readPlan(value: unknown): Plan {
       wedgeClearance: int(options, 'wedgeClearance', 'Options', 0),
       sawKerfEnabled: bool(options, 'sawKerfEnabled', 'Options'),
       sawKerf: int(options, 'sawKerf', 'Options', 0),
+      ...(stockLengths ? { stockLengths } : {}),
     },
   }
 
   const [problem] = checkPlan(plan)
   if (problem) fail(`Plan incohérent : ${problem}`)
   return plan
+}
+
+/** Longueurs de planches par section : clés « largeurxépaisseur », entiers de 100 à 6000 mm, 50 clés au plus. */
+function readStockLengths(value: unknown): Record<string, number> | undefined {
+  if (value === undefined) return undefined
+  const obj = record(value, 'Longueurs de planches')
+  const keys = Object.keys(obj)
+  if (keys.length > 50) fail('Longueurs de planches : 50 sections au plus.')
+  const out: Record<string, number> = {}
+  for (const key of keys) {
+    if (!/^\d+x\d+$/.test(key)) fail(`Longueurs de planches : la clé « ${key} » doit avoir la forme « largeurxépaisseur ».`)
+    const mm = obj[key]
+    if (typeof mm !== 'number' || !Number.isInteger(mm) || mm < 100 || mm > 6000) {
+      fail(`Longueurs de planches : « ${key} » doit être un nombre entier de mm entre 100 et 6000.`)
+    }
+    out[key] = mm
+  }
+  return keys.length > 0 ? out : undefined
 }
 
 /** Valide un plan lu depuis l'extérieur (fichier, base de données) : structure, types, puis cohérence. */

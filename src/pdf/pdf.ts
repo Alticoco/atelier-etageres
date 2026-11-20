@@ -55,6 +55,8 @@ export interface PdfOptions {
   date?: Date
   /** Dessiner les supports en tireté avec leur liste (vrai par défaut). */
   supports?: boolean
+  /** Dessiner les objets rangés en contour gris et les résumer sous la liste de découpe (faux par défaut). */
+  objects?: boolean
 }
 
 /** Remplace par « ? » les caractères que la police standard ne sait pas écrire (émojis, idéogrammes…). */
@@ -155,8 +157,8 @@ function draw(page: PDFPage, primitive: Primitive, height: number, fonts: { regu
  * Plan d'architecte en PDF (A4 paysage, dessin vectoriel) avec le plan éditable joint au fichier
  * (`plan.etagere.json`) : le PDF peut être ré-importé dans l'application.
  */
-export async function buildPlanPdf(plan: Plan, { unit = 'cm', date = new Date(), supports = true }: PdfOptions = {}): Promise<Uint8Array> {
-  const scene = buildScene(plan, { unit, date, supports })
+export async function buildPlanPdf(plan: Plan, { unit = 'cm', date = new Date(), supports = true, objects = false }: PdfOptions = {}): Promise<Uint8Array> {
+  const scene = buildScene(plan, { unit, date, supports, objects })
 
   const doc = await PDFDocument.create()
   doc.setTitle(`${plan.name} — plan d’étagère`)
