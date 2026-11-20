@@ -94,6 +94,17 @@ export function parseStack(text: string): number | null {
   return n >= 1 && n <= MAX_STACK ? n : null
 }
 
+/** Message affiché quand le nombre d'objets n'est pas un entier. */
+export const COUNT_ERROR = 'Entrez un nombre entier'
+
+/** Lit le nombre d'objets d'une rangée : champ vide = remplir l'étage (`count: undefined`), sinon un entier ≥ 1, ou `null`. */
+export function parseCount(text: string): { count: number | undefined } | null {
+  if (text.trim() === '') return { count: undefined }
+  if (!/^\s*\d+\s*$/.test(text)) return null
+  const n = Number(text)
+  return n >= 1 ? { count: n } : null
+}
+
 /** Plus haute pile et plus grande profondeur des objets d'un étage (rangées et objets seuls), dans leur sens. */
 export function stageObjectsNeeds(plan: Plan, shelfBelowId: string): { height: number; depth: number } | null {
   let height = 0

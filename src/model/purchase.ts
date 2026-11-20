@@ -176,7 +176,10 @@ export function setStockLength(plan: Plan, key: string, mm: number): EditResult 
   if (!Number.isInteger(mm) || mm < MIN_STOCK_LENGTH || mm > MAX_STOCK_LENGTH) {
     return fail(`La longueur des planches doit être un nombre entier de mm entre ${MIN_STOCK_LENGTH} et ${MAX_STOCK_LENGTH}.`)
   }
-  const current = plan.options.stockLengths ?? {}
+  // Seules comptent pour la limite les sections qui existent encore dans le plan (plus la section réglée ici).
+  const present = new Set(purchaseSummary(plan).map((row) => row.key))
+  const current: Record<string, number> = {}
+  for (const [k, v] of Object.entries(plan.options.stockLengths ?? {})) if (present.has(k) || k === key) current[k] = v
   if (!(key in current) && Object.keys(current).length >= MAX_STOCK_KEYS) {
     return fail(`Pas plus de ${MAX_STOCK_KEYS} sections réglées.`)
   }

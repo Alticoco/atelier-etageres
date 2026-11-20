@@ -366,3 +366,14 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Repères des objets posés seuls** : milieu de l'étage, même bord gauche qu'une cale ou qu'un objet **posé seul** d'un autre étage (trait sur toute la hauteur, passant par le bord gauche). Les objets des rangées ne servent pas de repère (un tous les 1 à 3 cm). Calculés dans `dragObjectToStage` puis posés par `moveObject(…, step null)` sans modifier `objects.ts` ; un repère occupé (cale, autre objet) est ignoré et l'aimant habituel s'applique.
 - **Aimant entre supports** (reste de l'étape 18b) : à 10 mm près, en x, y et z : bords alignés (début ou fin communs) et collés de chaque côté (côte à côte, l'un sous l'autre). Invisible comme les aimants contre les bords ; les repères (milieu, tiers…) gardent la priorité.
 - **Valeur tapée pendant le glisser** : taper des chiffres (virgule ou point) ouvre un petit champ près du curseur ; Entrée place la pièce pour que la cote principale (distance à gauche ; hauteur libre du dessous pour une tablette) vaille la valeur, dans l'unité choisie, et termine le geste (un pas d'historique) ; la position est ensuite limitée à ce que le plan permet. Retour arrière efface un chiffre ; **Échap ferme le champ sans annuler le glisser** (la pièce suit toujours la souris). Les touches sont prises en phase de capture pendant le glisser, pour ne pas changer de vue avec les chiffres.
+
+## 2026-11-20 (corrections après relecture)
+
+- Coller un objet sur mesure : le presse-papiers emporte sa définition ; au collage on retrouve un type identique (nom, dimensions, forme) ou on le crée, au lieu de se fier à l'identifiant `custom-N`.
+- `nudgePieces` en sélection multiple : refus de tout le mouvement si une pièce ne peut pas avancer du pas complet (les écarts ne changent plus).
+- Nombre d'objets d'une rangée : validé avant l'action (`parseCount`), message « Entrez un nombre entier » au lieu de « pas de place ».
+- Arrondi des cylindres : une seule fonction `objectCornerRadius` (face et PDF) ; debout/de face min/6, couché min/2.
+- Achat : la limite de 50 sections réglées ne compte plus les sections qui n'existent plus dans le plan (retirées au réglage suivant).
+- Couleurs propres : purgées pour les pièces supprimées (`removePieces`) ou remplacées (`distributeWedges`).
+- Ctrl+C ne bloque plus la copie native quand du texte est surligné (`textSelected` dans `KeyContext`).
+- Motif hachuré des planches d'achat : identifiant unique par barre (`useId`) ; vue 3D : cache des textures de nom, libéré au démontage.

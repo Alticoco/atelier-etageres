@@ -77,8 +77,9 @@ function disposeGroup(group: Group) {
     geometry?.dispose()
     const material: Material | Material[] | undefined = item.material
     const disposeMaterial = (m: Material) => {
-      // Les textures (noms écrits sur les objets) ne sont pas libérées avec le matériau.
-      ;(m as MeshBasicMaterial).map?.dispose()
+      // Les textures de nom ne sont pas libérées avec le matériau ; celles du cache (`userData.shared`) le sont au démontage.
+      const map = (m as MeshBasicMaterial).map
+      if (map && !map.userData.shared) map.dispose()
       m.dispose()
     }
     if (Array.isArray(material)) material.forEach(disposeMaterial)
@@ -111,7 +112,23 @@ function labelTexture(text: string, aspect: number, textColor: string): CanvasTe
   return new CanvasTexture(canvas)
 }
 
-function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selected: boolean }) {
+/** Textures de nom déjà créées, par (texte, couleur, largeur et hauteur arrondies) : évite de recréer des canvas à chaque redessin. */
+type LabelCache = Map<string, CanvasTexture>
+
+function cachedLabelTexture(cache: LabelCache, text: string, width: number, height: number, textColor: string): CanvasTexture {
+  const w = Math.max(1, Math.round(width))
+  const h = Math.max(1, Math.round(height))
+  const key = `${text}|${textColor}|${w}|${h}`
+  let texture = cache.get(key)
+  if (!texture) {
+    texture = labelTexture(text, w / h, textColor)
+    texture.userData.shared = true
+    cache.set(key, texture)
+  }
+  return texture
+}
+
+function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selected: boolean; labels: LabelCache }) {
   const isWall = box.kind === 'wall'
   const color = box.kind === 'object' ? (box.color ?? OBJECT_COLORS[box.objectKind ?? ''] ?? '#7fa6c9') : (box.color ?? KIND_COLORS[box.kind])
   const transparentWall = isWall && options.wallMode === 'transparent'
@@ -145,7 +162,7 @@ function addBox(group: Group, box: Box3D, options: { wallMode: WallMode; selecte
 
   // Objet sur mesure : son nom sur la face avant, si elle est assez grande pour être lue.
   if (showsLabel(box)) {
-    const texture = labelTexture(box.label!, box.sx / box.sy, labelTextColor(color))
+    const texture = cachedLabelTexture(options.labels, box.label!, box.sx, box.sy, labelTextColor(color))
     const plane = new Mesh(
       new PlaneGeometry(box.sx, box.sy),
       new MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, toneMapped: false }),
@@ -181,6 +198,7 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Stage3D | null>(null)
   const fittedRef = useRef(false)
+  const labelsRef = useRef<LabelCache>(new Map())
   const [wallMode, setWallMode] = useState<WallMode>('solid')
   const [showObjects, setShowObjects] = useState(true)
   const [showSupports, setShowSupports] = useState(true)
@@ -250,6 +268,15 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
     }
   }, [webgl])
 
+  // Libère le cache des textures de nom au démontage.
+  useEffect(() => {
+    const labels = labelsRef.current
+    return () => {
+      for (const texture of labels.values()) texture.dispose()
+      labels.clear()
+    }
+  }, [])
+
   // Le dessin suit le plan et les options ; la caméra n'est cadrée qu'à la première fois (ou sur demande).
   const scene3d = useMemo(() => buildScene3D(plan, { objects: showObjects, supports: showSupports }), [plan, showObjects, showSupports])
   const selected = selection.join('|')
@@ -258,8 +285,8 @@ export default function ThreeView({ plan, unit = 'cm', selection = [] }: ThreeVi
     if (!stage) return
     const ids = new Set(selected === '' ? [] : selected.split('|'))
     disposeGroup(stage.group)
-    for (const box of scene3d.boxes) addBox(stage.group, box, { wallMode, selected: ids.has(box.id) })
-    if (wallMode !== 'hidden') addBox(stage.group, scene3d.wall, { wallMode, selected: false })
+    for (const box of scene3d.boxes) addBox(stage.group, box, { wallMode, selected: ids.has(box.id), labels: labelsRef.current })
+    if (wallMode !== 'hidden') addBox(stage.group, scene3d.wall, { wallMode, selected: false, labels: labelsRef.current })
     if (!fittedRef.current) {
       fitCamera(stage, scene3d)
       fittedRef.current = true

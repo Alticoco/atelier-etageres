@@ -10,7 +10,7 @@ const key = (k: string, mods: Partial<KeyInfo> = {}): KeyInfo => ({
   ...mods,
 })
 
-const idle: KeyContext = { textEntry: false, select: false, hasSelection: false }
+const idle: KeyContext = { textEntry: false, select: false, hasSelection: false, textSelected: false }
 const selected: KeyContext = { ...idle, hasSelection: true }
 const typing: KeyContext = { ...idle, textEntry: true, hasSelection: true }
 
@@ -107,6 +107,8 @@ describe('vues, aide et enregistrement', () => {
 
   it('Ctrl+C, Ctrl+V, Ctrl+D : copier, coller, dupliquer (pas dans un champ texte)', () => {
     expect(commandForKey(key('c', { ctrlKey: true }), selected)).toEqual({ type: 'copy' })
+    // Du texte surligné : la copie native du navigateur garde la main.
+    expect(commandForKey(key('c', { ctrlKey: true }), { ...selected, textSelected: true })).toBeNull()
     expect(commandForKey(key('c', { ctrlKey: true }), idle)).toBeNull()
     expect(commandForKey(key('v', { ctrlKey: true }), idle)).toEqual({ type: 'paste' })
     expect(commandForKey(key('d', { metaKey: true }), selected)).toEqual({ type: 'duplicate' })

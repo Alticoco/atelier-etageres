@@ -1,7 +1,7 @@
 import { computeCutList, describeJoinery, roundingCode } from '../model/cutlist'
 import { frontRects } from '../model/fronts'
 import { computeFrontRects } from '../model/layout'
-import { layoutStage, resolveKind } from '../model/objects'
+import { layoutStage, objectCornerRadius, resolveKind } from '../model/objects'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
 import { supportFrontRect, supportOverflow, supportProfileRect } from '../model/supports'
@@ -291,7 +291,7 @@ export function buildScene(
       rect(fx(o.x), fy(o.y + o.height), o.width / d, o.height / d, {
         strokeWidth: 0.12,
         stroke: HIDDEN_GRAY,
-        radius: o.shape === 'cylinder' ? Math.min(o.width, o.height) / 3 / d : undefined,
+        radius: objectCornerRadius(o) > 0 ? objectCornerRadius(o) / d : undefined,
       })
     }
   }

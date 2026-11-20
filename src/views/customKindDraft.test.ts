@@ -10,6 +10,7 @@ import {
   draftFromKind,
   draftToInput,
   formatDims,
+  parseCount,
   parseStack,
   removeKindMessage,
   stageObjectsNeeds,
@@ -27,6 +28,17 @@ function withTea(): { plan: Plan; id: string; stage: string } {
   if (!row.ok) throw new Error(row.error)
   return { plan: row.plan, id: created.id, stage }
 }
+
+describe('parseCount', () => {
+  it('champ vide = remplir, sinon un entier d’au moins 1', () => {
+    expect(parseCount('')).toEqual({ count: undefined })
+    expect(parseCount('  ')).toEqual({ count: undefined })
+    expect(parseCount(' 12 ')).toEqual({ count: 12 })
+  })
+  it('refuse le texte, 0, les décimaux et les négatifs', () => {
+    for (const text of ['abc', '0', '2,5', '-1', '1e3']) expect(parseCount(text)).toBeNull()
+  })
+})
 
 describe('parseStack', () => {
   it('lit un entier de 1 à 50, un champ vide vaut 1', () => {

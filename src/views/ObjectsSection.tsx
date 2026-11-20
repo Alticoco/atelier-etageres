@@ -17,7 +17,7 @@ import { getStages } from '../model/pieces'
 import type { ObjectOrientation, Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
 import { CustomKindsSection } from './CustomKindsSection'
-import { ORIENTATION_CHOICES, formatDims, parseStack, stageObjectsNeeds } from './customKindDraft'
+import { COUNT_ERROR, ORIENTATION_CHOICES, formatDims, parseCount, parseStack, stageObjectsNeeds } from './customKindDraft'
 import { LengthField } from './LengthField'
 import { PanelSection } from './PanelSection'
 import type { ObjectsForm } from './objectsForm'
@@ -156,9 +156,10 @@ export function ObjectsSection({ plan, form, onForm, selection = [], unit, dispa
   const add = () => {
     if (!stageId) return
     if (stackN === null) return setAddError(`« Par pile » : un nombre entier de 1 à ${MAX_STACK}.`)
-    const n = countText.trim() === '' ? undefined : Number(countText.replace(',', '.'))
+    const parsed = parseCount(countText)
+    if (parsed === null) return setAddError(COUNT_ERROR)
     setAddError(null)
-    dispatch({ type: 'addObjectRow', shelfBelowId: stageId, kind: kindId, count: n, gap: gapMm, orientation: form.orientation, stack: stackN })
+    dispatch({ type: 'addObjectRow', shelfBelowId: stageId, kind: kindId, count: parsed.count, gap: gapMm, orientation: form.orientation, stack: stackN })
     onForm({ ...form, count: '' })
   }
 

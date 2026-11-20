@@ -6,6 +6,7 @@ import {
   layoutStage,
   MAX_CUSTOM_KINDS,
   moveObject,
+  objectCornerRadius,
   objectIdExists,
   objectLabel,
   objectsDepthNeeded,
@@ -447,5 +448,19 @@ describe('pluralLabel', () => {
     expect(pluralLabel('Pot')).toBe('pots')
     expect(pluralLabel('Jeux de société')).toBe('jeux de société')
     expect(pluralLabel('Gâteau')).toBe('gâteaux')
+  })
+})
+
+describe('objectCornerRadius', () => {
+  it('boîte : coins droits', () => {
+    expect(objectCornerRadius({ shape: 'box', orientation: 'standing', width: 90, height: 180 })).toBe(0)
+  })
+  it('cylindre debout ou de face : léger arrondi (un sixième du plus petit côté)', () => {
+    expect(objectCornerRadius({ shape: 'cylinder', orientation: 'standing', width: 55, height: 100 })).toBe(9)
+    expect(objectCornerRadius({ shape: 'cylinder', orientation: 'facing', width: 60, height: 120 })).toBe(10)
+  })
+  it('cylindre couché : disque (largeur = hauteur) ou gélule, la moitié du plus petit côté', () => {
+    expect(objectCornerRadius({ shape: 'cylinder', orientation: 'lying', width: 60, height: 60 })).toBe(30)
+    expect(objectCornerRadius({ shape: 'cylinder', orientation: 'lying', width: 100, height: 40 })).toBe(20)
   })
 })

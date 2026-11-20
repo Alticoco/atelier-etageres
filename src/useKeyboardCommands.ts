@@ -20,6 +20,7 @@ export function useKeyboardCommands(active: boolean, hasSelection: boolean, exec
         textEntry: isTextEntry(target),
         select: target.tagName === 'SELECT',
         hasSelection,
+        textSelected: (window.getSelection()?.toString() ?? '') !== '',
       })
       if (!command) return
       e.preventDefault()

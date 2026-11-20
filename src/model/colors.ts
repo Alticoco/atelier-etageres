@@ -88,6 +88,17 @@ function tidy(next: Plan): void {
   if (Object.keys(colors).length === 0) delete next.colors
 }
 
+/**
+ * Retire (en place, sur une copie) les couleurs propres aux pièces `ids` qui viennent d'être supprimées ou remplacées :
+ * sans cela, une nouvelle pièce qui reprend le même numéro hériterait de leur couleur.
+ */
+export function dropPieceColors(next: Plan, ids: string[]): void {
+  const pieces = next.colors?.pieces
+  if (!pieces) return
+  for (const id of ids) delete pieces[id]
+  tidy(next)
+}
+
 /** Couleur d'une catégorie entière (`null` = couleur par défaut). Les couleurs propres à une pièce restent. */
 export function setCategoryColor(plan: Plan, category: ColorCategory, color: string | null): EditResult {
   if (color !== null && !isColor(color)) return fail('Couleur invalide.')

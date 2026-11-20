@@ -1,12 +1,13 @@
+import { dropPieceColors } from './colors'
 import { finish, setPieceProperty } from './edit'
 import { evenSlots } from './guides'
 import { innerSpan } from './geometry'
 import { nudgePiece } from './drag'
-import { isObjectId, layoutStage, MAX_PLACED, moveObject, objectIdExists, resolveKind } from './objects'
+import { addCustomKind, isObjectId, layoutStage, MAX_PLACED, moveObject, objectIdExists, resolveKind } from './objects'
 import { getStages, sortedShelves } from './pieces'
 import { duplicateSupport, moveSupport } from './supports'
 import { moveWedge } from './tools'
-import type { PlacedObject, Plan, Support, Wedge } from './types'
+import type { CustomObjectKind, PlacedObject, Plan, Support, Wedge } from './types'
 
 /**
  * Copier, coller, dupliquer, symétrie, répartition et déplacement de plusieurs pièces à la fois.
@@ -26,7 +27,14 @@ export const MAX_DISTRIBUTE = 50
 /** Un élément du presse-papiers, avec l'étage d'origine (identifiant de la tablette du dessous + rang de l'étage). */
 export type ClipItem =
   | { type: 'wedge'; shelfBelowId: string; stageIndex: number; wedge: Omit<Wedge, 'id' | 'shelfBelowId'> }
-  | { type: 'object'; shelfBelowId: string; stageIndex: number; object: Omit<PlacedObject, 'id' | 'shelfBelowId'> }
+  | {
+      type: 'object'
+      shelfBelowId: string
+      stageIndex: number
+      object: Omit<PlacedObject, 'id' | 'shelfBelowId'>
+      /** Définition de l'objet sur mesure copié (son identifiant n'a de sens que dans le plan d'origine). */
+      customKind?: Omit<CustomObjectKind, 'id'>
+    }
   | { type: 'support'; support: Omit<Support, 'id'> }
 
 /** Contenu du presse-papiers interne de l'application (indépendant du presse-papiers du système). */
@@ -213,7 +221,24 @@ export function copyPieces(plan: Plan, ids: string[]): { ok: true; clipboard: Cl
       items.push({ type: 'support', support: rest as Omit<Support, 'id'> })
     } else if (isObjectId(id)) {
       const info = objects.get(id)
-      if (info) items.push({ type: 'object', shelfBelowId: info.shelfBelowId, stageIndex: stageIndex(info.shelfBelowId), object: { ...info.rest, x: info.x } })
+      if (info) {
+        const custom = plan.customKinds?.find((k) => k.id === info.rest.kind)
+        const customKind: Omit<CustomObjectKind, 'id'> | undefined = custom && {
+          label: custom.label,
+          width: custom.width,
+          height: custom.height,
+          depth: custom.depth,
+          shape: custom.shape,
+          ...(custom.color !== undefined ? { color: custom.color } : {}),
+        }
+        items.push({
+          type: 'object',
+          shelfBelowId: info.shelfBelowId,
+          stageIndex: stageIndex(info.shelfBelowId),
+          object: { ...info.rest, x: info.x },
+          ...(customKind ? { customKind } : {}),
+        })
+      }
     }
   }
   if (items.length === 0) return fail('Rien à copier : seuls les cales, les supports et les objets se copient.')
@@ -263,8 +288,22 @@ export function pastePieces(plan: Plan, clipboard: Clipboard, targetStageId: str
     } else if (item.type === 'object') {
       const stageId = stageFor(item)
       if (!stageId) return fail(noStage)
-      if (!resolveKind(next, item.object.kind)) return fail('Ce type d’objet n’existe pas dans cette étagère : impossible de le coller.')
-      const placed = placeObject(next, { shelfBelowId: stageId, x: item.object.x, width: 0, rest: item.object }, stageId, item.object.x)
+      let rest = item.object
+      if (item.customKind) {
+        // Objet sur mesure : on le cherche dans ce plan par sa définition (pas par son identifiant), sinon on le crée.
+        const d = item.customKind
+        let kindId = next.customKinds?.find((k) => k.label === d.label && k.width === d.width && k.height === d.height && k.depth === d.depth && k.shape === d.shape)?.id
+        if (!kindId) {
+          const created = addCustomKind(next, d)
+          if (!created.ok) return fail(created.error)
+          next = created.plan
+          kindId = created.id
+        }
+        rest = { ...item.object, kind: kindId }
+      } else if (!resolveKind(next, item.object.kind)) {
+        return fail('Ce type d’objet n’existe pas dans cette étagère : impossible de le coller.')
+      }
+      const placed = placeObject(next, { shelfBelowId: stageId, x: rest.x, width: 0, rest }, stageId, rest.x)
       if (!placed.ok) return placed
       next = placed.plan
       created.push(...placed.ids)
@@ -306,6 +345,7 @@ export function distributeWedges(plan: Plan, shelfBelowId: string, count: number
   if (count * thickness > span.right - span.left) return fail(`Il n’y a pas assez de place pour ${count} cales dans cet étage.`)
 
   const next = structuredClone(plan)
+  dropPieceColors(next, next.wedges.filter((w) => w.shelfBelowId === shelfBelowId).map((w) => w.id))
   next.wedges = next.wedges.filter((w) => w.shelfBelowId !== shelfBelowId)
   const positions = evenSlots(span.left, span.right, Array<number>(count).fill(thickness))
   const created: string[] = []
@@ -351,6 +391,11 @@ export function nudgePieces(plan: Plan, ids: string[], dx: -1 | 0 | 1, dy: -1 | 
     }
     const move = nudgePiece(next, id, dx, dy, step)
     if (!move) return fail(blocked)
+    // En sélection multiple, une pièce qui n'avance que d'une partie du pas changerait les écarts : tout est refusé.
+    if (movers.length > 1) {
+      const before = move.property === 'x' ? next.wedges.find((w) => w.id === id)?.x : next.shelves.find((s) => s.id === id)?.y
+      if (before === undefined || Math.abs(move.mm - before) !== step) return fail(blocked)
+    }
     const result = setPieceProperty(next, [id], move.property, move.mm)
     if (!result.ok) return fail(result.error)
     next = result.plan

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { copyPieces, distributeWedges, duplicatePieces, mirrorPiece, mirrorPieces, nudgePieces, pastePieces, stageOfSelection } from './clipboard'
 import { innerSpan } from './geometry'
-import { addObjectRow, layoutStage, moveObject } from './objects'
+import { addCustomKind, addObjectRow, layoutStage, moveObject, removeCustomKind, resolveKind } from './objects'
+import { colorOf, setPieceColors } from './colors'
 import { createPlan } from './plan'
 import { getStages } from './pieces'
 import { addSupport } from './supports'
@@ -210,13 +211,52 @@ describe('copyPieces / pastePieces', () => {
     if (!refused.ok) expect(refused.error).toContain('étage')
   })
 
-  it('objet d’un type sur mesure absent du plan visé : refus', () => {
+  it('objet d’un type sur mesure absent du plan visé : le type est créé dans ce plan', () => {
     const plan = base()
     plan.customKinds = [{ id: 'custom-1', label: 'Boîte', shape: 'box', width: 50, height: 50, depth: 50 }]
     plan.placedObjects = [{ id: 'placed-1', shelfBelowId: 'shelf-1', kind: 'custom-1', x: 100 }]
     const clip = ok(copyPieces(plan, ['obj:placed-1'])).clipboard
-    expect(pastePieces(base(), clip).ok).toBe(false)
+    expect(ok(pastePieces(base(), clip)).plan.customKinds).toHaveLength(1)
     expect(pastePieces(plan, clip).ok).toBe(true)
+  })
+
+  /** Plan avec un objet sur mesure posé seul à l'étage 1 ; renvoie aussi l'identifiant de sélection de l'objet. */
+  function withCustomObject(plan: Plan, label: string, width: number): { plan: Plan; kindId: string; objectId: string } {
+    const kind = ok(addCustomKind(plan, { label, width, height: 80, depth: 60 }))
+    const next = structuredClone(kind.plan)
+    next.placedObjects = [...(next.placedObjects ?? []), { id: 'placed-1', shelfBelowId: 'shelf-1', kind: kind.id, x: 100 }]
+    return { plan: next, kindId: kind.id, objectId: 'obj:placed-1' }
+  }
+
+  it('objet sur mesure : l’identifiant repris par un autre objet ne change pas ce qu’on colle', () => {
+    const filler = ok(addCustomKind(base(), { label: 'Autre', width: 10, height: 10, depth: 10 }))
+    const tea = withCustomObject(filler.plan, 'Boîte à thé', 90)
+    expect(tea.kindId).toBe('custom-2')
+    const clip = ok(copyPieces(tea.plan, [tea.objectId])).clipboard
+    // On supprime la boîte à thé (et l'objet posé), puis « Pot » reprend le même identifiant.
+    const removed = ok(removeCustomKind(tea.plan, tea.kindId))
+    const pot = ok(addCustomKind(removed.plan, { label: 'Pot', width: 50, height: 50, depth: 50, shape: 'cylinder' }))
+    expect(pot.id).toBe(tea.kindId)
+    const r = ok(pastePieces(pot.plan, clip))
+    const pasted = r.plan.placedObjects!.find((p) => `obj:${p.id}` === r.ids[0])!
+    expect(pasted.kind).not.toBe(pot.id)
+    expect(resolveKind(r.plan, pasted.kind)).toMatchObject({ label: 'Boîte à thé', width: 90, height: 80, depth: 60 })
+  })
+
+  it('objet sur mesure : copié d’un onglet à l’autre, il garde sa définition (et réutilise un type identique)', () => {
+    const a = withCustomObject(base(), 'Boîte', 90)
+    const clip = ok(copyPieces(a.plan, [a.objectId])).clipboard
+    const b = ok(addCustomKind(base(), { label: 'Vase', width: 40, height: 120, depth: 40, shape: 'cylinder' }))
+    expect(b.id).toBe(a.kindId)
+    const r = ok(pastePieces(b.plan, clip))
+    const pasted = r.plan.placedObjects!.find((p) => `obj:${p.id}` === r.ids[0])!
+    expect(resolveKind(r.plan, pasted.kind)?.label).toBe('Boîte')
+    expect(r.plan.customKinds).toHaveLength(2)
+    // Coller une seconde fois dans ce plan réutilise la boîte créée.
+    const again = ok(pastePieces(r.plan, clip))
+    expect(again.plan.customKinds).toHaveLength(2)
+    // Dans le plan d'origine, le type identique est retrouvé : rien n'est créé.
+    expect(ok(pastePieces(a.plan, clip)).plan.customKinds).toHaveLength(1)
   })
 
   it('presse-papiers vide : refus', () => {
@@ -269,6 +309,18 @@ describe('nudgePieces', () => {
     if (!r.ok) expect(r.error).toContain('bloquée')
   })
 
+  it('sélection multiple : une pièce qui n’avancerait que d’une partie du pas bloque tout', () => {
+    const span = innerSpan(base())
+    const t = base().options.defaultWedgeThickness
+    const left = withWedgeAt(100)
+    const right = addWedgeAt(left.plan, span.right - t - 4)
+    const r = nudgePieces(right.plan, [left.id, right.id], 1, 0, 10)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toContain('bloquée')
+    // Une pièce seule garde le comportement actuel : elle va jusqu'au montant.
+    expect(ok(nudgePieces(right.plan, [right.id], 1, 0, 10)).plan.wedges.find((w) => w.id === right.id)!.x).toBe(span.right - t)
+  })
+
   it('tablettes en y, supports en x ; pièces non concernées ignorées', () => {
     const plan = base()
     const y = plan.shelves.find((s) => s.id === 'shelf-2')!.y
@@ -279,6 +331,29 @@ describe('nudgePieces', () => {
     const x0 = sup.plan.supports![0].x
     expect(ok(nudgePieces(sup.plan, [sup.id], 1, 0, 10)).plan.supports![0].x).toBe(x0 + 10)
     expect(ok(nudgePieces(plan, ['shelf-2'], 1, 0, 10)).plan).toBe(plan)
+  })
+})
+
+describe('couleurs propres des pièces supprimées', () => {
+  const colored = () => {
+    const first = withWedgeAt(100)
+    const r = ok(setPieceColors(first.plan, [first.id], '#ff0000'))
+    return { plan: r.plan, id: first.id }
+  }
+
+  it('removePieces retire la couleur : une nouvelle cale au même numéro ne l’hérite pas', () => {
+    const { plan, id } = colored()
+    const removed = ok(removePieces(plan, [id]))
+    expect(removed.plan.colors).toBeUndefined()
+    const again = ok(addWedge(removed.plan, 'shelf-1'))
+    expect(again.id).toBe(id)
+    expect(colorOf(again.plan, again.id, 'wedge')).toBeUndefined()
+  })
+
+  it('distributeWedges retire aussi les couleurs des cales remplacées', () => {
+    const { plan } = colored()
+    const r = ok(distributeWedges(plan, 'shelf-1', 2))
+    expect(r.plan.colors?.pieces).toBeUndefined()
   })
 })
 

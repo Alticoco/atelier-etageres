@@ -97,6 +97,8 @@ function BoardBar({ board, stockLength, unit, title }: { board: Board; stockLeng
     const before = board.pieces.slice(0, i).reduce((sum, q) => sum + q.length, 0)
     return { ...p, x: before * scale, w: p.length * scale }
   })
+  // Un motif par barre : un identifiant fixe serait répété dans la page. Les « : » de useId sont retirés pour url(#…).
+  const hatchId = `purchase-hatch-${useId().replace(/:/g, '')}`
   // Le trait de scie est compté dans la chute ou entre les pièces : on ne le dessine pas à part.
   const wasteStart = (stockLength - board.waste) * scale
   return (
@@ -107,7 +109,7 @@ function BoardBar({ board, stockLength, unit, title }: { board: Board; stockLeng
       aria-label={`${title} : ${board.pieces.map((p) => `${p.mark} ${formatLength(p.length, unit)}`).join(', ')} ; chute ${formatLength(board.waste, unit)}`}
     >
       <defs>
-        <pattern id="purchase-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <pattern id={hatchId} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="8" className="purchase-hatch-line" />
         </pattern>
       </defs>
@@ -122,7 +124,7 @@ function BoardBar({ board, stockLength, unit, title }: { board: Board; stockLeng
         </g>
       ))}
       {board.waste > 0 && (
-        <rect className="purchase-waste" x={wasteStart} y={0} width={board.waste * scale} height={BAR_HEIGHT} fill="url(#purchase-hatch)" />
+        <rect className="purchase-waste" x={wasteStart} y={0} width={board.waste * scale} height={BAR_HEIGHT} fill={`url(#${hatchId})`} />
       )}
     </svg>
   )

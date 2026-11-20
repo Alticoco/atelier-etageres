@@ -35,6 +35,8 @@ export interface KeyContext {
   /** Une liste déroulante a le focus : les flèches changent son choix. */
   select: boolean
   hasSelection: boolean
+  /** Du texte est surligné dans la page : Ctrl+C doit alors copier ce texte (copie native), pas la sélection de pièces. */
+  textSelected: boolean
 }
 
 const VIEWS: Record<string, ViewMode> = { '1': 'front', '2': 'side', '3': 'cut', '4': 'bottom', '5': 'three' }
@@ -51,7 +53,7 @@ export function commandForKey(e: KeyInfo, ctx: KeyContext): Command | null {
     if (key === 'z') return e.shiftKey ? { type: 'redo' } : { type: 'undo' }
     if (key === 'y') return { type: 'redo' }
     if (key === 'a') return { type: 'selectAll' }
-    if (!e.shiftKey && key === 'c' && ctx.hasSelection) return { type: 'copy' }
+    if (!e.shiftKey && key === 'c' && ctx.hasSelection && !ctx.textSelected) return { type: 'copy' }
     if (!e.shiftKey && key === 'v') return { type: 'paste' }
     if (!e.shiftKey && key === 'd' && ctx.hasSelection) return { type: 'duplicate' }
     return null

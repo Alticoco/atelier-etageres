@@ -110,15 +110,13 @@ describe('setStockLength et sauvegarde', () => {
     expect(setStockLength(plan, 'abc', 2400).ok).toBe(false)
   })
 
-  it('refuse plus de 50 sections réglées', () => {
-    let plan = createPlan(base)
-    for (let i = 1; i <= 50; i++) {
-      const r = setStockLength(plan, `${i}x18`, 2000)
-      if (!r.ok) throw new Error(r.error)
-      plan = r.plan
-    }
-    expect(setStockLength(plan, '51x18', 2000).ok).toBe(false)
-    expect(setStockLength(plan, '50x18', 2500).ok).toBe(true)
+  it('la limite de 50 sections ne compte que les sections présentes : les absentes sont retirées', () => {
+    const plan = createPlan(base)
+    plan.options.stockLengths = {}
+    for (let i = 1; i <= 50; i++) plan.options.stockLengths[`${i}x18`] = 2000
+    const r = setStockLength(plan, '250x18', 2500)
+    if (!r.ok) throw new Error(r.error)
+    expect(r.plan.options.stockLengths).toEqual({ '250x18': 2500 })
   })
 
   it('ne modifie pas le plan d’origine', () => {

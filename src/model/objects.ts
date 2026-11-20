@@ -108,6 +108,16 @@ export function orientedSize(
   return { width: kind.width, height: kind.height, depth: kind.depth }
 }
 
+/**
+ * Arrondi (mm) des coins d'un objet vu de face, le même à l'écran et dans le PDF. Une boîte a les coins droits.
+ * Un cylindre debout ou de face reste un rectangle, à peine arrondi (`min(largeur, hauteur) / 6`) pour le reconnaître ;
+ * couché, il se voit comme un disque (largeur égale à la hauteur) ou une gélule : `min(largeur, hauteur) / 2`.
+ */
+export function objectCornerRadius(o: Pick<DrawnObject, 'shape' | 'orientation' | 'width' | 'height'>): number {
+  if (o.shape !== 'cylinder') return 0
+  return Math.round(Math.min(o.width, o.height) / (o.orientation === 'lying' ? 2 : 6))
+}
+
 function isOrientation(value: unknown): value is ObjectOrientation {
   return OBJECT_ORIENTATIONS.includes(value as ObjectOrientation)
 }
