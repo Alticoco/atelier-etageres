@@ -62,6 +62,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 
 - [x] Vue 3D (rotation, zoom) — première version : mur plein / transparent / masqué, objets et supports en formes simples, vues prédéfinies. À venir : cliquer une pièce dans la 3D, ombres, encoches.
 - [x] Portes / coffrets et tiroirs — première version (modèle avec cadre) : par étage, ouvert / une porte (charnières à gauche ou à droite) / deux portes / un tiroir ; vue de face, 3D, PDF, liste de découpe à part (repères P1…). À venir : portes ouvertes à l'écran, quincaillerie (charnières, coulisses) et son comptage, portes à recouvrement, plusieurs tiroirs par étage, tiroirs en 3D détaillés.
+- [x] Modèles de départ dans l'assistant — Mangathèque, étagère à épices, bibliothèque, étagère murale sans cadre, meuble bas : un clic pré-remplit le formulaire.
 
 ## Boîte à idées (plus tard)
 
