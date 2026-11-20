@@ -256,7 +256,7 @@ describe('objets sur mesure', () => {
 
   it('a son nom dans les libellés', () => {
     const r = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 3))
-    expect(rowLabel(r.plan.rows![0], r.plan)).toBe('3 boîte à thé')
+    expect(rowLabel(r.plan.rows![0], r.plan)).toBe('3 boîtes à thé')
     expect(objectLabel(r.plan, 'obj:row-1:0')).toBe('Boîte à thé (étage 1)')
   })
 
@@ -436,5 +436,16 @@ describe('objets sur mesure en 3D', () => {
     expect(buildScene3D(r.plan).boxes.find((b) => b.kind === 'object')!.bad).toBe(false)
     const turned = ok(setObjectRowOrientation(r.plan, 'row-1', 'facing'))
     expect(buildScene3D(turned.plan).boxes.find((b) => b.kind === 'object')).toMatchObject({ bad: true, sz: 300 })
+  })
+})
+
+describe('pluralLabel', () => {
+  it('accorde le premier mot du nom', async () => {
+    const { pluralLabel } = await import('./objects')
+    expect(pluralLabel('Boîte à thé')).toBe('boîtes à thé')
+    expect(pluralLabel('Bocal')).toBe('bocaux')
+    expect(pluralLabel('Pot')).toBe('pots')
+    expect(pluralLabel('Jeux de société')).toBe('jeux de société')
+    expect(pluralLabel('Gâteau')).toBe('gâteaux')
   })
 })

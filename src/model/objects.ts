@@ -61,7 +61,7 @@ function fromCustom(c: CustomObjectKind): ObjectKind {
   return {
     id: c.id,
     label: c.label,
-    plural: c.label.toLowerCase(),
+    plural: pluralLabel(c.label),
     width: c.width,
     height: c.height,
     depth: c.depth,
@@ -73,6 +73,21 @@ function fromCustom(c: CustomObjectKind): ObjectKind {
 }
 
 /** Type d'objet d'un plan : un objet sur mesure du plan, sinon un objet du catalogue. */
+/**
+ * Pluriel approché d'un nom d'objet créé par l'utilisateur : on accorde le premier mot (« Boîte à thé » → « boîtes à
+ * thé », « Bocal » → « bocaux »). Les mots finissant par s, x ou z ne changent pas. Suffisant pour un libellé.
+ */
+export function pluralLabel(label: string): string {
+  const lower = label.toLowerCase()
+  const m = /^(\S+)(.*)$/su.exec(lower)
+  if (!m) return lower
+  const [, first, rest] = m
+  if (/[sxz]$/u.test(first)) return lower
+  if (/(al)$/u.test(first) && first.length > 3) return `${first.slice(0, -2)}aux${rest}`
+  if (/(eau|au|eu)$/u.test(first)) return `${first}x${rest}`
+  return `${first}s${rest}`
+}
+
 export function resolveKind(plan: Plan, id: string): ObjectKind | undefined {
   const custom = plan.customKinds?.find((k) => k.id === id)
   return custom ? fromCustom(custom) : objectKind(id)
