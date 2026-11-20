@@ -108,12 +108,32 @@ export function liveDimensions(plan: Plan, pieceId: string): LiveDimension[] {
   return []
 }
 
+/** Cote principale : celle de gauche (ou du dessous) ; à défaut, celle de droite. Undefined s'il n'y a aucune cote. */
+export function mainDimension(dims: LiveDimension[]): LiveDimension | undefined {
+  return dims.find((d) => d.side === 'left' || d.side === 'below') ?? dims.find((d) => d.side === 'right')
+}
+
+/** Largeur (mm) d'une cale, d'un support ou d'un objet du plan ; undefined pour les autres pièces. */
+function pieceWidth(plan: Plan, pieceId: string): number | undefined {
+  const wedge = plan.wedges.find((w) => w.id === pieceId)
+  if (wedge) return wedge.thickness
+  const support = plan.supports?.find((s) => s.id === pieceId)
+  if (support) return support.width
+  return findDrawnObject(plan, pieceId)?.object.width
+}
+
 /**
- * Position où amener la pièce pour que sa cote principale (distance à gauche pour une cale, un objet ou un support ;
- * hauteur libre du dessous pour une tablette) vaille `mm` : bord gauche (`axis` x) ou dessous (`axis` y), en mm.
- * Null si la pièce n'a pas de cote principale. La position n'est pas contrôlée : le glisser l'arrête où le plan le permet.
+ * Position où amener la pièce pour que sa cote principale (distance à gauche pour une cale, un objet ou un support, ou
+ * à droite s'il n'y a pas de cote à gauche ; hauteur libre du dessous pour une tablette) vaille `mm` : bord gauche
+ * (`axis` x) ou dessous (`axis` y), en mm. Null si la pièce n'a pas de cote principale. La position n'est pas
+ * contrôlée : le glisser l'arrête où le plan le permet.
  */
 export function typedTarget(plan: Plan, pieceId: string, mm: number): { axis: 'x' | 'y'; value: number } | null {
-  const main = liveDimensions(plan, pieceId).find((d) => d.side === 'left' || d.side === 'below')
-  return main ? { axis: main.axis, value: main.from + mm } : null
+  const main = mainDimension(liveDimensions(plan, pieceId))
+  if (!main) return null
+  if (main.side === 'right') {
+    const width = pieceWidth(plan, pieceId)
+    return width === undefined ? null : { axis: 'x', value: main.to - mm - width }
+  }
+  return { axis: main.axis, value: main.from + mm }
 }

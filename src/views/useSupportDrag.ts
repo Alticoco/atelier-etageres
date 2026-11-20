@@ -82,14 +82,15 @@ export function useSupportDrag({ plan, scale, snapStep, mapping, onChange, onSel
     },
     /**
      * Termine le glisser en cours en posant le support à la position `raw` (mm, sans arrondi ni aimant), par exemple
-     * une valeur tapée au clavier. Renvoie false s'il n'y a pas de glisser en cours.
+     * une valeur tapée au clavier. Renvoie false s'il n'y a pas de glisser en cours ou si la position est refusée
+     * (le glisser continue alors).
      */
     place(raw: { x?: number; y?: number; z?: number }): boolean {
       const g = gestureRef.current
       if (!g || !g.active) return false
-      reset()
       const next = dragSupport(plan, g.id, raw, null)
-      if (next === plan) return true
+      if (next === plan) return false
+      reset()
       const moved = next.supports!.find((s) => s.id === g.id)!
       onChange?.({ type: 'moveSupport', id: g.id, x: raw.x === undefined ? undefined : moved.x, y: raw.y === undefined ? undefined : moved.y, z: raw.z === undefined ? undefined : moved.z })
       return true

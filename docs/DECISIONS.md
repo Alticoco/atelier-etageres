@@ -377,3 +377,13 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - Couleurs propres : purgées pour les pièces supprimées (`removePieces`) ou remplacées (`distributeWedges`).
 - Ctrl+C ne bloque plus la copie native quand du texte est surligné (`textSelected` dans `KeyContext`).
 - Motif hachuré des planches d'achat : identifiant unique par barre (`useId`) ; vue 3D : cache des textures de nom, libéré au démontage.
+
+## 2026-11-20 (corrections du glisser)
+
+- Suppr et Retour arrière sont toujours interceptés pendant un glisser (champ ouvert ou non) : la pièce n'est jamais supprimée en plein geste ; Retour arrière efface un chiffre si le champ est ouvert.
+- Saisie clavier : `typedChar` (`src/model/typedKey.ts`, pure, testée) lit les chiffres par `code` (`Digit`/`Numpad`) en plus de `key`, donc la rangée du haut AZERTY fonctionne ; virgule et point par `key` ou `Comma`/`Period`/`NumpadDecimal`.
+- Alt (qui coupe l'aimantation) n'empêche plus la saisie ; seuls Ctrl et Méta sont exclus.
+- Sans cote à gauche (support en x négatif), la cote principale est celle de droite : la valeur tapée est la distance à droite (`mainDimension`, `typedTarget`) ; sans aucune cote, le champ ne s'ouvre pas.
+- Valeur refusée pour un support : `place()` calcule la position avant de quitter le glisser ; refus = renvoie false, message « Valeur non valide », le glisser continue.
+- Performances : cotes dynamiques en `useMemo`, largeur de l'objet glissé mémorisée au début du geste (`dragObjectToStage`, paramètre `knownWidth`), pas de `findDrawnObject` pour une tablette, position du pointeur convertie seulement à l'ouverture du champ, écouteur clavier recréé seulement quand la pièce active change (valeurs courantes lues via une ref).
+- Aide du champ : « Tapez une valeur puis Entrée · Échap : annuler ».

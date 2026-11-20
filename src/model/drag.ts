@@ -127,6 +127,7 @@ export function dragObjectToStage(
   rawX: number,
   rawY: number,
   step: number | null,
+  knownWidth?: number,
 ): { plan: Plan; id: string; shelfBelowId: string; x: number; guide: Guide | null } | null {
   const stages = getStages(plan)
   const distance = (s: { y: number; clearHeight: number }) =>
@@ -135,8 +136,9 @@ export function dragObjectToStage(
   if (!stage) return null
 
   // Repère : la position cible est calculée ici, puis posée telle quelle (`step` null : moveObject n'y touche plus).
-  const drawn = step === null ? null : findDrawnObject(plan, id)
-  const guide = drawn ? nearestGuide(objectGuides(plan, id, drawn.object.width, stage.shelfBelowId), rawX) : null
+  // `knownWidth` : largeur de l'objet connue au début du geste (évite de la rechercher à chaque mouvement).
+  const width = step === null ? undefined : (knownWidth ?? findDrawnObject(plan, id)?.object.width)
+  const guide = width !== undefined ? nearestGuide(objectGuides(plan, id, width, stage.shelfBelowId), rawX) : null
   if (guide) {
     const onGuide = moveObject(plan, id, stage.shelfBelowId, guide.pos, null)
     if (onGuide.ok) {

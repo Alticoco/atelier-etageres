@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dragObjectToStage } from './drag'
-import { liveDimensions, typedTarget } from './liveDimensions'
+import { liveDimensions, mainDimension, typedTarget } from './liveDimensions'
 import { addObjectRow } from './objects'
 import { createPlan } from './plan'
 import { addSupport } from './supports'
@@ -106,6 +106,14 @@ describe('valeur tapée pendant le glisser', () => {
 
   it('tablette : dessous = dessus de la tablette du dessous + valeur', () => {
     expect(typedTarget(base(), 'shelf-2', 200)).toEqual({ axis: 'y', value: 218 })
+  })
+
+  it('support posé à gauche du cadre (x négatif) : la valeur tapée est la distance à droite', () => {
+    const plan = base()
+    plan.supports = [{ id: 'support-1', x: -100, y: 100, z: 0, width: 50, height: 50, depth: 50 } as never]
+    expect(mainDimension(liveDimensions(plan, 'support-1'))).toMatchObject({ side: 'right', from: -50, to: 0 })
+    // Bord droit à 0 - 30 = -30, donc bord gauche à -80.
+    expect(typedTarget(plan, 'support-1', 30)).toEqual({ axis: 'x', value: -80 })
   })
 
   it('pièce sans cote principale : null', () => {

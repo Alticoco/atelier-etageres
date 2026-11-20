@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
 import { isObjectId, layoutStage, objectCornerRadius } from '../model/objects'
 import { frontRects } from '../model/fronts'
@@ -9,7 +9,8 @@ import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import { contextMenuItems, type MenuItem } from '../model/contextMenu'
 import { isNotched, jointOf } from '../model/joints'
-import { liveDimensions, typedTarget } from '../model/liveDimensions'
+import { liveDimensions, mainDimension, typedTarget } from '../model/liveDimensions'
+import { typedChar } from '../model/typedKey'
 import type { Plan } from '../model/types'
 import { formatLength, parseLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
@@ -40,6 +41,8 @@ type Gesture =
       startValue: number
       /** Cale : hauteur (mm) du centre de la cale au départ. */
       startCenterY?: number
+      /** Objet : largeur (mm) au départ du geste. */
+      width?: number
       scale: number
       active: boolean
     }
@@ -102,7 +105,8 @@ export function FrontView({
   const [liveId, setLiveId] = useState<string | null>(null)
   // Valeur tapée au clavier pendant le glisser (texte brut) et position du petit champ dans la vue (px).
   const [typed, setTyped] = useState<{ text: string; left: number; top: number; invalid?: boolean } | null>(null)
-  const pointerRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 })
+  // Dernière position du pointeur (px écran) ; convertie en position dans la vue seulement à l'ouverture du champ.
+  const pointerRef = useRef<{ clientX: number; clientY: number }>({ clientX: 0, clientY: 0 })
   const supportDrag = useSupportDrag({
     plan,
     scale,
@@ -168,7 +172,7 @@ export function FrontView({
           .find((f) => f.o)
         if (found?.o) {
           const startCenterY = found.st.y + found.st.clearHeight / 2
-          gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'object', ...base, startValue: found.o.x, startCenterY, scale, active: false }
+          gestureRef.current = { kind: 'piece', pieceId, pieceKind: 'object', ...base, startValue: found.o.x, startCenterY, width: found.o.width, scale, active: false }
         } else {
           gestureRef.current = { kind: 'pan', x: e.clientX, y: e.clientY, ...base, pieceId }
         }
@@ -206,7 +210,7 @@ export function FrontView({
       return { type: 'moveUpright', side, overhang: jointOf(next, side).overhang }
     }
     if (g.pieceKind === 'object') {
-      const placed = dragObjectToStage(plan, g.pieceId, rawX, rawY, step)
+      const placed = dragObjectToStage(plan, g.pieceId, rawX, rawY, step, g.width)
       if (!placed) return null
       setDraft(placed.plan)
       setDragGuide(placed.guide ? { guide: placed.guide, shelfBelowId: placed.shelfBelowId } : null)
@@ -239,7 +243,7 @@ export function FrontView({
       const target = mm === null ? null : typedTarget(supportDrag.draft, supportDrag.activeId, mm)
       if (!target) return setTyped((t) => t && { ...t, invalid: true })
       const current = supportDrag.draft.supports!.find((sp) => sp.id === supportDrag.activeId)!
-      supportDrag.place({ x: target.value, y: current.y })
+      if (!supportDrag.place({ x: target.value, y: current.y })) return setTyped((t) => t && { ...t, invalid: true })
       setTyped(null)
       return
     }
@@ -248,7 +252,11 @@ export function FrontView({
     if (!target) return setTyped((t) => t && { ...t, invalid: true })
     // La pièce reste dans son étage : on vise le milieu de la hauteur de l'étage où elle est dans le plan provisoire.
     const shelfBelowId =
-      g.pieceKind === 'wedge' ? draft.wedges.find((w) => w.id === liveId)?.shelfBelowId : findDrawnObject(draft, liveId)?.shelfBelowId
+      g.pieceKind === 'wedge'
+        ? draft.wedges.find((w) => w.id === liveId)?.shelfBelowId
+        : g.pieceKind === 'object'
+          ? findDrawnObject(draft, liveId)?.shelfBelowId
+          : undefined
     const stage = getStages(draft).find((st) => st.shelfBelowId === shelfBelowId)
     const rawY = target.axis === 'y' ? target.value : stage ? stage.y + stage.clearHeight / 2 : 0
     const action = dragPieceTo(g, target.value, rawY, null)
@@ -259,35 +267,54 @@ export function FrontView({
   // Pendant un glisser : taper des chiffres ouvre un petit champ ; Entrée place la pièce, Échap ferme le champ.
   // Écoute en phase de capture pour passer avant les raccourcis de l'application (les chiffres changent de vue).
   const activeLiveId = liveId ?? supportDrag.activeId
+  const shown = draft ?? supportDrag.draft ?? plan
+  const liveDims = useMemo(() => (activeLiveId ? liveDimensions(shown, activeLiveId) : []), [shown, activeLiveId])
+  const mainDim = mainDimension(liveDims)
+  // Valeurs courantes lues par l'écouteur clavier (qui n'est pas recréé à chaque rendu).
+  const keyStateRef = useRef({ typed, hasMain: !!mainDim, commit: commitTyped, box: () => containerRef.current?.getBoundingClientRect() })
+  useEffect(() => {
+    keyStateRef.current = { typed, hasMain: !!mainDim, commit: commitTyped, box: () => containerRef.current?.getBoundingClientRect() }
+  })
   useEffect(() => {
     if (!activeLiveId) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.ctrlKey || e.metaKey) return
+      const { typed: current, hasMain, commit, box: getBox } = keyStateRef.current
       const take = () => {
         e.preventDefault()
         e.stopPropagation()
       }
-      if (/^[0-9.,]$/.test(e.key)) {
+      // Pendant un glisser, Suppr et Retour arrière ne doivent jamais supprimer la pièce.
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         take()
-        setTyped((t) => ({ text: (t?.text ?? '') + e.key, left: t?.left ?? pointerRef.current.left, top: t?.top ?? pointerRef.current.top }))
-      } else if (typed && e.key === 'Backspace') {
+        if (e.key === 'Backspace' && current) setTyped((t) => t && { ...t, text: t.text.slice(0, -1), invalid: false })
+        return
+      }
+      const char = typedChar(e)
+      if (char !== null) {
         take()
-        setTyped({ ...typed, text: typed.text.slice(0, -1), invalid: false })
-      } else if (typed && e.key === 'Escape') {
+        if (!hasMain && !current) return
+        const box = getBox()
+        const { clientX, clientY } = pointerRef.current
+        setTyped((t) => ({
+          text: (t?.text ?? '') + char,
+          left: t?.left ?? clientX - (box?.left ?? 0),
+          top: t?.top ?? clientY - (box?.top ?? 0),
+        }))
+      } else if (current && e.key === 'Escape') {
         take()
         setTyped(null)
-      } else if (typed && e.key === 'Enter') {
+      } else if (current && e.key === 'Enter') {
         take()
-        commitTyped(typed.text)
+        commit(current.text)
       }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  })
+  }, [activeLiveId])
 
   const onPointerMove = (e: React.PointerEvent) => {
-    const box = containerRef.current?.getBoundingClientRect()
-    pointerRef.current = { left: e.clientX - (box?.left ?? 0), top: e.clientY - (box?.top ?? 0) }
+    pointerRef.current = { clientX: e.clientX, clientY: e.clientY }
     if (supportDrag.move(e)) return
     const g = gestureRef.current
     if (!g) return
@@ -347,7 +374,6 @@ export function FrontView({
     else if (!additive) onClearSelection?.()
   }
 
-  const shown = draft ?? supportDrag.draft ?? plan
   const H = shown.height
   const W = shown.width
   const rects = computeFrontRects(shown)
@@ -479,8 +505,7 @@ export function FrontView({
               const bottom = guide.aligned ? H : H - stage.y
               return <GuideLine x1={cx} y1={top} x2={cx} y2={bottom} label={guide.label} s={s} />
             })()}
-          {activeLiveId &&
-            liveDimensions(shown, activeLiveId)
+          {liveDims
               .filter((d) => d.value > 0)
               .map((d) =>
                 d.axis === 'x' ? (
@@ -573,12 +598,12 @@ export function FrontView({
       {typed && (
         <div className={`live-input${typed.invalid ? ' live-input-invalid' : ''}`} style={{ left: typed.left + 16, top: typed.top + 16 }} role="status">
           <span className="live-input-label">
-            {(liveId && sortedShelves(plan).some((sh) => sh.id === liveId)) ? 'Hauteur libre dessous' : 'Distance à gauche'}
+            {mainDim?.side === 'below' ? 'Hauteur libre dessous' : mainDim?.side === 'right' ? 'Distance à droite' : 'Distance à gauche'}
           </span>
           <span className="live-input-value">
             {typed.text || '…'} {unit}
           </span>
-          <span className="live-input-hint">{typed.invalid ? 'Valeur non valide' : 'Entrée : placer · Échap : annuler'}</span>
+          <span className="live-input-hint">{typed.invalid ? 'Valeur non valide' : 'Tapez une valeur puis Entrée · Échap : annuler'}</span>
         </div>
       )}
 
