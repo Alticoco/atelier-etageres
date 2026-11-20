@@ -1884,3 +1884,44 @@ button.tab {
 .clip-distribute input {
   width: 4.5rem;
 }
+
+/* Cotes dynamiques pendant un glisser (vue de face) et valeur tapée au clavier. */
+.live-dim line {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.live-dim .live-dim-pill {
+  fill: var(--accent);
+  stroke: #fffdfa;
+  stroke-width: 1;
+}
+.live-dim text {
+  fill: #fffdfa;
+  font-weight: 700;
+}
+.live-input {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+.live-input-invalid {
+  border-color: var(--danger);
+}
+.live-input-label,
+.live-input-hint {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.live-input-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

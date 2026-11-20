@@ -54,7 +54,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] **Étape 17i — Repères d'aimantation** (demande d'Alexis, 10 octobre 2026) : milieu, écarts égaux (tiers, quarts), alignement entre étages, pour les cales et les supports.
 - [x] **Étape 18 — Supports (planches de soutien à part)** (demande d'Alexis, 10 octobre 2026) :
   - [x] 18a — Supports sous et autour de l'étagère : largeur, hauteur, profondeur, position, recul depuis le mur ; réglage au panneau et en tirant dans les vues de face, de profil et de dessous (nouvelle) ; liste de découpe à part.
-  - [x] 18b — Supports dans le PDF, en option au moment de l'export (tireté, repères S1…, liste à part) ; copie / symétrie d'un support (« Dupliquer »). Reste : aimantation sur d'autres supports.
+  - [x] 18b — Supports dans le PDF, en option au moment de l'export (tireté, repères S1…, liste à part) ; copie / symétrie d'un support (« Dupliquer »). Aimantation sur d'autres supports : faite le 20 novembre 2026 (voir V3).
 - [x] **Étape 19 — Panneau de droite repensé, nombre d'étages modifiable, menu au clic sur le dessin** : panneau en onglets, nombre d'étages, et menu du clic droit sur la vue de face (couper un montant, décaler / supprimer / ajouter cale ou tablette, dupliquer un support, retirer un objet, ajouter dans le vide d'un étage).
 - [x] **Étape 20 — Synthèse d'achat et optimisation 1D** : dans la vue « Découpe », tableau « À acheter » par section (largeur × épaisseur) et schéma de découpe de chaque planche du commerce (longueur réglable par section, 2 400 mm par défaut).
 
@@ -66,6 +66,7 @@ Ordre choisi avec Alexis (5 octobre 2026) : le modèle sans cadre d'abord, car l
 - [x] Modèles de départ dans l'assistant — Mangathèque, étagère à épices, bibliothèque, étagère murale sans cadre, meuble bas : un clic pré-remplit le formulaire.
 - [x] Objets sur mesure : créer ses objets, couché / de face / empilés, ajuster un étage à ses objets.
 - [x] Copier, coller, dupliquer, symétrie, répartir (cales, supports, objets) et sélection multiple qui agit : Ctrl+C / V / D, boutons « Dupliquer à côté / en symétrique », « Répartir N cales », flèches sur toute la sélection.
+- [x] Glisser « pro » en vue de face : cotes dynamiques pendant le glisser (place libre à gauche / à droite, hauteur des étages), repères pour les tablettes (étages égaux, ajusté aux objets, même hauteur qu'un autre étage) et les objets (milieu, alignement entre étages), aimant entre supports (fin de l'étape 18b), valeur tapée au clavier pendant le glisser.
 
 ## Boîte à idées (plus tard)
 

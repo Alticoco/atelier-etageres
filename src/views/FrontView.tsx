@@ -4,17 +4,18 @@ import { isObjectId, layoutStage, resolveKind } from '../model/objects'
 import { frontRects } from '../model/fronts'
 import { supportOverflow } from '../model/supports'
 import { useSupportDrag } from './useSupportDrag'
-import { dragObjectToStage, dragShelf, dragUpright, dragWedgeToStage, resizeFrame } from '../model/drag'
+import { dragObjectToStage, dragShelfWithGuide, dragUpright, dragWedgeToStage, resizeFrame } from '../model/drag'
 import { computeFrontRects } from '../model/layout'
 import { getStages, sortedShelves } from '../model/pieces'
 import { contextMenuItems, type MenuItem } from '../model/contextMenu'
 import { isNotched, jointOf } from '../model/joints'
+import { liveDimensions, typedTarget } from '../model/liveDimensions'
 import type { Plan } from '../model/types'
-import { formatLength, type LengthUnit } from '../model/units'
+import { formatLength, parseLength, type LengthUnit } from '../model/units'
 import type { EditorAction } from '../store/editor'
 import { panCamera } from './camera'
-import { DIM_OFFSET_PX } from './Dimension'
-import type { Guide } from '../model/guides'
+import { DIM_OFFSET_PX, LiveDimension } from './Dimension'
+import { findDrawnObject, type Guide } from '../model/guides'
 import { fillStyle } from './colorStyle'
 import { GuideLine } from './GuideLine'
 import { EditableDimension } from './EditableDimension'
@@ -94,8 +95,14 @@ export function FrontView({
   const pendingRef = useRef<EditorAction | null>(null)
   // Plan « en cours de glisser » : affiché à la place du vrai plan jusqu'au relâchement.
   const [draft, setDraft] = useState<Plan | null>(null)
-  // Repère sur lequel la cale glissée est calée (milieu, écarts égaux, alignement), affiché pendant le geste.
-  const [wedgeGuide, setWedgeGuide] = useState<{ guide: Guide; shelfBelowId: string } | null>(null)
+  // Repère sur lequel la pièce glissée est calée (milieu, écarts égaux, alignement…), affiché pendant le geste.
+  // `shelfBelowId` : étage de la cale ou de l'objet (trait vertical) ; absent pour une tablette (trait horizontal).
+  const [dragGuide, setDragGuide] = useState<{ guide: Guide; shelfBelowId?: string } | null>(null)
+  // Pièce dont on affiche les cotes dynamiques pendant le glisser (l'objet détaché d'une rangée change d'identifiant).
+  const [liveId, setLiveId] = useState<string | null>(null)
+  // Valeur tapée au clavier pendant le glisser (texte brut) et position du petit champ dans la vue (px).
+  const [typed, setTyped] = useState<{ text: string; left: number; top: number; invalid?: boolean } | null>(null)
+  const pointerRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 })
   const supportDrag = useSupportDrag({
     plan,
     scale,
@@ -179,7 +186,108 @@ export function FrontView({
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
+  /**
+   * Calcule le plan provisoire d'une pièce glissée et l'action à valider au relâchement. `rawX` : bord gauche (cale,
+   * objet) ou débord (montant) ; `rawY` : dessous (tablette) ou hauteur du curseur (cale, objet).
+   */
+  const dragPieceTo = (g: Extract<Gesture, { kind: 'piece' }>, rawX: number, rawY: number, step: number | null): EditorAction | null => {
+    if (g.pieceKind === 'shelf') {
+      const { plan: next, guide } = dragShelfWithGuide(plan, g.pieceId, rawY, step)
+      const y = next.shelves.find((s) => s.id === g.pieceId)!.y
+      setDraft(next)
+      setDragGuide(guide ? { guide } : null)
+      setLiveId(g.pieceId)
+      return { type: 'setPieceProperty', ids: [g.pieceId], property: 'y', mm: y }
+    }
+    if (g.pieceKind === 'upright') {
+      const side = g.pieceId === 'upright-left' ? 'left' : 'right'
+      const next = dragUpright(plan, side, rawX, step)
+      setDraft(next)
+      return { type: 'moveUpright', side, overhang: jointOf(next, side).overhang }
+    }
+    if (g.pieceKind === 'object') {
+      const placed = dragObjectToStage(plan, g.pieceId, rawX, rawY, step)
+      if (!placed) return null
+      setDraft(placed.plan)
+      setDragGuide(placed.guide ? { guide: placed.guide, shelfBelowId: placed.shelfBelowId } : null)
+      setLiveId(placed.id)
+      return { type: 'moveObject', id: g.pieceId, shelfBelowId: placed.shelfBelowId, x: placed.x }
+    }
+    const moved = dragWedgeToStage(plan, g.pieceId, rawX, rawY, step)
+    if (!moved) return null
+    setDraft(moved.plan)
+    setDragGuide(moved.guide ? { guide: moved.guide, shelfBelowId: moved.shelfBelowId } : null)
+    setLiveId(g.pieceId)
+    return { type: 'placeWedge', wedgeId: g.pieceId, shelfBelowId: moved.shelfBelowId, x: moved.x }
+  }
+
+  /** Fin d'un glisser sans valider (Entrée d'une valeur tapée l'a déjà fait). */
+  const clearGesture = () => {
+    gestureRef.current = null
+    pendingRef.current = null
+    setDraft(null)
+    setDragGuide(null)
+    setLiveId(null)
+    setTyped(null)
+  }
+
+  /** Entrée : place la pièce glissée pour que sa cote principale vaille la valeur tapée. */
+  const commitTyped = (text: string) => {
+    const mm = parseLength(text, unit)
+    const g = gestureRef.current
+    if (supportDrag.activeId && supportDrag.draft) {
+      const target = mm === null ? null : typedTarget(supportDrag.draft, supportDrag.activeId, mm)
+      if (!target) return setTyped((t) => t && { ...t, invalid: true })
+      const current = supportDrag.draft.supports!.find((sp) => sp.id === supportDrag.activeId)!
+      supportDrag.place({ x: target.value, y: current.y })
+      setTyped(null)
+      return
+    }
+    if (!g || g.kind !== 'piece' || !draft || !liveId) return
+    const target = mm === null ? null : typedTarget(draft, liveId, mm)
+    if (!target) return setTyped((t) => t && { ...t, invalid: true })
+    // La pièce reste dans son étage : on vise le milieu de la hauteur de l'étage où elle est dans le plan provisoire.
+    const shelfBelowId =
+      g.pieceKind === 'wedge' ? draft.wedges.find((w) => w.id === liveId)?.shelfBelowId : findDrawnObject(draft, liveId)?.shelfBelowId
+    const stage = getStages(draft).find((st) => st.shelfBelowId === shelfBelowId)
+    const rawY = target.axis === 'y' ? target.value : stage ? stage.y + stage.clearHeight / 2 : 0
+    const action = dragPieceTo(g, target.value, rawY, null)
+    clearGesture()
+    if (action) onChange?.(action)
+  }
+
+  // Pendant un glisser : taper des chiffres ouvre un petit champ ; Entrée place la pièce, Échap ferme le champ.
+  // Écoute en phase de capture pour passer avant les raccourcis de l'application (les chiffres changent de vue).
+  const activeLiveId = liveId ?? supportDrag.activeId
+  useEffect(() => {
+    if (!activeLiveId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      const take = () => {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      if (/^[0-9.,]$/.test(e.key)) {
+        take()
+        setTyped((t) => ({ text: (t?.text ?? '') + e.key, left: t?.left ?? pointerRef.current.left, top: t?.top ?? pointerRef.current.top }))
+      } else if (typed && e.key === 'Backspace') {
+        take()
+        setTyped({ ...typed, text: typed.text.slice(0, -1), invalid: false })
+      } else if (typed && e.key === 'Escape') {
+        take()
+        setTyped(null)
+      } else if (typed && e.key === 'Enter') {
+        take()
+        commitTyped(typed.text)
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  })
+
   const onPointerMove = (e: React.PointerEvent) => {
+    const box = containerRef.current?.getBoundingClientRect()
+    pointerRef.current = { left: e.clientX - (box?.left ?? 0), top: e.clientY - (box?.top ?? 0) }
     if (supportDrag.move(e)) return
     const g = gestureRef.current
     if (!g) return
@@ -202,30 +310,12 @@ export function FrontView({
 
     const step = e.altKey ? null : snapStep
     if (g.kind === 'piece') {
-      if (g.pieceKind === 'shelf') {
-        const next = dragShelf(plan, g.pieceId, g.startValue - dy * g.scale, step)
-        const y = next.shelves.find((s) => s.id === g.pieceId)!.y
-        setDraft(next)
-        pendingRef.current = { type: 'setPieceProperty', ids: [g.pieceId], property: 'y', mm: y }
-      } else if (g.pieceKind === 'upright') {
-        const side = g.pieceId === 'upright-left' ? 'left' : 'right'
-        const next = dragUpright(plan, side, g.startValue + (side === 'left' ? dx : -dx) * g.scale, step)
-        setDraft(next)
-        pendingRef.current = { type: 'moveUpright', side, overhang: jointOf(next, side).overhang }
-      } else if (g.pieceKind === 'object') {
-        const moved = dragObjectToStage(plan, g.pieceId, g.startValue + dx * g.scale, (g.startCenterY ?? 0) - dy * g.scale, step)
-        if (moved) {
-          setDraft(moved.plan)
-          pendingRef.current = { type: 'moveObject', id: g.pieceId, shelfBelowId: moved.shelfBelowId, x: moved.x }
-        }
-      } else {
-        const moved = dragWedgeToStage(plan, g.pieceId, g.startValue + dx * g.scale, (g.startCenterY ?? 0) - dy * g.scale, step)
-        if (moved) {
-          setDraft(moved.plan)
-          setWedgeGuide(moved.guide ? { guide: moved.guide, shelfBelowId: moved.shelfBelowId } : null)
-          pendingRef.current = { type: 'placeWedge', wedgeId: g.pieceId, shelfBelowId: moved.shelfBelowId, x: moved.x }
-        }
-      }
+      let rawX = g.startValue + dx * g.scale
+      let rawY = (g.startCenterY ?? 0) - dy * g.scale
+      if (g.pieceKind === 'shelf') rawY = g.startValue - dy * g.scale
+      if (g.pieceKind === 'upright') rawX = g.startValue + (g.pieceId === 'upright-left' ? dx : -dx) * g.scale
+      const action = dragPieceTo(g, rawX, rawY, step)
+      if (action) pendingRef.current = action
     } else {
       const raw: { width?: number; height?: number } = {}
       if (g.handle !== 'top') raw.width = g.startWidth + dx * g.scale
@@ -237,13 +327,11 @@ export function FrontView({
   }
 
   const finishGesture = (e: React.PointerEvent | null) => {
+    setTyped(null)
     if (supportDrag.end(e)) return
     const g = gestureRef.current
-    gestureRef.current = null
     const action = pendingRef.current
-    pendingRef.current = null
-    setDraft(null)
-    setWedgeGuide(null)
+    clearGesture()
     if (!g || !e) return
 
     if (g.kind !== 'pan' && g.active) {
@@ -375,16 +463,32 @@ export function FrontView({
               </text>
             ))}
 
-          {wedgeGuide &&
+          {dragGuide &&
             (() => {
-              const stage = stages.find((st) => st.shelfBelowId === wedgeGuide.shelfBelowId)
+              const { guide, shelfBelowId } = dragGuide
+              if (shelfBelowId === undefined) {
+                // Tablette : trait horizontal au milieu de son épaisseur, sur toute la largeur.
+                const cy = H - (guide.pos + guide.size / 2)
+                return <GuideLine x1={0} y1={cy} x2={W} y2={cy} label={guide.label} s={s} />
+              }
+              const stage = stages.find((st) => st.shelfBelowId === shelfBelowId)
               if (!stage) return null
-              const cx = wedgeGuide.guide.pos + wedgeGuide.guide.size / 2
-              // Un alignement avec une autre cale traverse toute la hauteur ; les autres repères restent dans l'étage.
-              const top = wedgeGuide.guide.aligned ? 0 : H - (stage.y + stage.clearHeight)
-              const bottom = wedgeGuide.guide.aligned ? H : H - stage.y
-              return <GuideLine x1={cx} y1={top} x2={cx} y2={bottom} label={wedgeGuide.guide.label} s={s} />
+              const cx = guide.pos + guide.size / 2
+              // Un alignement avec une pièce d'un autre étage traverse toute la hauteur ; les autres repères restent dans l'étage.
+              const top = guide.aligned ? 0 : H - (stage.y + stage.clearHeight)
+              const bottom = guide.aligned ? H : H - stage.y
+              return <GuideLine x1={cx} y1={top} x2={cx} y2={bottom} label={guide.label} s={s} />
             })()}
+          {activeLiveId &&
+            liveDimensions(shown, activeLiveId)
+              .filter((d) => d.value > 0)
+              .map((d) =>
+                d.axis === 'x' ? (
+                  <LiveDimension key={d.side} x1={d.from} y1={H - d.y} x2={d.to} y2={H - d.y} label={formatLength(d.value, unit)} s={s} />
+                ) : (
+                  <LiveDimension key={d.side} x1={d.x} y1={H - d.to} x2={d.x} y2={H - d.from} label={formatLength(d.value, unit)} s={s} />
+                ),
+              )}
           {supportDrag.guides.x && (
             <GuideLine
               x1={supportDrag.guides.x.pos + supportDrag.guides.x.size / 2}
@@ -464,6 +568,18 @@ export function FrontView({
             )
           })}
         </svg>
+      )}
+
+      {typed && (
+        <div className={`live-input${typed.invalid ? ' live-input-invalid' : ''}`} style={{ left: typed.left + 16, top: typed.top + 16 }} role="status">
+          <span className="live-input-label">
+            {(liveId && sortedShelves(plan).some((sh) => sh.id === liveId)) ? 'Hauteur libre dessous' : 'Distance à gauche'}
+          </span>
+          <span className="live-input-value">
+            {typed.text || '…'} {unit}
+          </span>
+          <span className="live-input-hint">{typed.invalid ? 'Valeur non valide' : 'Entrée : placer · Échap : annuler'}</span>
+        </div>
       )}
 
       {menu && (
