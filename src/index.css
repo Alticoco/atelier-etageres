@@ -1656,6 +1656,11 @@ button.tab {
   gap: 0.15rem;
   flex: 1 1 9rem;
   max-width: 14rem;
+  /* Le style de base des boutons fixe une hauteur d'une ligne : la carte a besoin de plusieurs lignes. */
+  height: auto;
+  justify-content: flex-start;
+  white-space: normal;
+  line-height: 1.25;
   padding: 0.4rem 0.6rem;
   text-align: left;
   cursor: pointer;
@@ -1671,6 +1676,8 @@ button.tab {
   border-color: var(--wood-dark);
   background: var(--accent-soft, rgba(0, 0, 0, 0.06));
   box-shadow: 0 0 0 2px var(--wood-dark);
+}
+
 /* 25. Synthèse d'achat et découpe en longueur ------------------------------------------------------ */
 .purchase {
   margin-top: 2rem;
