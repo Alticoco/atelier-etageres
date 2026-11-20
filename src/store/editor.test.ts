@@ -49,6 +49,12 @@ describe('editorReducer', () => {
     expect(state.plan?.width).toBe(900)
   })
 
+  it('setStockLength règle la longueur des planches en un pas d’historique', () => {
+    const state = editorReducer(withPlan, { type: 'setStockLength', key: '250x18', mm: 3000 })
+    expect(state.plan?.options.stockLengths).toEqual({ '250x18': 3000 })
+    expect(state.past).toHaveLength(withPlan.past.length + 1)
+  })
+
   it('sans plan, les modifications ne font rien', () => {
     const state = editorReducer(initialEditorState, { type: 'setPlanProperty', change: { property: 'width', mm: 900 } })
     expect(state).toBe(initialEditorState)

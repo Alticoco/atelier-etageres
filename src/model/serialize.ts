@@ -214,6 +214,8 @@ function readPlan(value: unknown): Plan {
   const model = root.model === undefined ? 'frame' : root.model
   if (model !== 'frame' && model !== 'frameless') fail('Plan : « model » doit valoir « frame » ou « frameless ».')
 
+  const stockLengths = readStockLengths(options.stockLengths)
+
   const plan: Plan = {
     model,
     name: text(root, 'name', 'Plan', MAX_NAME).trim() || 'Étagère',
@@ -237,12 +239,31 @@ function readPlan(value: unknown): Plan {
       wedgeClearance: int(options, 'wedgeClearance', 'Options', 0),
       sawKerfEnabled: bool(options, 'sawKerfEnabled', 'Options'),
       sawKerf: int(options, 'sawKerf', 'Options', 0),
+      ...(stockLengths ? { stockLengths } : {}),
     },
   }
 
   const [problem] = checkPlan(plan)
   if (problem) fail(`Plan incohérent : ${problem}`)
   return plan
+}
+
+/** Longueurs de planches par section : clés « largeurxépaisseur », entiers de 100 à 6000 mm, 50 clés au plus. */
+function readStockLengths(value: unknown): Record<string, number> | undefined {
+  if (value === undefined) return undefined
+  const obj = record(value, 'Longueurs de planches')
+  const keys = Object.keys(obj)
+  if (keys.length > 50) fail('Longueurs de planches : 50 sections au plus.')
+  const out: Record<string, number> = {}
+  for (const key of keys) {
+    if (!/^\d+x\d+$/.test(key)) fail(`Longueurs de planches : la clé « ${key} » doit avoir la forme « largeurxépaisseur ».`)
+    const mm = obj[key]
+    if (typeof mm !== 'number' || !Number.isInteger(mm) || mm < 100 || mm > 6000) {
+      fail(`Longueurs de planches : « ${key} » doit être un nombre entier de mm entre 100 et 6000.`)
+    }
+    out[key] = mm
+  }
+  return keys.length > 0 ? out : undefined
 }
 
 /** Valide un plan lu depuis l'extérieur (fichier, base de données) : structure, types, puis cohérence. */

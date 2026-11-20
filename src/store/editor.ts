@@ -6,6 +6,7 @@ import {
   type PieceProperty,
   type PlanChange,
 } from '../model/edit'
+import { setStockLength } from '../model/purchase'
 import { selectPiece } from '../model/selection'
 import { pieceIds } from '../model/pieces'
 import { setCategoryColor, setPieceColors, type ColorCategory } from '../model/colors'
@@ -46,6 +47,7 @@ export type EditorAction =
   | { type: 'setPieceProperty'; ids: string[]; property: PieceProperty; mm: number }
   | { type: 'setPlanProperty'; change: PlanChange }
   | { type: 'setPlanSize'; width?: number; height?: number }
+  | { type: 'setStockLength'; key: string; mm: number }
   | { type: 'addShelf'; shelfBelowId: string }
   | { type: 'addWedge'; shelfBelowId: string }
   | { type: 'setCategoryColor'; category: ColorCategory; color: string | null }
@@ -159,6 +161,8 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
       return withPlan(setPieceProperty(plan, action.ids, action.property, action.mm))
     case 'setPlanProperty':
       return withPlan(setPlanProperty(plan, action.change))
+    case 'setStockLength':
+      return withPlan(setStockLength(plan, action.key, action.mm))
     case 'setPlanSize':
       return withPlan(setPlanSize(plan, { width: action.width, height: action.height }))
     case 'distributeShelves':

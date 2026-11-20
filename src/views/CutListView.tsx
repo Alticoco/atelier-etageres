@@ -2,14 +2,17 @@ import { computeCutList, describeJoinery, describeRounding } from '../model/cutl
 import { pieceLabel } from '../model/labels'
 import type { Plan } from '../model/types'
 import { formatLength, formatNumber, type LengthUnit } from '../model/units'
+import type { EditorAction } from '../store/editor'
+import { PurchaseSection } from './PurchaseSection'
 
 interface CutListViewProps {
   plan: Plan
   unit?: LengthUnit
+  onChange: (action: EditorAction) => void
 }
 
 /** Liste de découpe : pièces regroupées par dimensions identiques, avec quantité et repère. */
-export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
+export function CutListView({ plan, unit = 'cm', onChange }: CutListViewProps) {
   const { groups, totalPieces, sawKerf, supports, fronts } = computeCutList(plan)
   const hasJoinery = groups.some((g) => g.notches || g.endLeft || g.endRight)
 
@@ -140,6 +143,7 @@ export function CutListView({ plan, unit = 'cm' }: CutListViewProps) {
           (cliquez dans le vide pour les afficher).
         </p>
       )}
+      <PurchaseSection plan={plan} unit={unit} onChange={onChange} />
       <p className="panel-hint">
         Les repères sont reportés sur la vue de face. Longueur = dimension principale de la pièce, largeur = profondeur de l’étagère.
       </p>

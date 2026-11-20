@@ -168,6 +168,8 @@ export interface PlanOptions {
   sawKerfEnabled: boolean
   /** Épaisseur du trait de scie. */
   sawKerf: number
+  /** Longueur des planches du commerce par section « largeurxépaisseur » (mm) ; absent = 2 400 mm. */
+  stockLengths?: Record<string, number>
 }
 
 /**

@@ -312,3 +312,11 @@ Chaque décision : date, choix, raison. On ajoute, on ne réécrit pas (si une d
 - **Pas en vue de profil ni de dessous** (cachées par le montant). En 3D : plaques de façade et une caisse pleine pour le tiroir.
 - Réglage : menu « Contenu de l'étage » (onglet Étages) ou clic droit dans l'étage / sur la porte.
 
+## 2026-11-20 (étape 20 — synthèse d'achat et optimisation 1D)
+
+- **Une planche par section.** Bois massif : les pièces de même section (largeur × épaisseur) sortent d'une même planche de cette section, coupées en longueur. Largeur = la `width` des listes de découpe. Les supports et les portes et tiroirs sont comptés avec l'étagère (ils ont la même forme de planche) ; la colonne « Pièces » indique leur origine en infobulle. Pas de panneau collé ni de quincaillerie.
+- **First Fit Decreasing, rien de plus.** Pièces de la plus longue à la plus courte, chacune dans la première planche où elle tient. Suffisant pour quelques dizaines de pièces ; pas d'amélioration supplémentaire.
+- **Trait de scie** : celui des options du plan s'il est activé, sinon 0. Une planche de n pièces demande somme des longueurs + trait × (n − 1) ≤ longueur de la planche (la coupe côté chute est gratuite si elle tombe au bout) ; la chute affichée déduit n traits de scie.
+- **Pièce plus longue que la planche** : message d'erreur dans la section (« la pièce C (1 850 mm) dépasse la longueur des planches (1 800 mm) »), la pièce n'est pas placée, rien ne plante.
+- **Longueur des planches enregistrée dans le plan** (`options.stockLengths`, facultatif, clés « largeurxépaisseur », entiers de 100 à 6000 mm, 50 clés au plus ; défaut 2 400 mm). Raison : c'est un choix lié à l'achat réel de ce projet, qui doit survivre à l'enregistrement et à l'annulation. Action `setStockLength` (un pas d'historique). Conséquence : `CutListView` reçoit la prop `onChange` (une ligne dans `App.tsx`).
+- **Schéma** en SVG : barre proportionnelle à la longueur de la planche, pièces (repère et longueur) et chute hachurée ; le trait de scie n'est pas dessiné à part.
