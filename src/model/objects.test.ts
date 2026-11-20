@@ -1,9 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { addObjectRow, layoutStage, moveObject, objectIdExists, removeObject, removeObjectRow, setObjectRowCount, setObjectRowGap, stageCapacity } from './objects'
+import {
+  addCustomKind,
+  addObjectRow,
+  fitStageToObjects,
+  layoutStage,
+  MAX_CUSTOM_KINDS,
+  moveObject,
+  objectIdExists,
+  objectLabel,
+  objectsDepthNeeded,
+  orientedSize,
+  remainingCapacity,
+  removeCustomKind,
+  removeObject,
+  removeObjectRow,
+  resolveKind,
+  rowLabel,
+  setObjectRowCount,
+  setObjectRowGap,
+  setObjectRowOrientation,
+  setObjectRowStack,
+  stageCapacity,
+  updateCustomKind,
+  type CustomKindInput,
+} from './objects'
+import { buildScene3D } from './scene3d'
 import { createPlan } from './plan'
 import { getStages } from './pieces'
 import { parsePlan } from './serialize'
 import { removePieces } from './tools'
+import type { Plan } from './types'
 
 // 800 × 1000, 3 étages, montants de 18 : entre les montants = 764 mm.
 const base = () => createPlan({ width: 800, height: 1000, depth: 250, stages: 3, uprightThickness: 18, shelfThickness: 18 })
@@ -151,5 +177,262 @@ describe('objets de simulation', () => {
     if (!moved.ok) throw new Error(moved.error)
     const removed = removePieces(moved.plan, ['shelf-2'])
     expect(removed.ok && removed.plan.placedObjects![0].shelfBelowId).toBe('shelf-1')
+  })
+})
+
+// Boîte à thé de 9 × 18 × 9 cm (largeur × hauteur × profondeur).
+const TEA: CustomKindInput = { label: 'Boîte à thé', width: 90, height: 180, depth: 90 }
+
+/** Plan de base avec la boîte à thé (`custom-1`). */
+function withTea(data: CustomKindInput = TEA): Plan {
+  const r = addCustomKind(base(), data)
+  if (!r.ok) throw new Error(r.error)
+  return r.plan
+}
+
+function stage1(plan: Plan) {
+  return layoutStage(plan, getStages(plan)[0])
+}
+
+function ok<T extends { ok: true } | { ok: false; error: string }>(r: T): Extract<T, { ok: true }> {
+  if (!r.ok) throw new Error((r as { error: string }).error)
+  return r as Extract<T, { ok: true }>
+}
+
+describe('objets sur mesure', () => {
+  it('se crée avec un identifiant custom-N, un nom nettoyé et une couleur en minuscules', () => {
+    const first = ok(addCustomKind(base(), { ...TEA, label: '  Boîte à thé  ', color: '#AA3300' }))
+    expect(first.id).toBe('custom-1')
+    expect(first.plan.customKinds).toEqual([{ id: 'custom-1', label: 'Boîte à thé', width: 90, height: 180, depth: 90, shape: 'box', color: '#aa3300' }])
+    const second = ok(addCustomKind(first.plan, { label: 'Pot', width: 80, height: 120, depth: 80, shape: 'cylinder' }))
+    expect(second.id).toBe('custom-2')
+    expect(resolveKind(second.plan, 'custom-2')).toMatchObject({ label: 'Pot', shape: 'cylinder', round: true, custom: true })
+    expect(resolveKind(second.plan, 'manga')?.label).toBe('Manga')
+    expect(resolveKind(second.plan, 'custom-9')).toBeUndefined()
+    expect(resolveKind(base(), 'custom-1')).toBeUndefined()
+  })
+
+  it('refuse un nom, des dimensions, une forme ou une couleur invalides', () => {
+    const bad: CustomKindInput[] = [
+      { ...TEA, label: '   ' },
+      { ...TEA, label: 'x'.repeat(61) },
+      { ...TEA, width: 0 },
+      { ...TEA, height: 3001 },
+      { ...TEA, depth: 12.5 },
+      { ...TEA, color: 'rouge' },
+      { ...TEA, shape: 'sphere' as 'box' },
+    ]
+    for (const data of bad) expect(addCustomKind(base(), data).ok).toBe(false)
+    expect(addCustomKind(base(), { ...TEA, label: ` ${'x'.repeat(60)} `, width: 3000 }).ok).toBe(true)
+  })
+
+  it(`pas plus de ${MAX_CUSTOM_KINDS} objets sur mesure`, () => {
+    let plan = base()
+    for (let i = 0; i < MAX_CUSTOM_KINDS; i++) plan = ok(addCustomKind(plan, TEA)).plan
+    expect(addCustomKind(plan, TEA)).toEqual({ ok: false, error: `Pas plus de ${MAX_CUSTOM_KINDS} objets sur mesure.` })
+  })
+
+  it('se modifie : les rangées suivent ; couleur null = retirée', () => {
+    const r = ok(addObjectRow(withTea({ ...TEA, color: '#112233' }), 'shelf-1', 'custom-1', 2))
+    const taller = ok(updateCustomKind(r.plan, 'custom-1', { height: 200, color: null, label: 'Thé vert' }))
+    expect(taller.plan.customKinds![0]).toEqual({ id: 'custom-1', label: 'Thé vert', width: 90, height: 200, depth: 90, shape: 'box' })
+    expect(stage1(taller.plan).objects[0]).toMatchObject({ height: 200, kindId: 'custom-1' })
+    expect(stage1(taller.plan).objects[0].color).toBeUndefined()
+    expect(updateCustomKind(r.plan, 'custom-1', { width: -1 }).ok).toBe(false)
+    expect(updateCustomKind(r.plan, 'custom-1', { label: '' }).ok).toBe(false)
+    expect(updateCustomKind(r.plan, 'custom-7', { width: 10 }).ok).toBe(false)
+  })
+
+  it('supprimer un objet sur mesure retire aussi ses rangées et ses objets posés, pas les autres', () => {
+    const tea = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 3))
+    const moved = ok(moveObject(tea.plan, 'obj:row-1:0', 'shelf-2', 100, null))
+    const mangas = ok(addObjectRow(moved.plan, 'shelf-3', 'manga', 2))
+    const removed = ok(removeCustomKind(mangas.plan, 'custom-1'))
+    expect(removed.plan.customKinds).toBeUndefined()
+    expect(removed.plan.placedObjects).toBeUndefined()
+    expect(removed.plan.rows).toEqual([{ id: 'row-2', shelfBelowId: 'shelf-3', kind: 'manga', count: 2 }])
+    expect(removeCustomKind(removed.plan, 'custom-1').ok).toBe(false)
+  })
+
+  it('a son nom dans les libellés', () => {
+    const r = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 3))
+    expect(rowLabel(r.plan.rows![0], r.plan)).toBe('3 boîte à thé')
+    expect(objectLabel(r.plan, 'obj:row-1:0')).toBe('Boîte à thé (étage 1)')
+  })
+
+  it('sa forme et sa couleur sont transmises au dessin', () => {
+    const r = ok(addObjectRow(withTea({ ...TEA, shape: 'cylinder', color: '#00ff00' }), 'shelf-1', 'custom-1', 1))
+    expect(stage1(r.plan).objects[0]).toMatchObject({ shape: 'cylinder', color: '#00ff00', depth: 90, level: 0 })
+  })
+})
+
+describe('sens des objets', () => {
+  it('debout, couché (largeur ↔ hauteur), de face (largeur ↔ profondeur)', () => {
+    const kind = { width: 90, height: 180, depth: 60 }
+    expect(orientedSize(kind, 'standing')).toEqual({ width: 90, height: 180, depth: 60 })
+    expect(orientedSize(kind)).toEqual({ width: 90, height: 180, depth: 60 })
+    expect(orientedSize(kind, 'lying')).toEqual({ width: 180, height: 90, depth: 60 })
+    expect(orientedSize(kind, 'facing')).toEqual({ width: 60, height: 180, depth: 90 })
+  })
+
+  it('une rangée couchée prend la largeur de la hauteur', () => {
+    const r = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 3, 0, { orientation: 'lying' }))
+    expect(r.plan.rows![0].orientation).toBe('lying')
+    const objects = stage1(r.plan).objects
+    expect(objects.map((o) => o.x)).toEqual([18, 198, 378])
+    expect(objects[0]).toMatchObject({ width: 180, height: 90, depth: 90, orientation: 'lying' })
+  })
+
+  it('« de face » compte la profondeur dans la largeur : un manga tourné prend 115 mm', () => {
+    expect(stageCapacity(base(), 'shelf-1', 'manga', 'facing')).toBe(Math.floor(764 / 115))
+    const r = ok(addObjectRow(base(), 'shelf-1', 'manga', 1))
+    const turned = ok(setObjectRowOrientation(r.plan, 'row-1', 'facing'))
+    expect(stage1(turned.plan).objects[0]).toMatchObject({ width: 115, depth: 14 })
+    const back = ok(setObjectRowOrientation(turned.plan, 'row-1', 'standing'))
+    expect(back.plan.rows![0].orientation).toBeUndefined()
+    expect(setObjectRowOrientation(r.plan, 'row-1', 'upside' as 'lying').ok).toBe(false)
+    expect(setObjectRowOrientation(r.plan, 'row-9', 'lying').ok).toBe(false)
+  })
+})
+
+describe('piles d’objets', () => {
+  it('7 boîtes couchées par piles de 3 : 3 piles, la dernière incomplète', () => {
+    const r = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 7, 0, { orientation: 'lying', stack: 3 }))
+    expect(r.plan.rows![0]).toMatchObject({ count: 7, stack: 3 })
+    const layout = stage1(r.plan)
+    expect(layout.objects).toHaveLength(7)
+    expect(layout.objects.map((o) => o.id)).toEqual([0, 1, 2, 3, 4, 5, 6].map((i) => `obj:row-1:${i}`))
+    expect(layout.objects.map((o) => o.x)).toEqual([18, 18, 18, 198, 198, 198, 378])
+    expect(layout.objects.map((o) => o.level)).toEqual([0, 1, 2, 0, 1, 2, 0])
+    expect(layout.objects.map((o) => o.y)).toEqual([18, 108, 198, 18, 108, 198, 18])
+    expect(layout.rows[0]).toMatchObject({ placed: 7, overflow: 0, tooTall: false })
+    // Une pile occupe la largeur d'une seule boîte : la place libre commence après la 3e pile.
+    expect(layout.free[0].from).toBe(558)
+  })
+
+  it('trop haut : une pile pleine qui dépasse l’étage ; seuls les objets qui dépassent sont signalés', () => {
+    const clear = getStages(base())[0].clearHeight
+    // 4 boîtes couchées = 360 mm, plus que l'étage (~309 mm) ; 3 = 270 mm, ça rentre.
+    expect(clear).toBeGreaterThanOrEqual(270)
+    expect(clear).toBeLessThan(360)
+    const r = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 8, 0, { orientation: 'lying', stack: 4 }))
+    const layout = stage1(r.plan)
+    expect(layout.rows[0].tooTall).toBe(true)
+    expect(layout.objects.filter((o) => o.tooTall).map((o) => o.level)).toEqual([3, 3])
+    // Seulement 2 objets : la pile n'en a que 2, elle rentre (on compte min(pile, nombre)).
+    const two = ok(setObjectRowCount(r.plan, 'row-1', 2))
+    expect(stage1(two.plan).rows[0].tooTall).toBe(false)
+  })
+
+  it('la capacité compte des objets : piles × objets par pile', () => {
+    // Manga couché : 175 mm de large, 4 piles dans 764 mm.
+    expect(stageCapacity(base(), 'shelf-1', 'manga', 'lying')).toBe(4)
+    expect(stageCapacity(base(), 'shelf-1', 'manga', 'lying', 3)).toBe(12)
+    expect(stageCapacity(base(), 'shelf-1', 'manga', 'standing', 2)).toBe(108)
+    const fill = ok(addObjectRow(base(), 'shelf-1', 'manga', undefined, 0, { orientation: 'lying', stack: 3 }))
+    expect(fill.plan.rows![0].count).toBe(12)
+    expect(remainingCapacity(fill.plan, 'shelf-1', 'manga')).toBe(Math.floor((764 - 4 * 175) / 14))
+    expect(remainingCapacity(fill.plan, 'shelf-1', 'manga', 0, 'standing', 0)).toBe(0)
+  })
+
+  it('ce qui ne tient pas en largeur déborde, pile par pile', () => {
+    const r = ok(addObjectRow(base(), 'shelf-1', 'manga', 14, 0, { orientation: 'lying', stack: 3 }))
+    expect(stage1(r.plan).rows[0]).toMatchObject({ placed: 12, overflow: 2 })
+  })
+
+  it('changer la pile garde le nombre d’objets ; bornes 1 à 50', () => {
+    const r = ok(addObjectRow(base(), 'shelf-1', 'manga', 6))
+    const stacked = ok(setObjectRowStack(r.plan, 'row-1', 3))
+    expect(stacked.plan.rows![0]).toMatchObject({ count: 6, stack: 3 })
+    expect(stage1(stacked.plan).objects.map((o) => o.x)).toEqual([18, 18, 18, 32, 32, 32])
+    expect(ok(setObjectRowStack(stacked.plan, 'row-1', 1)).plan.rows![0].stack).toBeUndefined()
+    for (const n of [0, 51, 2.5]) expect(setObjectRowStack(r.plan, 'row-1', n).ok).toBe(false)
+    expect(addObjectRow(base(), 'shelf-1', 'manga', 3, 0, { stack: 51 }).ok).toBe(false)
+    expect(setObjectRowStack(r.plan, 'row-9', 2).ok).toBe(false)
+  })
+
+  it('un objet détaché d’une rangée empilée garde son sens et devient seul ; une pile posée reste une pile', () => {
+    const r = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 6, 0, { orientation: 'lying', stack: 3 }))
+    const moved = ok(moveObject(r.plan, 'obj:row-1:4', 'shelf-2', 100, null))
+    expect(moved.plan.rows![0].count).toBe(5)
+    expect(moved.plan.placedObjects).toEqual([{ id: 'placed-1', shelfBelowId: 'shelf-2', kind: 'custom-1', x: 100, orientation: 'lying' }])
+
+    const pile = structuredClone(moved.plan)
+    pile.placedObjects![0].stack = 3
+    const y = getStages(pile)[1].y
+    const drawn = layoutStage(pile, getStages(pile)[1]).objects
+    expect(drawn.map((o) => [o.id, o.y, o.level])).toEqual([
+      ['obj:placed-1', y, 0],
+      ['obj:placed-1', y + 90, 1],
+      ['obj:placed-1', y + 180, 2],
+    ])
+    const again = ok(moveObject(pile, 'obj:placed-1', 'shelf-3', 200, null))
+    expect(again.plan.placedObjects).toEqual([{ id: 'placed-1', shelfBelowId: 'shelf-3', kind: 'custom-1', x: 200, orientation: 'lying', stack: 3 }])
+  })
+})
+
+describe('ajuster l’étage à ses objets', () => {
+  it('hauteur de l’étage = plus haute pile + marge', () => {
+    const r = ok(addObjectRow(withTea(), 'shelf-2', 'custom-1', 4, 0, { stack: 2 }))
+    const withManga = ok(addObjectRow(r.plan, 'shelf-2', 'manga', 3))
+    const fitted = ok(fitStageToObjects(withManga.plan, 'shelf-2', 10))
+    // Pile de 2 boîtes debout : 360 mm, plus 10 mm de marge.
+    expect(getStages(fitted.plan)[1].clearHeight).toBe(370)
+  })
+
+  it('compte un objet posé seul empilé', () => {
+    const r = ok(addObjectRow(withTea(), 'shelf-1', 'custom-1', 1, 0, { orientation: 'lying' }))
+    const moved = ok(moveObject(r.plan, 'obj:row-1:0', 'shelf-2', 100, null))
+    moved.plan.placedObjects![0].stack = 2
+    const fitted = ok(fitStageToObjects(moved.plan, 'shelf-2', 0))
+    expect(getStages(fitted.plan)[1].clearHeight).toBe(180)
+  })
+
+  it('refuse un étage sans objet, une marge invalide, un étage inconnu', () => {
+    expect(fitStageToObjects(base(), 'shelf-1', 10)).toEqual({ ok: false, error: 'Cet étage n’a aucun objet : impossible d’ajuster sa hauteur à ses objets.' })
+    const r = ok(addObjectRow(base(), 'shelf-1', 'manga', 2))
+    expect(fitStageToObjects(r.plan, 'shelf-1', -1).ok).toBe(false)
+    expect(fitStageToObjects(r.plan, 'shelf-9', 10).ok).toBe(false)
+  })
+
+  it('refuse une hauteur impossible (les autres étages n’auraient plus de place)', () => {
+    const r = ok(addObjectRow(withTea({ ...TEA, height: 3000 }), 'shelf-2', 'custom-1', 1))
+    expect(fitStageToObjects(r.plan, 'shelf-2', 0).ok).toBe(false)
+  })
+
+  it('profondeur nécessaire : la plus grande, dans le sens des objets ; 0 sans objet', () => {
+    expect(objectsDepthNeeded(base(), 'shelf-1')).toBe(0)
+    const r = ok(addObjectRow(withTea({ ...TEA, width: 100, depth: 200 }), 'shelf-1', 'custom-1', 1))
+    expect(objectsDepthNeeded(r.plan, 'shelf-1')).toBe(200)
+    const turned = ok(setObjectRowOrientation(r.plan, 'row-1', 'facing'))
+    expect(objectsDepthNeeded(turned.plan, 'shelf-1')).toBe(100)
+    const mangas = ok(addObjectRow(turned.plan, 'shelf-1', 'manga', 1))
+    expect(objectsDepthNeeded(mangas.plan, 'shelf-1')).toBe(115)
+  })
+})
+
+describe('objets sur mesure en 3D', () => {
+  it('une pile : chaque objet à sa hauteur, avec la couleur et le nom de l’objet', () => {
+    const r = ok(addObjectRow(withTea({ ...TEA, color: '#123456' }), 'shelf-1', 'custom-1', 3, 0, { orientation: 'lying', stack: 3 }))
+    const boxes = buildScene3D(r.plan).boxes.filter((b) => b.kind === 'object')
+    expect(boxes.map((b) => b.y)).toEqual([18, 108, 198])
+    expect(boxes[0]).toMatchObject({ shape: 'box', sx: 180, sy: 90, sz: 90, color: '#123456', label: 'Boîte à thé', objectKind: 'custom-1', bad: false })
+  })
+
+  it('un cylindre sur mesure est un cylindre debout ; couché, il est dessiné comme une boîte', () => {
+    const r = ok(addObjectRow(withTea({ ...TEA, shape: 'cylinder' }), 'shelf-1', 'custom-1', 2))
+    const standing = buildScene3D(r.plan).boxes.filter((b) => b.kind === 'object')
+    expect(standing.map((b) => b.shape)).toEqual(['cylinder', 'cylinder'])
+    expect(standing[0].color).toBeUndefined()
+    const lying = ok(setObjectRowOrientation(r.plan, 'row-1', 'lying'))
+    expect(buildScene3D(lying.plan).boxes.filter((b) => b.kind === 'object').map((b) => b.shape)).toEqual(['box', 'box'])
+  })
+
+  it('un objet trop profond dans son sens est signalé', () => {
+    // 100 mm de profondeur debout, 300 mm tourné de face : la tablette fait 250 mm.
+    const r = ok(addObjectRow(withTea({ ...TEA, width: 300, depth: 100 }), 'shelf-1', 'custom-1', 1))
+    expect(buildScene3D(r.plan).boxes.find((b) => b.kind === 'object')!.bad).toBe(false)
+    const turned = ok(setObjectRowOrientation(r.plan, 'row-1', 'facing'))
+    expect(buildScene3D(turned.plan).boxes.find((b) => b.kind === 'object')).toMatchObject({ bad: true, sz: 300 })
   })
 })

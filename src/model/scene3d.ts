@@ -2,7 +2,7 @@ import { effectiveColor } from './colors'
 import { computeFrontRects } from './layout'
 import { drawerBox, frontRects, DRAWER_REAR_GAP, SLIDE_GAP } from './fronts'
 import { innerSpan } from './geometry'
-import { layoutStage, objectKind } from './objects'
+import { layoutStage, resolveKind } from './objects'
 import { getStages } from './pieces'
 import type { Plan } from './types'
 
@@ -32,8 +32,13 @@ export interface Box3D {
   bad?: boolean
   /** Type d'objet de simulation (couleur). */
   objectKind?: string
-  /** Couleur `#rrggbb` choisie ou par défaut (pièces, supports et mur ; pas les objets). */
+  /**
+   * Couleur `#rrggbb` choisie ou par défaut (pièces, supports et mur). Objets : seulement la couleur d'un objet sur
+   * mesure, s'il en a une (sinon la vue choisit selon `objectKind`).
+   */
   color?: string
+  /** Nom de l'objet de simulation. */
+  label?: string
 }
 
 export interface Scene3D {
@@ -82,21 +87,25 @@ export function buildScene3D(plan: Plan, options: { objects?: boolean; supports?
     for (const stage of getStages(plan)) {
       const shelfDepth = shelves.get(stage.shelfBelowId)?.depth ?? 0
       for (const o of layoutStage(plan, stage).objects) {
-        const kind = objectKind(o.kindId)
+        const kind = resolveKind(plan, o.kindId)
         if (!kind) continue
         boxes.push({
           id: o.id,
           kind: 'object',
-          shape: kind.round ? 'cylinder' : 'box',
+          // Un cylindre couché est dessiné comme une boîte (la vue 3D ne dessine que des cylindres debout).
+          shape: o.shape === 'cylinder' && o.orientation !== 'lying' ? 'cylinder' : 'box',
           x: o.x,
+          // Dessous de l'objet, pile comprise.
           y: o.y,
           // Contre le fond de l'étage ; un objet plus profond que la tablette dépasse devant.
           z: 0,
           sx: o.width,
           sy: o.height,
-          sz: kind.depth,
-          bad: o.tooTall || o.tooDeep || kind.depth > shelfDepth,
+          sz: o.depth,
+          bad: o.tooTall || o.tooDeep || o.depth > shelfDepth,
           objectKind: kind.id,
+          label: kind.label,
+          ...(o.color ? { color: o.color } : {}),
         })
       }
     }

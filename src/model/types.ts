@@ -77,16 +77,45 @@ export interface Wedge {
   edgeRadius: number
 }
 
+/**
+ * Objet de simulation créé par l'utilisateur (ex. une boîte à thé de 9 × 18 × 9 cm). Mêmes conventions que les objets
+ * du catalogue : `width` = largeur vue de face (rangé debout), `height` = hauteur, `depth` = profondeur.
+ */
+export interface CustomObjectKind {
+  /** `custom-1`, `custom-2`… */
+  id: string
+  label: string
+  width: number
+  height: number
+  depth: number
+  shape: 'box' | 'cylinder'
+  /** Couleur `#rrggbb` ; absente = couleur par défaut des objets. */
+  color?: string
+}
+
+/**
+ * Sens d'un objet dans l'étage.
+ * - `standing` : debout, dimensions telles quelles ;
+ * - `lying` : couché sur le côté (largeur et hauteur échangées) ;
+ * - `facing` : tourné d'un quart de tour (largeur et profondeur échangées).
+ */
+export type ObjectOrientation = 'standing' | 'lying' | 'facing'
+
 /** Rangée d'objets de simulation (mangas, livres, bocaux…) posée dans un étage. N'a aucun effet sur les pièces de bois. */
 export interface ObjectRow {
   id: string
   /** Tablette située sous l'étage. */
   shelfBelowId: string
-  /** Identifiant du type d'objet (voir `OBJECT_KINDS`). */
+  /** Identifiant du type d'objet (voir `OBJECT_KINDS`, ou un objet sur mesure `custom-N`). */
   kind: string
+  /** Nombre total d'objets de la rangée (toutes piles confondues). */
   count: number
   /** Espace entre deux objets de la rangée (mm, 0 = collés). Absent = 0. */
   gap?: number
+  /** Sens des objets. Absent = debout. */
+  orientation?: ObjectOrientation
+  /** Objets par pile (1 à 50). Absent = 1 (pas d'empilement). */
+  stack?: number
 }
 
 /** Objet de simulation détaché d'une rangée : posé à une position précise dans un étage. */
@@ -96,6 +125,10 @@ export interface PlacedObject {
   kind: string
   /** Bord gauche, depuis le bord gauche hors-tout. */
   x: number
+  /** Sens de l'objet. Absent = debout. */
+  orientation?: ObjectOrientation
+  /** Pile de N objets identiques posée à cet endroit. Absent = 1. */
+  stack?: number
 }
 
 /**
@@ -195,6 +228,8 @@ export interface Plan {
   rightUpright: Upright
   shelves: Shelf[]
   wedges: Wedge[]
+  /** Objets de simulation créés par l'utilisateur, absents s'il n'y en a pas. */
+  customKinds?: CustomObjectKind[]
   /** Objets de simulation, absent s'il n'y en a pas. */
   rows?: ObjectRow[]
   /** Objets de simulation posés un par un (détachés d'une rangée), absents s'il n'y en a pas. */

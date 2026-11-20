@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { OBJECT_KINDS, isObjectId, layoutStage, objectKind, objectLabel, remainingCapacity, rowLabel, setObjectRowGap } from '../model/objects'
+import { OBJECT_KINDS, isObjectId, layoutStage, objectLabel, remainingCapacity, resolveKind, rowLabel, setObjectRowGap } from '../model/objects'
 import { getStages } from '../model/pieces'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
@@ -19,8 +19,8 @@ interface ObjectsSectionProps {
 }
 
 /** Bouton « i » qui ouvre ou ferme la fiche d'un objet. */
-function InfoButton({ kindId, open, onToggle }: { kindId: string; open: boolean; onToggle: () => void }) {
-  const label = objectKind(kindId)?.label ?? 'objet'
+function InfoButton({ plan, kindId, open, onToggle }: { plan: Plan; kindId: string; open: boolean; onToggle: () => void }) {
+  const label = resolveKind(plan, kindId)?.label ?? 'objet'
   return (
     <button type="button" className="info-button" aria-expanded={open} aria-label={`Informations : ${label}`} title="Informations sur l’objet" onClick={onToggle}>
       i
@@ -29,8 +29,8 @@ function InfoButton({ kindId, open, onToggle }: { kindId: string; open: boolean;
 }
 
 /** Fiche d'un objet : ses dimensions et ce qu'il faut pour le ranger. */
-function InfoCard({ kindId, unit }: { kindId: string; unit: LengthUnit }) {
-  const kind = objectKind(kindId)
+function InfoCard({ plan, kindId, unit }: { plan: Plan; kindId: string; unit: LengthUnit }) {
+  const kind = resolveKind(plan, kindId)
   if (!kind) return null
   return (
     <div className="info-card" role="note">
@@ -66,7 +66,7 @@ export function ObjectsSection({ plan, form, onForm, selection = [], unit, dispa
   const [infoKind, setInfoKind] = useState<string | null>(null)
   const toggleInfo = (id: string) => setInfoKind((current) => (current === id ? null : id))
   const stageId = stages.some((s) => s.shelfBelowId === form.stage) ? form.stage : stages[0]?.shelfBelowId
-  const kind = objectKind(kindId)
+  const kind = resolveKind(plan, kindId)
   const room = stageId ? remainingCapacity(plan, stageId, kindId, gapMm) : 0
   const layouts = new Map(stages.map((s, i) => [s.shelfBelowId, { index: i + 1, layout: layoutStage(plan, s) }]))
   const rows = plan.rows ?? []
@@ -104,9 +104,9 @@ export function ObjectsSection({ plan, form, onForm, selection = [], unit, dispa
             ))}
           </select>
         </label>
-        <InfoButton kindId={kindId} open={infoKind === kindId} onToggle={() => toggleInfo(kindId)} />
+        <InfoButton plan={plan} kindId={kindId} open={infoKind === kindId} onToggle={() => toggleInfo(kindId)} />
       </div>
-      {infoKind !== null && <InfoCard kindId={infoKind} unit={unit} />}
+      {infoKind !== null && <InfoCard plan={plan} kindId={infoKind} unit={unit} />}
       <div className="field">
         <label>
           Quantité
@@ -160,12 +160,12 @@ export function ObjectsSection({ plan, form, onForm, selection = [], unit, dispa
             return (
               <li key={row.id}>
                 <span>
-                  Étage {info?.index ?? '?'} : {rowLabel(row)}
+                  Étage {info?.index ?? '?'} : {rowLabel(row, plan)}
                   {status && status.overflow > 0 && <small className="field-error"> — {status.overflow} sans place</small>}
                   {status?.tooTall && <small className="field-error"> — plus haut que l’étage</small>}
                   {status?.tooDeep && <small className="field-error"> — plus profond que la tablette</small>}
                 </span>
-                <InfoButton kindId={row.kind} open={infoKind === row.kind} onToggle={() => toggleInfo(row.kind)} />
+                <InfoButton plan={plan} kindId={row.kind} open={infoKind === row.kind} onToggle={() => toggleInfo(row.kind)} />
                 <button type="button" onClick={() => dispatch({ type: 'setObjectRowCount', rowId: row.id, count: row.count + 1 })} aria-label="Ajouter un objet">
                   +
                 </button>

@@ -12,9 +12,24 @@ import { setCategoryColor, setPieceColors, type ColorCategory } from '../model/c
 import { setFront } from '../model/frontEdit'
 import { moveUpright, setJoint } from '../model/jointEdit'
 import type { Side } from '../model/joints'
-import type { Joint, StageFront } from '../model/types'
+import type { Joint, ObjectOrientation, StageFront } from '../model/types'
 import { addSupport, alignSupportFront, duplicateSupport, moveSupport, setSupportProperty, type SupportPlacement, type SupportProperty } from '../model/supports'
-import { addObjectRow, moveObject, objectIdExists, removeObjectRow, setObjectRowCount, setObjectRowGap } from '../model/objects'
+import {
+  addCustomKind,
+  addObjectRow,
+  fitStageToObjects,
+  moveObject,
+  objectIdExists,
+  removeCustomKind,
+  removeObjectRow,
+  setObjectRowCount,
+  setObjectRowGap,
+  setObjectRowOrientation,
+  setObjectRowStack,
+  updateCustomKind,
+  type CustomKindInput,
+  type CustomKindPatch,
+} from '../model/objects'
 import { addShelf, addWedge, copyStageWedges, setStageCount, setStageHeight, distributeShelves, moveWedge, removePieces, setVertical, type AddResult } from '../model/tools'
 import type { Plan } from '../model/types'
 import type { LengthUnit } from '../model/units'
@@ -61,7 +76,13 @@ export type EditorAction =
   | { type: 'alignSupportFront'; id: string }
   | { type: 'duplicateSupport'; id: string; mode: 'next' | 'mirror' }
   | { type: 'moveSupport'; id: string; x?: number; y?: number; z?: number }
-  | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number; gap?: number }
+  | { type: 'addObjectRow'; shelfBelowId: string; kind: string; count?: number; gap?: number; orientation?: ObjectOrientation; stack?: number }
+  | { type: 'setObjectRowOrientation'; rowId: string; orientation: ObjectOrientation }
+  | { type: 'setObjectRowStack'; rowId: string; stack: number }
+  | { type: 'addCustomKind'; data: CustomKindInput }
+  | { type: 'updateCustomKind'; id: string; patch: CustomKindPatch }
+  | { type: 'removeCustomKind'; id: string }
+  | { type: 'fitStageToObjects'; shelfBelowId: string; margin: number }
   | { type: 'setObjectRowCount'; rowId: string; count: number }
   | { type: 'setObjectRowGap'; rowId: string; gap: number }
   | { type: 'moveObject'; id: string; shelfBelowId: string; x: number }
@@ -201,9 +222,28 @@ export function applyAction(state: EditorState, action: EditorAction): ActionOut
     case 'alignSupportFront':
       return withPlan(alignSupportFront(plan, action.id))
     case 'addObjectRow': {
-      const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count, action.gap)
+      const result = addObjectRow(plan, action.shelfBelowId, action.kind, action.count, action.gap, { orientation: action.orientation, stack: action.stack })
       return result.ok ? commit(result.plan) : refused(result.error)
     }
+    case 'setObjectRowOrientation':
+      return withPlan(setObjectRowOrientation(plan, action.rowId, action.orientation))
+    case 'setObjectRowStack':
+      return withPlan(setObjectRowStack(plan, action.rowId, action.stack))
+    case 'addCustomKind': {
+      // Comme `addObjectRow` : la sélection ne change pas ; le nouvel objet est le dernier de `plan.customKinds`.
+      const result = addCustomKind(plan, action.data)
+      return result.ok ? commit(result.plan) : refused(result.error)
+    }
+    case 'updateCustomKind':
+      return withPlan(updateCustomKind(plan, action.id, action.patch))
+    case 'removeCustomKind': {
+      // Les objets qui l'utilisaient disparaissent : on les retire de la sélection.
+      const result = removeCustomKind(plan, action.id)
+      if (!result.ok) return refused(result.error)
+      return commit(result.plan, existingOnly(state.selection, result.plan))
+    }
+    case 'fitStageToObjects':
+      return withPlan(fitStageToObjects(plan, action.shelfBelowId, action.margin))
     case 'setObjectRowGap':
       return withPlan(setObjectRowGap(plan, action.rowId, action.gap))
     case 'moveObject': {

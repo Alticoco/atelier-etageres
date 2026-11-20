@@ -8,5 +8,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
+    // Les copies de travail des agents (.claude/worktrees) ne doivent pas être testées avec le projet.
+    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
   },
 })

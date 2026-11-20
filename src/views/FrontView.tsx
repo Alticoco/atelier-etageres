@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { computeCutList } from '../model/cutlist'
-import { isObjectId, layoutStage, objectKind } from '../model/objects'
+import { isObjectId, layoutStage, resolveKind } from '../model/objects'
 import { frontRects } from '../model/fronts'
 import { supportOverflow } from '../model/supports'
 import { useSupportDrag } from './useSupportDrag'
@@ -332,7 +332,7 @@ export function FrontView({
                   y={H - o.y - o.height}
                   width={o.width}
                   height={o.height}
-                  rx={objectKind(o.kindId)?.round ? o.width / 3 : 0}
+                  rx={resolveKind(shown, o.kindId)?.round ? o.width / 3 : 0}
                   vectorEffect="non-scaling-stroke"
                 />
               )),
