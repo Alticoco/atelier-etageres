@@ -200,13 +200,31 @@ export function moveSupport(plan: Plan, id: string, to: { x?: number; y?: number
   return finish(next)
 }
 
-/** Distance (mm) en dessous de laquelle un support s'aimante contre l'avant, le mur ou le dessous de l'étagère. */
+/** Distance (mm) en dessous de laquelle un support s'aimante contre l'avant, le mur, le dessous de l'étagère ou un autre support. */
 export const SUPPORT_MAGNET_MM = 10
+
+/** Valeur de `magnets` la plus proche de `value`, à moins de `SUPPORT_MAGNET_MM`, ou null. */
+function nearestMagnet(magnets: number[], value: number): number | null {
+  let best: number | null = null
+  for (const m of magnets) {
+    if (Math.abs(m - value) <= SUPPORT_MAGNET_MM && (best === null || Math.abs(m - value) < Math.abs(best - value))) best = m
+  }
+  return best
+}
+
+/**
+ * Positions où un support de taille `size` s'aimante contre les autres supports, dans un sens (x, y ou z) :
+ * bords alignés (même début, même fin) et collés l'un à l'autre (de chaque côté).
+ */
+function supportMagnets(others: { start: number; size: number }[], size: number): number[] {
+  return others.flatMap((o) => [o.start, o.start + o.size - size, o.start + o.size, o.start - size])
+}
 
 /**
  * Plan avec le support amené vers la position demandée (mm, non arrondie) : position arrondie au pas, puis
- * aimantée contre le mur (recul 0), contre l'avant de l'étagère, ou sous l'étagère (dessus du support au niveau du
- * dessous du cadre). `step` null = pas d'arrondi ni d'aimantation (mm entier).
+ * aimantée contre le mur (recul 0), contre l'avant de l'étagère, sous l'étagère (dessus du support au niveau du
+ * dessous du cadre), contre les bords de l'étagère ou contre un autre support (bords alignés, collés côte à côte ou
+ * l'un sur l'autre). Les repères (milieu, tiers…) l'emportent. `step` null = pas d'arrondi ni d'aimantation (mm entier).
  */
 export function dragSupport(plan: Plan, id: string, raw: { x?: number; y?: number; z?: number }, step: number | null): Plan {
   const support = plan.supports?.find((s) => s.id === id)
@@ -219,18 +237,25 @@ export function dragSupport(plan: Plan, id: string, raw: { x?: number; y?: numbe
 
   if (step !== null) {
     const front = frontDepth(plan)
+    const others = (plan.supports ?? []).filter((s) => s.id !== id)
     if (to.z !== undefined) {
       const zGuide = raw.z === undefined ? null : nearestGuide(supportZGuides(support, front), raw.z)
+      const magnet = nearestMagnet(
+        [0, front - support.depth, ...supportMagnets(others.map((o) => ({ start: o.z, size: o.depth })), support.depth)],
+        to.z,
+      )
       if (zGuide) to.z = Math.max(0, zGuide.pos)
-      else if (Math.abs(to.z) <= SUPPORT_MAGNET_MM) to.z = 0
-      else if (Math.abs(to.z + support.depth - front) <= SUPPORT_MAGNET_MM) to.z = Math.max(0, front - support.depth)
+      else if (magnet !== null) to.z = Math.max(0, magnet)
     }
-    if (to.y !== undefined && Math.abs(to.y + support.height) <= SUPPORT_MAGNET_MM) to.y = -support.height
+    if (to.y !== undefined) {
+      const magnet = nearestMagnet([-support.height, ...supportMagnets(others.map((o) => ({ start: o.y, size: o.height })), support.height)], to.y)
+      if (magnet !== null) to.y = magnet
+    }
     if (to.x !== undefined) {
       const xGuide = raw.x === undefined ? null : nearestGuide(supportXGuides(plan, id), raw.x)
+      const magnet = nearestMagnet([0, plan.width - support.width, ...supportMagnets(others.map((o) => ({ start: o.x, size: o.width })), support.width)], to.x)
       if (xGuide) to.x = xGuide.pos
-      else if (Math.abs(to.x) <= SUPPORT_MAGNET_MM) to.x = 0
-      else if (Math.abs(to.x + support.width - plan.width) <= SUPPORT_MAGNET_MM) to.x = plan.width - support.width
+      else if (magnet !== null) to.x = magnet
     }
   }
   const result = moveSupport(plan, id, to)
