@@ -1,5 +1,6 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, decodePDFRawStream } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
+import { addObjectRow } from '../model/objects'
 import { createPlan } from '../model/plan'
 import { FILE_FORMAT, serializePlan } from '../model/serialize'
 import { addShelf, addWedge } from '../model/tools'
@@ -222,5 +223,28 @@ describe('arrondis dans le PDF', () => {
     rounded.shelves.forEach((s) => (s.cornerRadius = 9))
     const plain = await curves(plan())
     expect(await curves(rounded)).toBeGreaterThan(plain)
+  })
+})
+
+describe('objets rangés dans le PDF', () => {
+  const stocked = () => {
+    const r = addObjectRow(plan(), 'shelf-1', 'manga', 10)
+    if (!r.ok) throw new Error(r.error)
+    return r.plan
+  }
+
+  it('le plan joint contient les objets, avec ou sans l’option', async () => {
+    const p = stocked()
+    for (const objects of [false, true]) {
+      const back = await readPlanFromPdf(await buildPlanPdf(p, { date: DATE, objects }))
+      if (!back.ok) throw new Error(back.error)
+      expect(back.plan.rows).toEqual(p.rows)
+    }
+  })
+
+  it('l’option ajoute le dessin des objets au PDF', async () => {
+    const without = await buildPlanPdf(stocked(), { date: DATE })
+    const withOption = await buildPlanPdf(stocked(), { date: DATE, objects: true })
+    expect(withOption.length).toBeGreaterThan(without.length)
   })
 })

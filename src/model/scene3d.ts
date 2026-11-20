@@ -20,6 +20,8 @@ export interface Box3D {
   kind: Box3DKind
   /** Cylindre (bocal) : sinon boîte. */
   shape: 'box' | 'cylinder'
+  /** Axe d'un cylindre : `y` (debout, par défaut) ou `x` (couché sur le côté : sa longueur est `sx`). */
+  axis?: 'x' | 'y'
   /** Coin minimal. */
   x: number
   y: number
@@ -39,6 +41,26 @@ export interface Box3D {
   color?: string
   /** Nom de l'objet de simulation. */
   label?: string
+  /** Objet sur mesure (la vue y écrit son nom ; pas sur les objets du catalogue). */
+  custom?: boolean
+}
+
+/** Couleur de texte lisible sur un fond `#rrggbb` : sombre sur fond clair, claire sur fond sombre. */
+export function labelTextColor(background: string): string {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(background)
+  if (!m) return '#222222'
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16))
+  return 0.299 * r + 0.587 * g + 0.114 * b < 140 ? '#ffffff' : '#222222'
+}
+
+/** Largeur minimale (mm) de la face avant d'un objet sur mesure pour qu'on y écrive son nom. */
+export const LABEL_MIN_WIDTH_MM = 40
+/** Hauteur minimale (mm) de la face avant pour qu'on y écrive le nom. */
+export const LABEL_MIN_HEIGHT_MM = 15
+
+/** Le nom de cet objet s'écrit-il sur sa face avant ? Objet sur mesure dont la face avant est assez grande. */
+export function showsLabel(box: Box3D): boolean {
+  return box.kind === 'object' && box.custom === true && Boolean(box.label) && box.sx >= LABEL_MIN_WIDTH_MM && box.sy >= LABEL_MIN_HEIGHT_MM
 }
 
 export interface Scene3D {
@@ -92,8 +114,9 @@ export function buildScene3D(plan: Plan, options: { objects?: boolean; supports?
         boxes.push({
           id: o.id,
           kind: 'object',
-          // Un cylindre couché est dessiné comme une boîte (la vue 3D ne dessine que des cylindres debout).
-          shape: o.shape === 'cylinder' && o.orientation !== 'lying' ? 'cylinder' : 'box',
+          shape: o.shape,
+          // Couché, un cylindre a son axe dans le sens de la largeur ; de face (quart de tour), il reste debout.
+          ...(o.shape === 'cylinder' ? { axis: o.orientation === 'lying' ? ('x' as const) : ('y' as const) } : {}),
           x: o.x,
           // Dessous de l'objet, pile comprise.
           y: o.y,
@@ -105,6 +128,7 @@ export function buildScene3D(plan: Plan, options: { objects?: boolean; supports?
           bad: o.tooTall || o.tooDeep || o.depth > shelfDepth,
           objectKind: kind.id,
           label: kind.label,
+          ...(kind.custom ? { custom: true } : {}),
           ...(o.color ? { color: o.color } : {}),
         })
       }

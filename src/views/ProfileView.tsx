@@ -4,6 +4,7 @@ import { supportOverflow } from '../model/supports'
 import { useSupportDrag } from './useSupportDrag'
 import { getStages, sortedShelves } from '../model/pieces'
 import { computeProfileRects, profileSize } from '../model/profile'
+import { computeProfileObjects } from '../model/profileObjects'
 import { pickProfilePiece } from '../model/profilePick'
 import type { Plan } from '../model/types'
 import { formatLength, type LengthUnit } from '../model/units'
@@ -86,6 +87,7 @@ export function ProfileView({
   const visible = rects.filter((r) => !r.hidden)
   const hidden = rects.filter((r) => r.hidden)
   const stages = getStages(shown)
+  const profileObjects = computeProfileObjects(shown)
   const dimOffset = DIM_OFFSET_PX * s
   const wall = WALL_PX * s
   const hs = HANDLE_PX * s
@@ -238,6 +240,22 @@ export function ProfileView({
           {hidden.map((r) => (
             <rect key={r.id} {...rectProps(r)} />
           ))}
+
+          {/* Objets rangés, vus de côté : un rectangle par (étage, type, sens, niveau), semi-transparent, non cliquable. */}
+          <g className="profile-objects" pointerEvents="none">
+            {profileObjects.map((o) => (
+              <rect
+                key={o.key}
+                className={`object object-${o.kindId}${o.bad ? ' object-bad' : ''}`}
+                x={o.z}
+                y={height - o.y - o.height}
+                width={o.depth}
+                height={o.height}
+                style={{ ...(o.color ? { fill: o.color } : {}), opacity: 0.6 }}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </g>
 
           {(shown.supports ?? []).map((sp) => (
             <rect

@@ -419,13 +419,15 @@ describe('objets sur mesure en 3D', () => {
     expect(boxes[0]).toMatchObject({ shape: 'box', sx: 180, sy: 90, sz: 90, color: '#123456', label: 'Boîte à thé', objectKind: 'custom-1', bad: false })
   })
 
-  it('un cylindre sur mesure est un cylindre debout ; couché, il est dessiné comme une boîte', () => {
+  it('un cylindre sur mesure est un cylindre debout ; couché, c’est un cylindre d’axe horizontal', () => {
     const r = ok(addObjectRow(withTea({ ...TEA, shape: 'cylinder' }), 'shelf-1', 'custom-1', 2))
     const standing = buildScene3D(r.plan).boxes.filter((b) => b.kind === 'object')
     expect(standing.map((b) => b.shape)).toEqual(['cylinder', 'cylinder'])
     expect(standing[0].color).toBeUndefined()
     const lying = ok(setObjectRowOrientation(r.plan, 'row-1', 'lying'))
-    expect(buildScene3D(lying.plan).boxes.filter((b) => b.kind === 'object').map((b) => b.shape)).toEqual(['box', 'box'])
+    const lyingBoxes = buildScene3D(lying.plan).boxes.filter((b) => b.kind === 'object')
+    expect(lyingBoxes.map((b) => b.shape)).toEqual(['cylinder', 'cylinder'])
+    expect(lyingBoxes.map((b) => b.axis)).toEqual(['x', 'x'])
   })
 
   it('un objet trop profond dans son sens est signalé', () => {

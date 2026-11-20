@@ -9,10 +9,24 @@ interface ExportMenuProps {
   hasSupports?: boolean
   pdfSupports?: boolean
   onPdfSupportsChange?: (value: boolean) => void
+  /** Le plan a des objets rangés : l'option « objets rangés sur le plan PDF » est proposée. */
+  hasObjects?: boolean
+  pdfObjects?: boolean
+  onPdfObjectsChange?: (value: boolean) => void
 }
 
 /** Menu « Exporter » : plan PDF imprimable, ou fichier de sauvegarde `.etagere.json`. */
-export function ExportMenu({ onPdf, onJson, busy = false, hasSupports = false, pdfSupports = true, onPdfSupportsChange }: ExportMenuProps) {
+export function ExportMenu({
+  onPdf,
+  onJson,
+  busy = false,
+  hasSupports = false,
+  pdfSupports = true,
+  onPdfSupportsChange,
+  hasObjects = false,
+  pdfObjects = false,
+  onPdfObjectsChange,
+}: ExportMenuProps) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -60,6 +74,15 @@ export function ExportMenu({ onPdf, onJson, busy = false, hasSupports = false, p
               <span>
                 Supports sur le plan PDF
                 <small>en tireté, avec leurs repères S1, S2… et leur liste</small>
+              </span>
+            </label>
+          )}
+          {hasObjects && (
+            <label className="export-option">
+              <input type="checkbox" checked={pdfObjects} onChange={(e) => onPdfObjectsChange?.(e.target.checked)} />
+              <span>
+                Objets rangés sur le plan
+                <small>contour gris en vue de face, et leur résumé sous la liste</small>
               </span>
             </label>
           )}
